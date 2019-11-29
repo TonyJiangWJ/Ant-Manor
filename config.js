@@ -1,10 +1,12 @@
+/*
+ * @Author: TonyJiangWJ
+ * @Date: 2019-11-27 09:03:57
+ * @Last Modified by: TonyJiangWJ
+ * @Last Modified time: 2019-11-29 17:44:58
+ * @Description: 
+ */
 // 执行配置
 var default_config = {
-  password: '',
-  // 是否显示调试日志信息
-  show_debug_log: false,
-  // 是否toast调试日志
-  toast_debug_info: false,
   timeout_existing: 6000,
   timeout_findOne: 1000,
   timeout_unlock: 1000
@@ -13,8 +15,14 @@ var default_config = {
  * 非可视化控制的配置 通过手动修改config.js来实现配置
  */
 let no_gui_config = {
+  password: '',
+  // 是否显示调试日志信息
+  show_debug_log: true,
+  // 是否toast调试日志
+  toast_debug_info: false,
   saveLogFile: true,
-  fuck_miui11: false
+  // 完成后通过手势kill支付宝应用，目前只支持MIUI全面屏手势 默认关闭
+  killAppWithGesture: false
 }
 
 // UI配置

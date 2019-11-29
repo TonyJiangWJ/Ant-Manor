@@ -1,15 +1,39 @@
 importClass(android.content.Context)
 importClass(android.provider.Settings)
 let {
-  logInfo
-} = require('../lib/LogUtils.js')
+  _logInfo, _debugInfo, _warnInfo, _infoLog, _errorInfo
+} = typeof logInfo === 'undefined' ? (() => {
+  let { logInfo, debugInfo, warnInfo, infoLog, errorInfo } = require('../lib/LogUtils.js')
+  debugInfo('Runner重新载入日志方法')
+  return {
+    _logInfo: logInfo,
+    _debugInfo: debugInfo,
+    _warnInfo: warnInfo,
+    _infoLog: infoLog,
+    _errorInfo: errorInfo
+  }
+})() : {
+      _logInfo: logInfo,
+      _debugInfo: debugInfo,
+      _warnInfo: warnInfo,
+      _infoLog: infoLog,
+      _errorInfo: errorInfo
+    }
 let _commonFunctions = typeof commonFunctions === 'undefined' ?
   (() => {
+    _debugInfo('Runner重新载入commonFunctions')
     let { commonFunctions } = require('../lib/CommonFunction.js')
     return commonFunctions
   })() : commonFunctions
 
-const chick_config = {
+const WIDTH = device.width
+const HEIGHT = device.height
+
+const widthRate = WIDTH / 1080
+const heightRate = HEIGHT / 2160
+
+
+const default_chick_config = {
   CHECK_APP_COLOR: '#f1381a',
   CHECK_FRIENDS_COLOR: '#429beb',
   THIEF_COLOR: '#000000',
@@ -27,15 +51,42 @@ const chick_config = {
   LEFT_THIEF_REGION: [380, 1500, 50, 50],
   LEFT_PUNCH_REGION: [500, 1350, 100, 100],
   RIGHT_THIEF_REGION: [860, 1540, 100, 100],
-  RIGHT_PUNCH_REGION: [830, 1500, 50, 50],
+  RIGHT_PUNCH_REGION: [980, 1350, 100, 100],
   DISMISS_REGION: [450, 1890, 10, 10],
-  FOOD_REGION: [810, 1630, 50, 50],
+  FOOD_REGION: [850, 1700, 10, 10],
   FEED_POSITION: {
     x: 930,
     y: 1960
   }
 }
-function Demo () {
+let chick_config = {}
+Object.keys(default_chick_config).forEach(key => {
+  let val = default_chick_config[key]
+  if (typeof val === 'undefined') {
+    return
+  }
+  if (typeof val === 'string') {
+    chick_config[key] = val
+  } else if (Object.prototype.toString.call(val) === '[object Array]') {
+    let newArrayConfig = [
+      parseInt(val[0] * widthRate),
+      parseInt(val[1] * heightRate),
+      parseInt(val[2] * widthRate),
+      parseInt(val[3] * heightRate)
+    ]
+    chick_config[key] = newArrayConfig
+  } else if (key === 'FEED_POSITION') {
+    chick_config[key] = {
+      x: parseInt(val.x * widthRate),
+      y: parseInt(val.y * heightRate)
+    }
+  } else {
+    chick_config[key] = val
+  }
+})
+console.verbose('转换后配置：' + JSON.stringify(chick_config))
+
+function AntManorRunner () {
 
   this.floatyWindow = null
   this.floatyLock = null
@@ -109,7 +160,7 @@ function Demo () {
         _this.floatyWindow.setPosition(parseInt(position.x), parseInt(position.y))
       }
       if (text) {
-        logInfo(text)
+        _debugInfo(text + (position ? ' p:' + JSON.stringify(position) : ''))
         _this.floatyWindow.content.text(text)
       }
       _this.floatyLock.unlock()
@@ -126,13 +177,13 @@ function Demo () {
     this.waitForOwn()
   }
 
-  this.waitFor = function(color, region, threshold) {
+  this.waitFor = function (color, region, threshold) {
     let img = null
     let findColor = null
     let timeoutCount = 20
     do {
       sleep(400)
-      img = captureScreen()
+      img = _commonFunctions.checkCaptureScreenPermission()
       findColor = images.findColor(img, color, {
         region: region,
         threshold: threshold || 4
@@ -141,17 +192,25 @@ function Demo () {
     return findColor
   }
 
+  this.killAndRestart = function () {
+    _commonFunctions.killCurrentApp()
+    _commonFunctions.setUpAutoStart(1)
+    _runningQueueDispatcher.removeRunningTask()
+    exit()
+  }
+
   this.waitForOwn = function () {
-   let findColor = this.waitFor(chick_config.CHECK_APP_COLOR, chick_config.CHECK_APP_REGION)
+    let findColor = this.waitFor(chick_config.CHECK_APP_COLOR, chick_config.CHECK_APP_REGION)
     if (findColor) {
       this.setFloatyInfo(null, '进入个人鸡鸡页面成功')
       return true
     } else {
       this.setFloatyTextColor('#ff0000')
       this.setFloatyInfo(null, '进入个人鸡鸡页面失败，检测超时')
-      return false
+      this.killAndRestart()
     }
   }
+
 
   this.waitForFriends = function () {
     let findColor = this.waitFor(chick_config.CHECK_APP_COLOR, chick_config.CHECK_APP_REGION)
@@ -161,7 +220,7 @@ function Demo () {
     } else {
       this.setFloatyTextColor('#ff0000')
       this.setFloatyInfo(null, '进入好友鸡鸡页面失败，检测超时')
-      return false
+      this.killAndRestart()
     }
   }
 
@@ -176,7 +235,7 @@ function Demo () {
   }
 
   this.checkIsOut = function () {
-    let img = captureScreen()
+    let img = _commonFunctions.checkCaptureScreenPermission()
     let findColor = images.findColor(img, chick_config.OUT_COLOR, {
       region: chick_config.OUT_REGION,
       threshold: 10
@@ -189,7 +248,7 @@ function Demo () {
       sleep(1000)
       this.waitForFriends()
       sleep(1000)
-      img = captureScreen()
+      img = _commonFunctions.checkCaptureScreenPermission()
       findColor = images.findColor(img, chick_config.OUT_IN_FRIENDS_COLOR, {
         region: chick_config.OUT_IN_FRIENDS_REGION_LEFT,
         threshold: 10
@@ -204,8 +263,8 @@ function Demo () {
       if (findColor) {
         this.setFloatyInfo(findColor, '找到了我的小鸡')
         sleep(1000)
-        this.setFloatyInfo({ x: findColor.x, y: findColor.y + 200 }, '点击叫回小鸡')
-        click(findColor.x, parseInt(findColor.y + 200))
+        this.setFloatyInfo({ x: findColor.x, y: findColor.y + 200 * heightRate }, '点击叫回小鸡')
+        click(findColor.x, parseInt(findColor.y + 200 * heightRate))
         sleep(1000)
         this.waitForOwn()
       } else {
@@ -218,13 +277,13 @@ function Demo () {
 
   this.checkThiefLeft = function () {
     sleep(500)
-    let img = captureScreen()
+    let img = _commonFunctions.checkCaptureScreenPermission()
     let findColor = images.findColor(img, chick_config.THIEF_COLOR, {
       region: chick_config.LEFT_THIEF_REGION,
       threshold: 20
     })
     if (findColor) {
-      this.setFloatyInfo(findColor, '找到了小透鸡')
+      this.setFloatyInfo(findColor, '找到了左边的小透鸡')
       sleep(1000)
       this.setFloatyTextColor('#f35458')
       this.setFloatyInfo(null, '点击小透鸡')
@@ -234,7 +293,7 @@ function Demo () {
       do {
         click(findColor.x, findColor.y)
         sleep(1500)
-        img = captureScreen()
+        img = _commonFunctions.checkCaptureScreenPermission()
         punch = images.findColor(img, chick_config.PUNCH_COLOR, {
           region: chick_config.LEFT_PUNCH_REGION,
           threshold: 10
@@ -243,7 +302,7 @@ function Demo () {
 
       if (punch) {
         this.setFloatyTextColor(chick_config.PUNCH_COLOR)
-        this.setFloatyInfo(punch, '找到了拳头按钮')
+        this.setFloatyInfo(punch, '找到了左边的小拳拳')
         sleep(2000)
         this.setFloatyInfo(null, '点击揍小鸡')
         click(punch.x, punch.y)
@@ -251,21 +310,23 @@ function Demo () {
         this.waitForDismiss()
         this.waitForOwn()
         sleep(1000)
+        let sleepStorage = _commonFunctions.getSleepStorage()
+        _commonFunctions.updateSleepTime(285 - (sleepStorage.count || 0) * 5)
       }
     } else {
       this.setFloatyInfo(null, '左边没野鸡')
     }
   }
 
-  this.checkThiefRight = function() {
+  this.checkThiefRight = function () {
     sleep(500)
-    let img = captureScreen()
+    let img = _commonFunctions.checkCaptureScreenPermission()
     let findColor = images.findColor(img, chick_config.THIEF_COLOR, {
       region: chick_config.RIGHT_THIEF_REGION,
       threshold: 20
     })
     if (findColor) {
-      this.setFloatyInfo(findColor, '找到了小透鸡')
+      this.setFloatyInfo(findColor, '找到了右边的小透鸡')
       sleep(1000)
       this.setFloatyTextColor('#f35458')
       this.setFloatyInfo(null, '点击小透鸡')
@@ -275,7 +336,7 @@ function Demo () {
       do {
         click(findColor.x, findColor.y)
         sleep(1500)
-        img = captureScreen()
+        img = _commonFunctions.checkCaptureScreenPermission()
         punch = images.findColor(img, chick_config.PUNCH_COLOR, {
           region: chick_config.RIGHT_PUNCH_REGION,
           threshold: 10
@@ -284,7 +345,7 @@ function Demo () {
 
       if (punch) {
         this.setFloatyTextColor(chick_config.PUNCH_COLOR)
-        this.setFloatyInfo(punch, '找到了拳头按钮')
+        this.setFloatyInfo(punch, '找到了右边的小拳拳')
         sleep(2000)
         this.setFloatyInfo(null, '点击揍小鸡')
         click(punch.x, punch.y)
@@ -292,6 +353,8 @@ function Demo () {
         this.waitForDismiss()
         this.waitForOwn()
         sleep(1000)
+        let sleepStorage = _commonFunctions.getSleepStorage()
+        _commonFunctions.updateSleepTime(285 - (sleepStorage.count || 0) * 5)
       }
     } else {
       this.setFloatyInfo(null, '右边没野鸡')
@@ -300,7 +363,7 @@ function Demo () {
 
   this.checkAndFeed = function () {
     sleep(500)
-    let img = captureScreen()
+    let img = _commonFunctions.checkCaptureScreenPermission()
     if (img) {
       let findColor = images.findColor(img, chick_config.FOOD_COLOR, {
         region: chick_config.FOOD_REGION,
@@ -308,17 +371,16 @@ function Demo () {
       })
       if (findColor) {
         this.setFloatyInfo(findColor, '小鸡有饭吃哦')
-        sleep(1500)
-        this.setFloatyInfo(null, '60分钟后来检查状况')
-        _commonFunctions.setUpAutoStart(60)
       } else {
         this.setFloatyTextColor('#ff0000')
-        this.setFloatyInfo({x:chick_config.FOOD_REGION[0], y:chick_config.FOOD_REGION[1]}, '小鸡没饭吃呢')
+        this.setFloatyInfo({ x: chick_config.FOOD_REGION[0], y: chick_config.FOOD_REGION[1] }, '小鸡没饭吃呢')
         click(chick_config.FEED_POSITION.x, chick_config.FEED_POSITION.y)
-        sleep(1500)
-        this.setFloatyInfo(null, '30分钟后来检查状况')
-        _commonFunctions.setUpAutoStart(30)
+        _commonFunctions.updateSleepTime(15, true)
       }
+      sleep(1500)
+      let sleepTime = _commonFunctions.getSleepTimeAutoCount()
+      this.setFloatyInfo(null, sleepTime + '分钟后来检查状况')
+      _commonFunctions.setUpAutoStart(sleepTime)
     } else {
       this.setFloatyTextColor('#ff0000')
       this.setFloatyInfo(null, '截图失败了！')
@@ -364,7 +426,7 @@ function Demo () {
     let requiredService = packageName + '/com.stardust.autojs.core.accessibility.AccessibilityService'
     try {
       let enabledServices = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
-      // debugInfo(['当前已启用无障碍功能的服务:{}', enabledServices])
+      _debugInfo(['当前已启用无障碍功能的服务:{}', enabledServices])
       var service = null
       if (enabledServices.indexOf(requiredService) < 0) {
         service = enabledServices + ':' + requiredService
@@ -380,9 +442,9 @@ function Demo () {
 
       return true
     } catch (e) {
-      // warnInfo('\n请确保已给予 WRITE_SECURE_SETTINGS 权限\n\n授权代码已复制，请使用adb工具连接手机执行(重启不失效)\n\n', true)
+      _warnInfo('\n请确保已给予 WRITE_SECURE_SETTINGS 权限\n\n授权代码已复制，请使用adb工具连接手机执行(重启不失效)\n\n', true)
       let shellScript = 'adb shell pm grant ' + packageName + ' android.permission.WRITE_SECURE_SETTINGS'
-      // warnInfo('adb 脚本 已复制到剪切板：[' + shellScript + ']')
+      _warnInfo('adb 脚本 已复制到剪切板：[' + shellScript + ']')
       setClip(shellScript)
       return false
     }
@@ -420,5 +482,5 @@ function Demo () {
 // console.show()
 
 module.exports = {
-  demo: new Demo()
+  manorRunner: new AntManorRunner()
 }
