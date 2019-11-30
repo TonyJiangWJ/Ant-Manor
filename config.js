@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2019-11-29 17:44:58
+ * @Last Modified time: 2019-11-30 23:58:53
  * @Description: 
  */
 // 执行配置
@@ -22,7 +22,9 @@ let no_gui_config = {
   toast_debug_info: false,
   saveLogFile: true,
   // 完成后通过手势kill支付宝应用，目前只支持MIUI全面屏手势 默认关闭
-  killAppWithGesture: false
+  killAppWithGesture: false,
+  // 是否使用加速卡 默认为true
+  useSpeedCard: true
 }
 
 // UI配置

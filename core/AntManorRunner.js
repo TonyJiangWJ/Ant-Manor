@@ -19,6 +19,11 @@ let {
       _infoLog: infoLog,
       _errorInfo: errorInfo
     }
+let _runningQueueDispatcher = typeof runningQueueDispatcher === 'undefined' ?
+  (() => {
+    let { runningQueueDispatcher } = require('../lib/RunningQueueDispatcher.js')
+    return runningQueueDispatcher
+  })() : runningQueueDispatcher
 let _commonFunctions = typeof commonFunctions === 'undefined' ?
   (() => {
     _debugInfo('Runner重新载入commonFunctions')
@@ -42,6 +47,7 @@ const default_chick_config = {
   OUT_IN_FRIENDS_COLOR: '#e9ca02',
   DISMISS_COLOR: '#f9622f',
   FOOD_COLOR: '#ffcf00',
+  SPEED_CHECK_COLOR: '#ffd000',
 
   CHECK_APP_REGION: [320, 280, 10, 10],
   CHECK_FRIENDS_REGION: [120, 490, 10, 10],
@@ -54,9 +60,22 @@ const default_chick_config = {
   RIGHT_PUNCH_REGION: [980, 1350, 100, 100],
   DISMISS_REGION: [450, 1890, 10, 10],
   FOOD_REGION: [850, 1700, 10, 10],
+  SPEED_CHECK_REGION: [480, 1520, 10, 10],
   FEED_POSITION: {
     x: 930,
     y: 1960
+  },
+  TOOL_POSITION: {
+    x: 960,
+    y: 645
+  },
+  SPEED_CARD_POSITION: {
+    x: 191,
+    y: 1450
+  },
+  CONFIRM_POSITON: {
+    x: 720,
+    y: 1320
   }
 }
 let chick_config = {}
@@ -75,7 +94,7 @@ Object.keys(default_chick_config).forEach(key => {
       parseInt(val[3] * heightRate)
     ]
     chick_config[key] = newArrayConfig
-  } else if (key === 'FEED_POSITION') {
+  } else if (val.x) {
     chick_config[key] = {
       x: parseInt(val.x * widthRate),
       y: parseInt(val.y * heightRate)
@@ -310,8 +329,7 @@ function AntManorRunner () {
         this.waitForDismiss()
         this.waitForOwn()
         sleep(1000)
-        let sleepStorage = _commonFunctions.getSleepStorage()
-        _commonFunctions.updateSleepTime(285 - (sleepStorage.count || 0) * 5)
+        return true
       }
     } else {
       this.setFloatyInfo(null, '左边没野鸡')
@@ -353,8 +371,7 @@ function AntManorRunner () {
         this.waitForDismiss()
         this.waitForOwn()
         sleep(1000)
-        let sleepStorage = _commonFunctions.getSleepStorage()
-        _commonFunctions.updateSleepTime(285 - (sleepStorage.count || 0) * 5)
+        return true
       }
     } else {
       this.setFloatyInfo(null, '右边没野鸡')
@@ -375,7 +392,13 @@ function AntManorRunner () {
         this.setFloatyTextColor('#ff0000')
         this.setFloatyInfo({ x: chick_config.FOOD_REGION[0], y: chick_config.FOOD_REGION[1] }, '小鸡没饭吃呢')
         click(chick_config.FEED_POSITION.x, chick_config.FEED_POSITION.y)
-        _commonFunctions.updateSleepTime(15, true)
+        _commonFunctions.updateSleepTime(20, true)
+        if (config.useSpeedCard) {
+          this.useSpeedCard()
+        }
+      }
+      if (this.checkSpeedSuccess()) {
+        _commonFunctions.setSpeeded()
       }
       sleep(1500)
       let sleepTime = _commonFunctions.getSleepTimeAutoCount()
@@ -384,6 +407,37 @@ function AntManorRunner () {
     } else {
       this.setFloatyTextColor('#ff0000')
       this.setFloatyInfo(null, '截图失败了！')
+    }
+  }
+
+  /**
+   * 使用加速卡
+   */
+  this.useSpeedCard = function () {
+    sleep(1000)
+    click(chick_config.TOOL_POSITION.x, chick_config.TOOL_POSITION.y)
+    sleep(1000)
+    click(chick_config.SPEED_CARD_POSITION.x, chick_config.SPEED_CARD_POSITION.y)
+    sleep(1000)
+    click(chick_config.CONFIRM_POSITON.x, chick_config.CONFIRM_POSITON.y)
+    this.waitForOwn()
+  }
+
+  this.checkSpeedSuccess = function () {
+    sleep(1000)
+    let img = _commonFunctions.checkCaptureScreenPermission()
+    let checkSpeedup = images.findColor(img, chick_config.SPEED_CHECK_COLOR, {
+      region: chick_config.SPEED_CHECK_REGION,
+      threshold: 4
+    })
+
+    if (checkSpeedup) {
+      this.setFloatyInfo(checkSpeedup, "加速卡使用成功")
+      return true
+    } else {
+      this.setFloatyTextColor('#ff0000')
+      this.setFloatyInfo({ x: chick_config.SPEED_CHECK_REGION[0], y: chick_config.SPEED_CHECK_REGION[1] }, "加速卡使用失败")
+      return false
     }
   }
 
@@ -403,8 +457,15 @@ function AntManorRunner () {
     this.setFloatyInfo(null, '打开APP成功！')
     sleep(1000)
     this.checkIsOut()
-    this.checkThiefLeft()
-    this.checkThiefRight()
+    let punchedLeft = this.checkThiefLeft()
+    let punchedRight = this.checkThiefRight()
+    if (punchedLeft || punchedRight) {
+      let sleepTimeStorage = _commonFunctions.getSleepStorage()
+      let count = sleepTimeStorage.count
+      _debugInfo(['已经睡眠次数:' + count])
+      _commonFunctions.updateSleepTime()
+    }
+
     sleep(1000)
     this.setFloatyInfo(null, '没有野鸡哦')
     this.checkAndFeed()

@@ -1,3 +1,10 @@
+/*
+ * @Author: TonyJiangWJ
+ * @Date: 2019-11-27 23:07:35
+ * @Last Modified by: TonyJiangWJ
+ * @Last Modified time: 2019-11-30 23:57:44
+ * @Description: 星星球自动游玩
+ */
 importClass(java.util.concurrent.LinkedBlockingQueue)
 importClass(java.util.concurrent.ThreadPoolExecutor)
 importClass(java.util.concurrent.TimeUnit)
@@ -213,7 +220,6 @@ function Player () {
     this.setTimeoutExit()
     this.playing(targetScore || config.targetScore)
     this.destoryPool()
-    exit()
   }
 
   this.destoryPool = function () {
