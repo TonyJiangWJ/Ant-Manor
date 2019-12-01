@@ -54,9 +54,9 @@ const default_chick_config = {
   OUT_REGION: [400, 1200, 50, 50],
   OUT_IN_FRIENDS_REGION_RIGHT: [800, 1350, 50, 50],
   OUT_IN_FRIENDS_REGION_LEFT: [340, 1350, 50, 50],
-  LEFT_THIEF_REGION: [380, 1500, 50, 50],
+  LEFT_THIEF_REGION: [310, 1510, 10, 10],
   LEFT_PUNCH_REGION: [500, 1350, 100, 100],
-  RIGHT_THIEF_REGION: [860, 1540, 100, 100],
+  RIGHT_THIEF_REGION: [930, 1510, 10, 10],
   RIGHT_PUNCH_REGION: [980, 1350, 100, 100],
   DISMISS_REGION: [450, 1890, 10, 10],
   FOOD_REGION: [850, 1700, 10, 10],
@@ -232,7 +232,7 @@ function AntManorRunner () {
 
 
   this.waitForFriends = function () {
-    let findColor = this.waitFor(chick_config.CHECK_APP_COLOR, chick_config.CHECK_APP_REGION)
+    let findColor = this.waitFor(chick_config.CHECK_FRIENDS_COLOR, chick_config.CHECK_FRIENDS_REGION)
     if (findColor) {
       this.setFloatyInfo(null, '进入好友鸡鸡页面成功')
       return true
@@ -397,7 +397,7 @@ function AntManorRunner () {
           this.useSpeedCard()
         }
       }
-      if (this.checkSpeedSuccess()) {
+      if (config.useSpeedCard && this.checkSpeedSuccess()) {
         _commonFunctions.setSpeeded()
       } else {
         _commonFunctions.setSpeedFail()
