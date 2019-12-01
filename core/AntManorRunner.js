@@ -399,6 +399,8 @@ function AntManorRunner () {
       }
       if (this.checkSpeedSuccess()) {
         _commonFunctions.setSpeeded()
+      } else {
+        _commonFunctions.setSpeedFail()
       }
       sleep(1500)
       let sleepTime = _commonFunctions.getSleepTimeAutoCount()
