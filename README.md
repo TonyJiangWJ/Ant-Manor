@@ -6,6 +6,7 @@
  * @Description: 
  -->
 ### 蚂蚁庄园自动喂鸡驱赶脚本
+- [蚂蚁森林脚本传送门](https://github.com/TonyJiangWJ/Ant-Forest-autoscript)
 - 基于AutoJS实现的自动喂养脚本
 - 自动解锁需要在config.js中修改password值 最好是pin密码 其他密码不保证完全有效
   ```javascript
