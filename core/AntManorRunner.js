@@ -60,7 +60,7 @@ const default_chick_config = {
   RIGHT_PUNCH_REGION: [980, 1350, 100, 100],
   DISMISS_REGION: [450, 1890, 10, 10],
   FOOD_REGION: [850, 1700, 10, 10],
-  SPEED_CHECK_REGION: [480, 1520, 10, 10],
+  SPEED_CHECK_REGION: [464, 1495, 10, 10],
   FEED_POSITION: {
     x: 930,
     y: 1960
@@ -427,12 +427,19 @@ function AntManorRunner () {
 
   this.checkSpeedSuccess = function () {
     sleep(1000)
-    let img = _commonFunctions.checkCaptureScreenPermission()
-    let checkSpeedup = images.findColor(img, chick_config.SPEED_CHECK_COLOR, {
-      region: chick_config.SPEED_CHECK_REGION,
-      threshold: 4
-    })
-
+    let img = null
+    let checkSpeedup = false
+    // 校验三次
+    let checkCount = 3
+    do {
+      // 延迟一秒半
+      sleep(1500)
+      img = _commonFunctions.checkCaptureScreenPermission()
+      checkSpeedup = images.findColor(img, chick_config.SPEED_CHECK_COLOR, {
+        region: chick_config.SPEED_CHECK_REGION,
+        threshold: 4
+      })
+    } while(!checkSpeedup && --checkCount > 0)
     if (checkSpeedup) {
       this.setFloatyInfo(checkSpeedup, "加速卡使用成功")
       return true

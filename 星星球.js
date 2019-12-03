@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 23:07:35
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2019-11-30 23:57:44
+ * @Last Modified time: 2019-12-03 00:38:29
  * @Description: 星星球自动游玩
  */
 importClass(java.util.concurrent.LinkedBlockingQueue)
@@ -220,6 +220,8 @@ function Player () {
     this.setTimeoutExit()
     this.playing(targetScore || config.targetScore)
     this.destoryPool()
+    runningQueueDispatcher.removeRunningTask()
+    exit()
   }
 
   this.destoryPool = function () {
