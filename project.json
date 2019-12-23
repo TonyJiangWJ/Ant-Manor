@@ -1,0 +1,10 @@
+{
+  "name": "蚂蚁庄园",
+  "main": "config.js",
+  "ignore": [
+      "build"
+  ],
+  "packageName": "Ant-Manor",
+  "versionName": "1.0.1",
+  "versionCode": 1
+}

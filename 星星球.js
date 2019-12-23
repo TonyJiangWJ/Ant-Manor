@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 23:07:35
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2019-12-03 00:38:29
+ * @Last Modified time: 2019-12-23 22:59:43
  * @Description: 星星球自动游玩
  */
 importClass(java.util.concurrent.LinkedBlockingQueue)
@@ -11,6 +11,7 @@ importClass(java.util.concurrent.TimeUnit)
 
 let { commonFunctions } = require('./lib/CommonFunction.js')
 let { runningQueueDispatcher } = require('./lib/RunningQueueDispatcher.js')
+let _config = require('./config.js').config
 
 requestScreenCapture(false)
 
@@ -25,7 +26,7 @@ let default_config = {
   reco: [200, 100, 750, 1900],
   threshold: 4,
   // 目标分数
-  targetScore: 230,
+  targetScore: _config.starBallScore,
   // 运行超时时间 毫秒
   timeout: 240000
 }

@@ -1,3 +1,10 @@
+/*
+ * @Author: TonyJiangWJ
+ * @Date: 2019-11-27 09:03:57
+ * @Last Modified by: TonyJiangWJ
+ * @Last Modified time: 2019-12-16 20:43:51
+ * @Description: 
+ */
 let { config } = require('./config.js')
 let { runningQueueDispatcher } = require('./lib/RunningQueueDispatcher.js')
 let {
@@ -5,7 +12,9 @@ let {
 } = require('./lib/LogUtils.js')
 let { commonFunctions } = require('./lib/CommonFunction.js')
 let { unlocker } = require('./lib/Unlock.js')
+let FloatyInstance = require('./lib/FloatyUtil.js')
 let { manorRunner } = require('./core/AntManorRunner.js')
+
 logInfo('======校验是否重复运行=======')
 // 检查脚本是否重复运行
 commonFunctions.checkDuplicateRunning()
@@ -57,6 +66,12 @@ if (!actionSuccess || !screenPermission) {
   exit()
 } else {
   logInfo('请求截屏权限成功')
+}
+// 初始化悬浮窗
+if (!FloatyInstance.init()) {
+  runningQueueDispatcher.removeRunningTask()
+  // 悬浮窗初始化失败，6秒后重试
+  commonFunctions.setUpAutoStart(0.1)
 }
 /************************
  * 主程序

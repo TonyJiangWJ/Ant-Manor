@@ -8,7 +8,7 @@ importClass(java.util.concurrent.LinkedBlockingQueue)
 importClass(java.util.concurrent.ThreadPoolExecutor)
 importClass(java.util.concurrent.TimeUnit)
 importClass(java.util.concurrent.CountDownLatch)
-
+let ColorCenterCalculator = require('./lib/ColorCenterCalculator.js')
 if (!checkAccessibilityService(true)) {
   try {
     auto.waitFor()
@@ -41,11 +41,11 @@ let config = {
   revisionRate: 0.2,
   gestureThresholdBottom: 1250 * heightRate,
   // 开始按钮
-  startButtonColor: '#ff4275ef',
+  startButtonColor: '#4275ef',
   // 金币
-  coinColor: '#ffe0b101',
+  coinColor: '#e2b201',
   // 小鸡鸡冠
-  chickColor: '#ffce3c2c',
+  chickColor: '#ce3c2c',
   // 树木颜色校验
   treeColor: '#06c75f',
 
@@ -68,7 +68,7 @@ let config = {
     bottom: 1650 * heightRate
   },
   threshold: 10,
-  centerThreshold: 20
+  centerThreshold: 60
 }
 
 const FLOATY = {
@@ -332,13 +332,15 @@ function Player () {
 
   this.summaryCenterInfo = function (calculator, content) {
     let start = new Date().getTime()
-    let { centerX, centerY } = calculator.getColorRegionCenter()
+    let center = calculator.getColorRegionCenter()
+    log('获取中心点：' + JSON.stringify(center))
+    let {x, y} = center
     let end = new Date().getTime()
-    let logContent = (content + ' 中心点：' + centerX + ',' + centerY + ' 分析耗时' + (end - start) + 'ms')
+    let logContent = (content + ' 中心点：' + x + ',' + y + ' 分析耗时' + (end - start) + 'ms')
     // log(logContent)
     return {
-      x: centerX,
-      y: centerY,
+      x: x,
+      y: y,
       logContent: logContent
     }
   }
@@ -385,7 +387,7 @@ function Player () {
               threshold: config.threshold
             })
             if (findPoint) {
-              let coinCal = new ColorRegionCenterCalculator(img, config.coinColor, findPoint, config.centerThreshold)
+              let coinCal = new ColorCenterCalculator(img, config.coinColor, findPoint, config.centerThreshold)
 
               let summaryCoin = _this.summaryCenterInfo(coinCal, '金币')
               _this.setFloatyInfo(FLOATY.COIN, {
@@ -404,7 +406,7 @@ function Player () {
                     threshold: config.threshold
                   })
                   if (chickPoint) {
-                    let chickCal = new ColorRegionCenterCalculator(img, config.chickColor, chickPoint, config.centerThreshold)
+                    let chickCal = new ColorCenterCalculator(img, config.chickColor, chickPoint, config.centerThreshold)
                     summaryChick = _this.summaryCenterInfo(chickCal, '小鸡')
                     _this.setFloatyInfo(FLOATY.CHICK, {
                       x: summaryChick.x,
@@ -458,30 +460,6 @@ function Player () {
                 } else {
                   log('未找到小鸡位置，继续寻找')
                 }
-                /*
-                findPoint = images.findColor(img, config.chickColor, {
-                  region: getRegion(config.chick),
-                  threshold: config.threshold
-                })
-                if (findPoint) {
-                  
-                  let chickCal = new ColorRegionCenterCalculator(img, config.chickColor, findPoint, config.centerThreshold)
-                  let summaryChick = _this.summaryCenterInfo(chickCal, '小鸡')
-                  _this.setFloatyInfo(FLOATY.CHICK, {
-                    x: summaryChick.x,
-                    y: summaryChick.y
-                  }, '\'小鸡')
-  
-                  _this.startX = summaryChick.x
-                  _this.startY = summaryChick.y
-                  _this.endX = summaryCoin.x
-                  _this.endY = summaryCoin.y
-                  _this.recognized = true
-                  _this.gestureCondition.signalAll()
-                  log('找到了小鸡和金币的位置，告诉操作线程进行移动 start: ' + _this.startX + ' end:' + _this.endX)
-                  _this.gestureLock.unlock()
-                }
-                */
               } else {
                 _this.setFloatyColor(FLOATY.COIN, '#000000')
                 log('识别到的金币过高，不计算：' + summaryCoin.y)
@@ -548,7 +526,7 @@ function Player () {
         let x = parseInt(findPoint.x)
         let y = parseInt(findPoint.y)
         log('find the point:' + x + ',' + y)
-        let startCal = new ColorRegionCenterCalculator(startButtonImg, config.startButtonColor, findPoint, config.centerThreshold)
+        let startCal = new ColorCenterCalculator(startButtonImg, config.startButtonColor, findPoint, config.centerThreshold)
         let summaryStartButton = this.summaryCenterInfo(startCal, '开始按钮')
         this.setFloatyInfo(FLOATY.START_BUTTON, {
           x: summaryStartButton.x,
@@ -611,131 +589,6 @@ function Player () {
 
 function getRegion (config) {
   return [config.left, config.top, config.right - config.left, config.bottom - config.top]
-}
-
-// 计算中心点
-function ColorRegionCenterCalculator (img, color, point, threshold) {
-  this.checkedX = []
-  this.checkedY = []
-  this.img = img
-  this.color = color
-  this.point = point
-  this.threshold = threshold
-
-  this.getColorRegionCenter = function () {
-    this.checkedX = [this.point.x]
-    this.checkedY = [this.point.Y]
-    let nearlyColorPoints = this.getNearly(point)
-    nearlyColorPoints = nearlyColorPoints || []
-    nearlyColorPoints.push(point)
-    let maxX = -1
-    let minX = device.width + 10
-    let maxY = -1
-    let minY = 20000
-    nearlyColorPoints.forEach((item, idx) => {
-      if (maxX < item.x) {
-        maxX = item.x
-      }
-      if (minX > item.x) {
-        minX = item.x
-      }
-      if (maxY < item.y) {
-        maxY = item.y
-      }
-      if (minY > item.y) {
-        minY = item.y
-      }
-    })
-
-
-    let center = {
-      centerX: parseInt((maxX + minX) / 2),
-      centerY: parseInt((maxY + minY) / 2)
-    }
-    // log('获取中心点位置为：' + JSON.stringify(center))
-    return center
-  }
-
-  this.isUnchecked = function (point) {
-    if (point.x > device.width || point.x <= 0 || point.y > device.height || point.y <= 0) {
-      console.verbose('标点无效：' + JSON.stringify(point))
-    }
-    let unchecked = !(this.checkedX.indexOf(point.x) > 0 && this.checkedY.indexOf(point.y) > 0)
-    if (unchecked) {
-      // console.verbose('未校验像素：' + JSON.stringify(point))
-      this.checkedX.push(point.x)
-      this.checkedY.push(point.y)
-    }
-    return unchecked
-  }
-
-
-  this.getNearly = function (point, ignore) {
-    let left = {
-      x: point.x - 1,
-      y: point.y
-    }
-    let right = {
-      x: point.x + 1,
-      y: point.y
-    }
-    let top = {
-      x: point.x,
-      y: point.y - 1
-    }
-    let bottom = {
-      x: point.x,
-      y: point.y + 1
-    }
-    let nearly = []
-
-    let checkItem = left
-    if (ignore !== 'left' && this.isUnchecked(checkItem)) {
-      if (images.detectsColor(this.img, this.color, checkItem.x, checkItem.y, this.threshold)) {
-        nearly.push(checkItem)
-        let innerNearlies = this.getNearly(checkItem, 'right')
-        if (innerNearlies && innerNearlies.length > 0) {
-          nearly = nearly.concat(innerNearlies)
-        }
-      }
-    }
-
-    checkItem = bottom
-    if (ignore !== 'bottom' && this.isUnchecked(checkItem)) {
-      if (images.detectsColor(this.img, this.color, checkItem.x, checkItem.y, this.threshold)) {
-        nearly.push(checkItem)
-        let innerNearlies = this.getNearly(checkItem, 'top')
-        if (innerNearlies && innerNearlies.length > 0) {
-          nearly = nearly.concat(innerNearlies)
-        }
-      }
-    }
-
-    checkItem = right
-    if (ignore !== 'right' && this.isUnchecked(checkItem)) {
-      if (images.detectsColor(this.img, this.color, checkItem.x, checkItem.y, this.threshold)) {
-        nearly.push(checkItem)
-        let innerNearlies = this.getNearly(checkItem, 'left')
-        if (innerNearlies && innerNearlies.length > 0) {
-          nearly = nearly.concat(innerNearlies)
-        }
-      }
-    }
-
-
-    checkItem = top
-    if (ignore !== 'top' && this.isUnchecked(checkItem)) {
-      if (images.detectsColor(this.img, this.color, checkItem.x, checkItem.y, this.threshold)) {
-        nearly.push(checkItem)
-        let innerNearlies = this.getNearly(checkItem, 'bottom')
-        if (innerNearlies && innerNearlies.length > 0) {
-          nearly = nearly.concat(innerNearlies)
-        }
-      }
-    }
-    return nearly
-  }
-
 }
 
 function checkAccessibilityService (force) {

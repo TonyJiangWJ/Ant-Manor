@@ -30,7 +30,9 @@ let _commonFunctions = typeof commonFunctions === 'undefined' ?
     let { commonFunctions } = require('../lib/CommonFunction.js')
     return commonFunctions
   })() : commonFunctions
-
+let { config } = require('../config.js')
+let alipayUnlocker = require('../lib/AlipayUnlocker.js')
+let _FloatyInstance = typeof FloatyInstance === 'undefined' ? require('./FloatyUtil.js') : FloatyInstance
 const WIDTH = device.width
 const HEIGHT = device.height
 
@@ -49,7 +51,7 @@ const default_chick_config = {
   FOOD_COLOR: '#ffcf00',
   SPEED_CHECK_COLOR: '#ffd000',
 
-  CHECK_APP_REGION: [320, 280, 10, 10],
+  CHECK_APP_REGION: [310, 250, 20, 20],
   CHECK_FRIENDS_REGION: [120, 490, 10, 10],
   OUT_REGION: [400, 1200, 50, 50],
   OUT_IN_FRIENDS_REGION_RIGHT: [800, 1350, 50, 50],
@@ -104,89 +106,29 @@ Object.keys(default_chick_config).forEach(key => {
   }
 })
 console.verbose('转换后配置：' + JSON.stringify(chick_config))
-
+function getRegionCenter (region) {
+  _debugInfo(['转换region位置:{}', JSON.stringify(region)])
+  return {
+    x: region[0] + parseInt(region[2] / 2),
+    y: region[1] + parseInt(region[3] / 2)
+  }
+}
 function AntManorRunner () {
 
-  this.floatyWindow = null
-  this.floatyLock = null
-  this.floatyCondition = null
-  this.floatyInitialized = false
-
-  this.init = function () {
-    if (!this.checkAccessibilityService(true)) {
-      try {
-        auto.waitFor()
-      } catch (e) {
-        auto()
-      }
-    }
-    this.floatyWindow = null
-    this.floatyLock = threads.lock()
-    this.floatyCondition = this.floatyLock.newCondition()
-    this.floatyInitialized = false
-    this.initFloaty()
-  }
-
-  this.initFloaty = function () {
-    let _this = this
-    threads.start(function () {
-      sleep(400)
-      if (_this.floatyWindow === null) {
-        _this.floatyLock.lock()
-        _this.floatyWindow = floaty.rawWindow(
-          <frame gravity="left">
-            <text id="content" textSize="8dp" textColor="#00ff00" />
-          </frame>
-        )
-        _this.floatyWindow.setTouchable(false)
-        _this.floatyWindow.setPosition(500, 1500)
-        _this.floatyWindow.content.text('初始化成功')
-        _this.floatyInitialized = true
-        _this.floatyCondition.signalAll()
-        _this.floatyLock.unlock()
-      }
-    })
-    this.waitUntilFloatyInitialized()
-  }
-
-  this.waitUntilFloatyInitialized = function () {
-    this.floatyLock.lock()
-    while (!this.floatyInitialized) {
-      this.floatyCondition.await()
-      sleep(10)
-    }
-    log('悬浮窗初始化成功')
-    this.floatyLock.unlock()
-  }
-
   this.setFloatyTextColor = function (colorStr) {
-    let colorInt = colors.parseColor(colorStr)
-    if (colorInt !== null) {
-      let _this = this
-      ui.run(function () {
-        _this.floatyLock.lock()
-        _this.floatyWindow.content.setTextColor(colorInt)
-        _this.floatyLock.unlock()
-      })
-    }
+    _FloatyInstance.setFloatyTextColor(colorStr)
   }
 
   this.setFloatyInfo = function (position, text) {
-    let _this = this
-    ui.run(function () {
-      _this.floatyLock.lock()
-      if (position) {
-        _this.floatyWindow.setPosition(parseInt(position.x), parseInt(position.y))
-      }
-      if (text) {
-        _debugInfo(text + (position ? ' p:' + JSON.stringify(position) : ''))
-        _this.floatyWindow.content.text(text)
-      }
-      _this.floatyLock.unlock()
-    })
+    _debugInfo(['设置悬浮窗位置:{}', JSON.stringify(position)])
+    _FloatyInstance.setFloatyInfo(position, text)
   }
 
   this.launchApp = function () {
+    app.launchPackage('com.eg.android.AlipayGphone')
+    if (config.is_alipay_locked) {
+      alipayUnlocker.unlockAlipay()
+    }
     app.startActivity({
       action: 'VIEW',
       data: 'alipays://platformapi/startapp?appId=66666674',
@@ -207,6 +149,7 @@ function AntManorRunner () {
         region: region,
         threshold: threshold || 4
       })
+      img.recycle()
     } while (!findColor && timeoutCount-- > 0)
     return findColor
   }
@@ -225,7 +168,7 @@ function AntManorRunner () {
       return true
     } else {
       this.setFloatyTextColor('#ff0000')
-      this.setFloatyInfo(null, '进入个人鸡鸡页面失败，检测超时')
+      this.setFloatyInfo(getRegionCenter(chick_config.CHECK_APP_REGION), '进入个人鸡鸡页面失败，检测超时')
       this.killAndRestart()
     }
   }
@@ -257,8 +200,9 @@ function AntManorRunner () {
     let img = _commonFunctions.checkCaptureScreenPermission()
     let findColor = images.findColor(img, chick_config.OUT_COLOR, {
       region: chick_config.OUT_REGION,
-      threshold: 10
+      threshold: config.color_offset
     })
+    img.recycle()
     if (findColor) {
       this.setFloatyInfo(findColor, '小鸡出去找吃的了')
       sleep(1000)
@@ -270,15 +214,15 @@ function AntManorRunner () {
       img = _commonFunctions.checkCaptureScreenPermission()
       findColor = images.findColor(img, chick_config.OUT_IN_FRIENDS_COLOR, {
         region: chick_config.OUT_IN_FRIENDS_REGION_LEFT,
-        threshold: 10
+        threshold: config.color_offset
       })
       if (!findColor) {
         findColor = images.findColor(img, chick_config.OUT_IN_FRIENDS_COLOR, {
           region: chick_config.OUT_IN_FRIENDS_REGION_RIGHT,
-          threshold: 10
+          threshold: config.color_offset
         })
       }
-
+      img.recycle()
       if (findColor) {
         this.setFloatyInfo(findColor, '找到了我的小鸡')
         sleep(1000)
@@ -288,7 +232,7 @@ function AntManorRunner () {
         this.waitForOwn()
       } else {
         this.setFloatyTextColor('#ff0000')
-        this.setFloatyInfo(null, '没有找到小鸡，奇了怪了！')
+        this.setFloatyInfo(getRegionCenter(chick_config.OUT_IN_FRIENDS_REGION_LEFT), '没有找到小鸡，奇了怪了！')
         return false
       }
     }
@@ -299,8 +243,9 @@ function AntManorRunner () {
     let img = _commonFunctions.checkCaptureScreenPermission()
     let findColor = images.findColor(img, chick_config.THIEF_COLOR, {
       region: chick_config.LEFT_THIEF_REGION,
-      threshold: 20
+      threshold: config.color_offset
     })
+    img.recycle()
     if (findColor) {
       this.setFloatyInfo(findColor, '找到了左边的小透鸡')
       sleep(1000)
@@ -315,8 +260,9 @@ function AntManorRunner () {
         img = _commonFunctions.checkCaptureScreenPermission()
         punch = images.findColor(img, chick_config.PUNCH_COLOR, {
           region: chick_config.LEFT_PUNCH_REGION,
-          threshold: 10
+          threshold: config.color_offset
         })
+        img.recycle()
       } while (!punch && count-- > 0)
 
       if (punch) {
@@ -332,7 +278,7 @@ function AntManorRunner () {
         return true
       }
     } else {
-      this.setFloatyInfo(null, '左边没野鸡')
+      this.setFloatyInfo(getRegionCenter(chick_config.LEFT_THIEF_REGION), '左边没野鸡')
     }
   }
 
@@ -341,8 +287,9 @@ function AntManorRunner () {
     let img = _commonFunctions.checkCaptureScreenPermission()
     let findColor = images.findColor(img, chick_config.THIEF_COLOR, {
       region: chick_config.RIGHT_THIEF_REGION,
-      threshold: 20
+      threshold: config.color_offset
     })
+    img.recycle()
     if (findColor) {
       this.setFloatyInfo(findColor, '找到了右边的小透鸡')
       sleep(1000)
@@ -357,8 +304,9 @@ function AntManorRunner () {
         img = _commonFunctions.checkCaptureScreenPermission()
         punch = images.findColor(img, chick_config.PUNCH_COLOR, {
           region: chick_config.RIGHT_PUNCH_REGION,
-          threshold: 10
+          threshold: config.color_offset
         })
+        img.recycle()
       } while (!punch && count-- > 0)
 
       if (punch) {
@@ -374,7 +322,7 @@ function AntManorRunner () {
         return true
       }
     } else {
-      this.setFloatyInfo(null, '右边没野鸡')
+      this.setFloatyInfo(getRegionCenter(chick_config.RIGHT_THIEF_REGION), '右边没野鸡')
     }
   }
 
@@ -386,6 +334,7 @@ function AntManorRunner () {
         region: chick_config.FOOD_REGION,
         threshold: 4
       })
+      img.recycle()
       if (findColor) {
         this.setFloatyInfo(findColor, '小鸡有饭吃哦')
       } else {
@@ -439,7 +388,8 @@ function AntManorRunner () {
         region: chick_config.SPEED_CHECK_REGION,
         threshold: 4
       })
-    } while(!checkSpeedup && --checkCount > 0)
+      img.recycle()
+    } while (!checkSpeedup && --checkCount > 0)
     if (checkSpeedup) {
       this.setFloatyInfo(checkSpeedup, "加速卡使用成功")
       return true
@@ -461,7 +411,6 @@ function AntManorRunner () {
   }
 
   this.start = function () {
-    this.init()
     this.launchApp()
     this.setFloatyInfo(null, '打开APP成功！')
     sleep(1000)
