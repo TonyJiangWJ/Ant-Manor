@@ -181,7 +181,7 @@ function Player () {
         clickCount++
         this.setFloatyInfo(point, content)
       }
-
+      img.recycle()
       while (textContains('再来一局').exists()) {
         currentScore = currentScore < stopScore ? 0 : currentScore
         let restart = textContains('再来一局').findOne(1000)

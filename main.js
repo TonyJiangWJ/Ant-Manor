@@ -2,14 +2,15 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2019-12-16 20:43:51
+ * @Last Modified time: 2020-01-09 10:54:33
  * @Description: 
  */
 let { config } = require('./config.js')
 let { runningQueueDispatcher } = require('./lib/RunningQueueDispatcher.js')
+let LogUtils = require('./lib/LogUtils.js')
 let {
-  debugInfo, logInfo, infoLog, warnInfo, errorInfo, clearLogFile, appendLog
-} = require('./lib/LogUtils.js')
+  debugInfo, debugForDev, logInfo, infoLog, warnInfo, errorInfo, clearLogFile, appendLog, removeOldLogFiles
+} = LogUtils
 let { commonFunctions } = require('./lib/CommonFunction.js')
 let { unlocker } = require('./lib/Unlock.js')
 let FloatyInstance = require('./lib/FloatyUtil.js')
