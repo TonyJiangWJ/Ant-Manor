@@ -33,8 +33,8 @@ let _commonFunctions = typeof commonFunctions === 'undefined' ?
 let { config } = require('../config.js')
 let alipayUnlocker = require('../lib/AlipayUnlocker.js')
 let _FloatyInstance = typeof FloatyInstance === 'undefined' ? require('./FloatyUtil.js') : FloatyInstance
-const WIDTH = device.width
-const HEIGHT = device.height
+const WIDTH = config.device_width
+const HEIGHT = config.device_height
 
 const widthRate = WIDTH / 1080
 const heightRate = HEIGHT / 2160

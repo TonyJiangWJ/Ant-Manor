@@ -9,6 +9,7 @@ importClass(java.util.concurrent.ThreadPoolExecutor)
 importClass(java.util.concurrent.TimeUnit)
 importClass(java.util.concurrent.CountDownLatch)
 let ColorCenterCalculator = require('./lib/ColorCenterCalculator.js')
+let config = require('./config.js')
 if (!checkAccessibilityService(true)) {
   try {
     auto.waitFor()
@@ -29,8 +30,8 @@ if (permission) {
   exit()
 }
 
-let WIDTH = device.width
-let HEIGHT = device.height
+let WIDTH = config.device_width
+let HEIGHT = config.device_height
 let widthRate = WIDTH / 1080.0
 let heightRate = HEIGHT / 2160.0
 
@@ -51,19 +52,19 @@ let config = {
 
   startButton: {
     left: 0,
-    right: device.width,
+    right: WIDTH,
     top: 1100 * heightRate,
     bottom: 1365 * heightRate
   },
   coin: {
     left: 130 * heightRate,
-    right: device.width,
+    right: WIDTH,
     top: 1200 * heightRate,
     bottom: 1400 * heightRate
   },
   chick: {
     left: 150 * heightRate,
-    right: device.width - 200 * widthRate,
+    right: WIDTH - 200 * widthRate,
     top: 950 * heightRate,
     bottom: 1650 * heightRate
   },
@@ -106,7 +107,7 @@ function Player () {
   this.startY = null
   this.endX = null
   this.endY = null
-  this.moveY = parseInt(device.height / 3 * 2)
+  this.moveY = parseInt(HEIGHT / 3 * 2)
 
 
   this.threadPool = null
@@ -553,13 +554,13 @@ function Player () {
     let _this = this
     setTimeout(function () {
       let point = {
-        x: parseInt(device.width / 3),
-        y: parseInt(device.height / 3),
+        x: parseInt(WIDTH / 3),
+        y: parseInt(HEIGHT / 3),
       }
       _this.setFloatyColor(FLOATY.MOVE, '#ff0000')
       _this.showFloatyCountdown(point, '运行结束!', 3)
       _this.setFloatyInfo(FLOATY.MOVE, {
-        x: parseInt(device.width / 2),
+        x: parseInt(WIDTH / 2),
         y: point.y
       }, '再见')
       sleep(2000)

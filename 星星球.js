@@ -15,8 +15,8 @@ let _config = require('./config.js').config
 
 requestScreenCapture(false)
 
-const WIDTH = device.width
-const HEIGHT = device.height
+const WIDTH = _config.device_width
+const HEIGHT = _config.device_height
 
 const widthRate = WIDTH / 1080
 const heightRate = HEIGHT / 2160
@@ -93,7 +93,7 @@ function Player () {
         </frame>
       )
       _this.floatyWindow.setTouchable(false)
-      _this.floatyWindow.setPosition(device.width / 2, config.reco[1])
+      _this.floatyWindow.setPosition(WIDTH / 2, config.reco[1])
       _this.floatyWindow.content.text('准备寻找球球的位置')
       _this.floatyInitCondition.signalAll()
       _this.floatyLock.unlock()
@@ -193,13 +193,13 @@ function Player () {
     }
     toastLog('最终分数:' + currentScore + ' 点击了：' + clickCount + '次 总耗时：' + (new Date().getTime() - start) + 'ms')
     let point = {
-      x: parseInt(device.width / 3),
-      y: parseInt(device.height / 3),
+      x: parseInt(WIDTH / 3),
+      y: parseInt(HEIGHT / 3),
     }
     this.setFloatyColor('#ff0000')
     this.showFloatyCountdown(point, '运行结束, 最终得分：' + currentScore, 3)
     this.setFloatyInfo({
-      x: parseInt(device.width / 2),
+      x: parseInt(WIDTH / 2),
       y: point.y
     }, '再见')
     sleep(2000)

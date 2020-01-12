@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-01-09 11:00:18
+ * @Last Modified time: 2020-01-12 20:56:38
  * @Description: 
  */
 'ui';
@@ -34,7 +34,9 @@ var default_config = {
   starBallScore: 205,
   // 倒计时结束 等待的窗口时间
   windowTime: 5,
-  recheckTime: 5
+  recheckTime: 5,
+  device_width: device.width,
+  device_height: device.height
 }
 
 // 配置缓存的key值
@@ -59,6 +61,10 @@ if (!storageConfig.contains('password')) {
 }
 log('当前配置信息：' + JSON.stringify(config))
 if (!isRunningMode) {
+  if (config.device_height === 0 || config.device_width === 0) {
+    toastLog('请先运行config.js并输入设备宽高')
+    exit()
+  }
   module.exports = {
     config: config,
     default_config: default_config,
@@ -94,7 +100,35 @@ if (!isRunningMode) {
     })
   }
 
-  const setUiValues = function () {
+  const inputDeviceSize = function () {
+    return Promise.resolve().then(() => {
+      return dialogs.rawInput('请输入设备宽度：', config.device_width + '')
+    }).then(x => {
+      if (x) {
+        let xVal = parseInt(x)
+        if (isFinite(xVal) && xVal > 0) {
+          config.device_width = xVal
+        } else {
+          toast('输入值无效')
+        }
+      }
+    }).then(() => {
+      return dialogs.rawInput('请输入设备高度：', config.device_height + '')
+    }).then(y => {
+      if (y) {
+        let yVal = parseInt(y)
+        if (isFinite(yVal) && yVal > 0) {
+          config.device_height = yVal
+        } else {
+          toast('输入值无效')
+        }
+      }
+    })
+  }
+  const setDeviceSizeText = function () {
+    ui.deviceSizeText.text(config.device_width + 'px ' + config.device_height + 'px')
+  }
+  const resetUiValues = function () {
     ui.password.text(config.password)
     ui.isAlipayLockedChkBox.setChecked(config.is_alipay_locked)
     ui.alipayLockPasswordInpt.setText(config.alipay_lock_password)
@@ -109,6 +143,8 @@ if (!isRunningMode) {
     ui.showDebugLogChkBox.setChecked(config.show_debug_log)
     ui.saveLogFileChkBox.setChecked(config.saveLogFile)
     ui.starBallScoreInpt.setText(config.starBallScore + '')
+
+    setDeviceSizeText()
   }
 
   setTimeout(function () {
@@ -129,6 +165,12 @@ if (!isRunningMode) {
               <horizontal gravity="center" id="alipayLockPasswordContainer">
                 <text text="支付宝手势密码对应的九宫格数字：" textSize="10sp" />
                 <input id="alipayLockPasswordInpt" inputType="textPassword" layout_weight="80" />
+              </horizontal>
+              <horizontal w="*" h="1sp" bg="#cccccc" margin="5 5"></horizontal>
+              <horizontal gravity="center">
+                <text text="设备宽高：" textColor="black" textSize="16sp" />
+                <text id="deviceSizeText" text="" />
+                <button id="changeDeviceSizeBtn" >修改</button>
               </horizontal>
               <horizontal w="*" h="1sp" bg="#cccccc" margin="5 5"></horizontal>
               {/* 颜色识别 */}
@@ -168,8 +210,8 @@ if (!isRunningMode) {
       menu.add("全部重置为默认")
       menu.add("从配置文件中读取")
       menu.add("将配置导出")
-      menu.add("导出运行时数据")
       menu.add("导入运行时数据")
+      menu.add("导出运行时数据")
     })
     // 监听选项菜单点击
     ui.emitter.on("options_item_selected", (e, item) => {
@@ -185,7 +227,7 @@ if (!isRunningMode) {
                 config[key] = defaultValue
                 storageConfig.put(key, defaultValue)
               })
-              setUiValues()
+              resetUiValues()
             }
           })
           break
@@ -204,7 +246,7 @@ if (!isRunningMode) {
                       config[key] = defaultValue
                       storageConfig.put(key, defaultValue)
                     })
-                    setUiValues()
+                    resetUiValues()
                   }
                   let configStr = AesUtil.decrypt(files.read(local_config_path), aesKey)
                   if (!configStr) {
@@ -269,7 +311,7 @@ if (!isRunningMode) {
                 let encrypt_content = files.read(runtime_store_path)
                 const resetRuntimeStore = function (runtimeStorageStr) {
                   if (commonFunctions.importRuntimeStorage(runtimeStorageStr)) {
-                    setUiValues()
+                    resetUiValues()
                     return true
                   }
                   toastLog('导入运行配置失败，无法读取正确信息')
@@ -308,7 +350,15 @@ if (!isRunningMode) {
     })
     activity.setSupportActionBar(ui.toolbar)
 
-    setUiValues()
+    if (config.device_height === 0 || config.device_width === 0) {
+      inputDeviceSize().then(() => resetUiValues())
+    } else {
+      resetUiValues()
+    }
+
+    ui.changeDeviceSizeBtn.on('click', () => {
+      inputDeviceSize().then(() => setDeviceSizeText())
+    })
 
 
     ui.password.addTextChangedListener(
