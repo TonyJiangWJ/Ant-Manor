@@ -12,7 +12,7 @@ let {
   debugInfo, debugForDev, logInfo, infoLog, warnInfo, errorInfo, clearLogFile, appendLog, removeOldLogFiles
 } = LogUtils
 let { commonFunctions } = require('./lib/CommonFunction.js')
-let { unlocker } = require('./lib/Unlock.js')
+let unlocker = require('./lib/Unlock.js')
 let FloatyInstance = require('./lib/FloatyUtil.js')
 let { manorRunner } = require('./core/AntManorRunner.js')
 

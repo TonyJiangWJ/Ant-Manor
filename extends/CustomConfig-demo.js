@@ -1,0 +1,47 @@
+/*
+ * @Author: TonyJiangWJ
+ * @Date: 2020-04-02 16:12:21
+ * @Last Modified by: TonyJiangWJ
+ * @Last Modified time: 2020-04-02 16:13:15
+ * @Description: 
+ */
+module.exports = {
+  CHECK_APP_COLOR: '#f1381a',
+  CHECK_FRIENDS_COLOR: '#429beb',
+  THIEF_COLOR: '#000000',
+  PUNCH_COLOR: '#f35458',
+  OUT_COLOR: '#c37a3e',
+  OUT_IN_FRIENDS_COLOR: '#e9ca02',
+  DISMISS_COLOR: '#f9622f',
+  FOOD_COLOR: '#ffcf00',
+  SPEED_CHECK_COLOR: '#ffd000',
+
+  CHECK_APP_REGION: [310, 250, 20, 20],
+  CHECK_FRIENDS_REGION: [120, 490, 10, 10],
+  OUT_REGION: [400, 1200, 50, 50],
+  OUT_IN_FRIENDS_REGION_RIGHT: [800, 1350, 50, 50],
+  OUT_IN_FRIENDS_REGION_LEFT: [340, 1350, 50, 50],
+  LEFT_THIEF_REGION: [310, 1510, 10, 10],
+  LEFT_PUNCH_REGION: [500, 1350, 100, 100],
+  RIGHT_THIEF_REGION: [930, 1510, 10, 10],
+  RIGHT_PUNCH_REGION: [980, 1350, 100, 100],
+  DISMISS_REGION: [450, 1890, 10, 10],
+  FOOD_REGION: [850, 1700, 10, 10],
+  SPEED_CHECK_REGION: [464, 1495, 10, 10],
+  FEED_POSITION: {
+    x: 930,
+    y: 1960
+  },
+  TOOL_POSITION: {
+    x: 960,
+    y: 645
+  },
+  SPEED_CARD_POSITION: {
+    x: 191,
+    y: 1450
+  },
+  CONFIRM_POSITON: {
+    x: 720,
+    y: 1320
+  }
+}

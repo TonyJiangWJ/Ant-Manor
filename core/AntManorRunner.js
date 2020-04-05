@@ -33,6 +33,7 @@ let _commonFunctions = typeof commonFunctions === 'undefined' ?
 let { config } = require('../config.js')
 let alipayUnlocker = require('../lib/AlipayUnlocker.js')
 let _FloatyInstance = typeof FloatyInstance === 'undefined' ? require('./FloatyUtil.js') : FloatyInstance
+let FileUtils = require('../lib/FileUtils.js').FileUtils
 const WIDTH = config.device_width
 const HEIGHT = config.device_height
 
@@ -54,15 +55,15 @@ const default_chick_config = {
   CHECK_APP_REGION: [310, 250, 20, 20],
   CHECK_FRIENDS_REGION: [120, 490, 10, 10],
   OUT_REGION: [400, 1200, 50, 50],
-  OUT_IN_FRIENDS_REGION_RIGHT: [800, 1350, 50, 50],
-  OUT_IN_FRIENDS_REGION_LEFT: [340, 1350, 50, 50],
-  LEFT_THIEF_REGION: [310, 1510, 10, 10],
-  LEFT_PUNCH_REGION: [500, 1350, 100, 100],
-  RIGHT_THIEF_REGION: [930, 1510, 10, 10],
-  RIGHT_PUNCH_REGION: [980, 1350, 100, 100],
-  DISMISS_REGION: [450, 1890, 10, 10],
-  FOOD_REGION: [850, 1700, 10, 10],
-  SPEED_CHECK_REGION: [464, 1495, 10, 10],
+  OUT_IN_FRIENDS_REGION_RIGHT: [800, 1305, 50, 50],
+  OUT_IN_FRIENDS_REGION_LEFT: [340, 1305, 50, 50],
+  LEFT_THIEF_REGION: [310, 1465, 50, 50],
+  LEFT_PUNCH_REGION: [500, 1305, 100, 100],
+  RIGHT_THIEF_REGION: [850, 1465, 50, 50],
+  RIGHT_PUNCH_REGION: [980, 1305, 100, 100],
+  DISMISS_REGION: [450, 1845, 10, 10],
+  FOOD_REGION: [850, 1655, 10, 10],
+  SPEED_CHECK_REGION: [464, 1445, 10, 10],
   FEED_POSITION: {
     x: 930,
     y: 1960
@@ -80,9 +81,12 @@ const default_chick_config = {
     y: 1320
   }
 }
+
+let custom_config = files.exists(FileUtils.getCurrentWorkPath() + '/extends/CustomConfig.js') ? require('../extends/CustomConfig.js') : default_chick_config
+
 let chick_config = {}
-Object.keys(default_chick_config).forEach(key => {
-  let val = default_chick_config[key]
+Object.keys(custom_config).forEach(key => {
+  let val = custom_config[key]
   if (typeof val === 'undefined') {
     return
   }
@@ -120,7 +124,7 @@ function AntManorRunner () {
   }
 
   this.setFloatyInfo = function (position, text) {
-    _debugInfo(['设置悬浮窗位置:{}', JSON.stringify(position)])
+    _debugInfo(['设置悬浮窗位置: {} 内容: {}', JSON.stringify(position), text])
     _FloatyInstance.setFloatyInfo(position, text)
   }
 
