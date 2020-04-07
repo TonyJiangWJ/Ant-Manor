@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-01-09 10:54:33
+ * @Last Modified time: 2020-04-07 13:10:04
  * @Description: 
  */
 let { config } = require('./config.js')
@@ -18,7 +18,7 @@ let { manorRunner } = require('./core/AntManorRunner.js')
 
 logInfo('======校验是否重复运行=======')
 // 检查脚本是否重复运行
-commonFunctions.checkDuplicateRunning()
+// commonFunctions.checkDuplicateRunning()
 runningQueueDispatcher.addRunningTask()
 /***********************
  * 初始化

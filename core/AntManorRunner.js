@@ -34,11 +34,6 @@ let { config } = require('../config.js')
 let alipayUnlocker = require('../lib/AlipayUnlocker.js')
 let _FloatyInstance = typeof FloatyInstance === 'undefined' ? require('./FloatyUtil.js') : FloatyInstance
 let FileUtils = require('../lib/FileUtils.js').FileUtils
-const WIDTH = config.device_width
-const HEIGHT = config.device_height
-
-const widthRate = WIDTH / 1080
-const heightRate = HEIGHT / 2160
 
 
 const default_chick_config = {
@@ -83,7 +78,7 @@ const default_chick_config = {
 }
 
 let custom_config = files.exists(FileUtils.getCurrentWorkPath() + '/extends/CustomConfig.js') ? require('../extends/CustomConfig.js') : default_chick_config
-
+let offset = typeof custom_config.OFFSET === 'number' ? custom_config.OFFSET : 0
 let chick_config = {}
 Object.keys(custom_config).forEach(key => {
   let val = custom_config[key]
@@ -94,16 +89,16 @@ Object.keys(custom_config).forEach(key => {
     chick_config[key] = val
   } else if (Object.prototype.toString.call(val) === '[object Array]') {
     let newArrayConfig = [
-      parseInt(val[0] * widthRate),
-      parseInt(val[1] * heightRate),
-      parseInt(val[2] * widthRate),
-      parseInt(val[3] * heightRate)
+      parseInt(val[0]),
+      parseInt(val[1] + offset),
+      parseInt(val[2]),
+      parseInt(val[3] + offset)
     ]
     chick_config[key] = newArrayConfig
   } else if (val.x) {
     chick_config[key] = {
-      x: parseInt(val.x * widthRate),
-      y: parseInt(val.y * heightRate)
+      x: parseInt(val.x),
+      y: parseInt(val.y + offset)
     }
   } else {
     chick_config[key] = val
