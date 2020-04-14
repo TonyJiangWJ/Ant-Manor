@@ -225,6 +225,7 @@ function AntManorRunner () {
       if (findColor) {
         this.setFloatyInfo(findColor, '找到了我的小鸡')
         sleep(1000)
+        let heightRate = config.device_height / 2160
         this.setFloatyInfo({ x: findColor.x, y: findColor.y + 200 * heightRate }, '点击叫回小鸡')
         click(findColor.x, parseInt(findColor.y + 200 * heightRate))
         sleep(1000)
