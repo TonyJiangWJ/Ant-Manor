@@ -42,6 +42,7 @@ let config = {
   FOOD_COLOR: '#ffcf00',              // 校验正在进食盆里饲料的颜色
   SPEED_CHECK_COLOR: '#ffd000',       // 校验是否成功使用加速卡，小鸡右手上饲料的颜色
 
+  reco: [200, 100, 750, 1900],        // 星星球的判断区域
 
   OFFSET: 0,  // 默认配置为支持2160*1080分辨率，其他异形屏一般可以尝试仅仅修改该偏移量, 如果不行就修改具体区域的配置吧
   CHECK_APP_REGION: [310, 250, 20, 20],             // 校验是否成功打开蚂蚁庄园的区域，左上角❤️的区域
@@ -232,6 +233,7 @@ window.canvas.on("draw", function (canvas) {
     drawRectAndText('判断关闭按钮的区域', config.DISMISS_REGION, config.DISMISS_COLOR, canvas, paint)
     drawRectAndText('判断食盆的区域，主要校验是否存在饲料', config.FOOD_REGION, config.FOOD_COLOR, canvas, paint)
     drawRectAndText('判断是否成功使用加速卡的区域', config.SPEED_CHECK_REGION, config.SPEED_CHECK_COLOR, canvas, paint)
+    drawRectAndText('星星球的判断区域', config.reco, '#000000', canvas, paint)
     drawText('喂饲料按钮', config.FEED_POSITION, canvas, paint)
     drawText('背包按钮', config.TOOL_POSITION, canvas, paint)
     drawText('加速卡位置', config.SPEED_CARD_POSITION, canvas, paint)

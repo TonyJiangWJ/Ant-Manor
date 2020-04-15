@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2020-04-02 16:12:21
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-14 20:15:25
+ * @Last Modified time: 2020-04-15 20:39:10
  * @Description: 
  */
 
@@ -18,6 +18,7 @@ module.exports = {
   FOOD_COLOR: '#ffcf00',              // 校验正在进食盆里饲料的颜色
   SPEED_CHECK_COLOR: '#ffd000',       // 校验是否成功使用加速卡，小鸡右手上饲料的颜色
 
+  reco: [200, 100, 750, 1900],        // 星星球的判断区域
 
   OFFSET: 0,  // 默认配置为支持2160*1080分辨率，其他异形屏一般可以尝试仅仅修改该偏移量, 如果不行就修改具体区域的配置吧
   CHECK_APP_REGION: [310, 250, 20, 20],             // 校验是否成功打开蚂蚁庄园的区域，左上角❤️的区域

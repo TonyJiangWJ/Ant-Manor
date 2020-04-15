@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 23:07:35
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2019-12-23 22:59:43
+ * @Last Modified time: 2020-04-15 20:39:57
  * @Description: 星星球自动游玩
  */
 importClass(java.util.concurrent.LinkedBlockingQueue)
@@ -18,8 +18,8 @@ requestScreenCapture(false)
 const WIDTH = _config.device_width
 const HEIGHT = _config.device_height
 
-const widthRate = WIDTH / 1080
-const heightRate = HEIGHT / 2160
+const widthRate = 1
+const heightRate = 1
 
 let default_config = {
   ballColor: '#ff4e86ff',
@@ -30,6 +30,8 @@ let default_config = {
   // 运行超时时间 毫秒
   timeout: 240000
 }
+
+let custom_config = files.exists(FileUtils.getCurrentWorkPath() + '/extends/CustomConfig.js') ? require('./extends/CustomConfig.js') : null
 
 let config = {}
 Object.keys(default_config).forEach(key => {
@@ -48,6 +50,11 @@ Object.keys(default_config).forEach(key => {
     config[key] = val
   }
 })
+
+if (custom_config && custom_config.reco !== null && custom_config.reco.length === 4) {
+  config.reco = custom_config.reco
+}
+
 console.verbose('转换后的配置：' + JSON.stringify(config))
 
 function Player () {
