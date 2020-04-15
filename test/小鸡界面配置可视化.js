@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2020-04-14 20:21:01
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-14 20:31:43
+ * @Last Modified time: 2020-04-15 18:51:52
  * @Description: 
  */
 "ui";
@@ -130,19 +130,63 @@ function convertArrayToRect (a) {
   return new android.graphics.Rect(a[0], a[1], (a[0] + a[2]), (a[1] + a[3]))
 }
 
-function drawRectAndText (desc, position, colorStr, canvas, paint) {
-  let color = colors.parseColor(colorStr)
-  paint.setARGB(255, color >> 16 & 0xff, color >> 8 & 0xff, color & 0xff)
-  paint.setStrokeWidth(5)
-  canvas.drawRect(convertArrayToRect(position), paint)
-  paint.setStrokeWidth(2)
-  canvas.drawText(desc, position[0], position[1], paint)
+function getPositionDesc(position) {
+  return position[0] + ', ' + position[1] + ' w:' + position[2] + ',h:' + position[3]
 }
 
-function drawText(text, position, canvas, paint) {
+function getRectCenter(position) {
+  return {
+    x: parseInt(position[0] + position[2] / 2),
+    y: parseInt(position[1] + position[3] / 2)
+  }
+}
+
+function drawRectAndText (desc, position, colorStr, canvas, paint) {
+  let color = colors.parseColor(colorStr)
+  
+  paint.setStrokeWidth(1)
+  paint.setStyle(Paint.Style.STROKE)
+  // 反色
+  paint.setARGB(255, 255 - (color >> 16 & 0xff), 255 - (color >> 8 & 0xff), 255 - (color & 0xff))
+  canvas.drawRect(convertArrayToRect(position), paint)
+  paint.setARGB(255, color >> 16 & 0xff, color >> 8 & 0xff, color & 0xff)
+  paint.setStrokeWidth(1)
+  paint.setTextSize(20)
+  paint.setStyle(Paint.Style.FILL)
+  canvas.drawText(desc, position[0], position[1], paint)
+  paint.setTextSize(10)
+  paint.setStrokeWidth(1)
+  paint.setARGB(255, 0, 0, 0)
+  let center = getRectCenter(position)
+  canvas.drawText(getPositionDesc(position), center.x, center.y, paint)
+}
+
+function drawText (text, position, canvas, paint) {
   paint.setARGB(255, 0, 0, 255)
-  paint.setStrokeWidth(2)
+  paint.setStrokeWidth(1)
+  paint.setStyle(Paint.Style.FILL)
   canvas.drawText(text, position.x, position.y, paint)
+}
+
+function drawCoordinateAxis (canvas, paint) {
+  let width = canvas.width
+  let height = canvas.height
+  paint.setStyle(Paint.Style.FILL)
+  paint.setStrokeWidth(1)
+  paint.setTextSize(10)
+  let colorVal = colors.parseColor('#65f4fb')
+  paint.setARGB(255, colorVal >> 16 & 0xFF, colorVal >> 8 & 0xFF, colorVal & 0xFF)
+  for (let x = 50; x < width; x += 50) {
+    paint.setStrokeWidth(0)
+    canvas.drawText(x, x, 10, paint)
+    canvas.drawLine(x, 0, x, height, paint)
+  }
+
+  for (let y = 50; y < height; y += 50) {
+    paint.setStrokeWidth(0)
+    canvas.drawText(y, 0, y, paint)
+    canvas.drawLine(0, y, width, y, paint)
+  }
 }
 
 let converted = false
@@ -153,37 +197,43 @@ ui.board.on("draw", function (liveCanvas) {
     var width = liveCanvas.getWidth()
     var height = liveCanvas.getHeight()
     console.log('画布大小：' + width + ', ' + height)
+    let Typeface = android.graphics.Typeface
     var paint = new Paint()
-    paint.setStrokeWidth(5)
-    paint.setTextSize(25)
-    paint.setStyle(Paint.Style.STROKE)
+    paint.setStrokeWidth(1)
+    paint.setTypeface(Typeface.DEFAULT_BOLD)
     paint.setTextAlign(Paint.Align.LEFT)
+    paint.setAntiAlias(true)
+    paint.setStrokeJoin(Paint.Join.ROUND)
+    paint.setDither(true)
     var matrix = new android.graphics.Matrix()
-    
-    let canvas = new com.stardust.autojs.core.graphics.ScriptCanvas(img_obj)
-    canvas.drawImage(img_obj, matrix, paint)
-    drawRectAndText('判断是否打开APP', config.CHECK_APP_REGION, config.CHECK_APP_COLOR, canvas, paint)
-    drawRectAndText('判断是否打开好友页面', config.CHECK_FRIENDS_REGION, config.CHECK_FRIENDS_COLOR, canvas, paint)
-    drawRectAndText('判断小鸡是否出门，牌子的区域', config.OUT_REGION, config.OUT_COLOR, canvas, paint)
-    drawRectAndText('判断小鸡在好友家，右边的区域', config.OUT_IN_FRIENDS_REGION_RIGHT, config.OUT_IN_FRIENDS_COLOR, canvas, paint)
-    drawRectAndText('判断小鸡在好友家，左边的区域', config.OUT_IN_FRIENDS_REGION_LEFT, config.OUT_IN_FRIENDS_COLOR, canvas, paint)
-    drawRectAndText('判断偷吃的小鸡，左边的区域', config.LEFT_THIEF_REGION, config.THIEF_COLOR, canvas, paint)
-    drawRectAndText('判断左边拳头的区域', config.LEFT_PUNCH_REGION, config.PUNCH_COLOR, canvas, paint)
-    drawRectAndText('判断偷吃的小鸡，右边的区域', config.RIGHT_THIEF_REGION, config.THIEF_COLOR, canvas, paint)
-    drawRectAndText('判断右边拳头的区域', config.RIGHT_PUNCH_REGION, config.PUNCH_COLOR, canvas, paint)
-    drawRectAndText('判断关闭按钮的区域', config.DISMISS_REGION, config.DISMISS_COLOR, canvas, paint)
-    drawRectAndText('判断食盆的区域，主要校验是否存在饲料', config.FOOD_REGION, config.FOOD_COLOR, canvas, paint)
-    drawRectAndText('判断是否成功使用加速卡的区域', config.SPEED_CHECK_REGION, config.SPEED_CHECK_COLOR, canvas, paint)
-    drawText('喂饲料按钮', config.FEED_POSITION, canvas, paint)
-    drawText('背包按钮', config.TOOL_POSITION, canvas, paint)
-    drawText('加速卡位置', config.SPEED_CARD_POSITION, canvas, paint)
-    drawText('确认按钮位置', config.CONFIRM_POSITON, canvas, paint)
     if (!converted) {
+      let canvas = new com.stardust.autojs.core.graphics.ScriptCanvas(img_obj)
+      canvas.drawImage(img_obj, matrix, paint)
+      drawRectAndText('判断是否打开APP', config.CHECK_APP_REGION, config.CHECK_APP_COLOR, canvas, paint)
+      drawRectAndText('判断是否打开好友页面', config.CHECK_FRIENDS_REGION, config.CHECK_FRIENDS_COLOR, canvas, paint)
+      drawRectAndText('判断小鸡是否出门，牌子的区域', config.OUT_REGION, config.OUT_COLOR, canvas, paint)
+      drawRectAndText('判断小鸡在好友家，右边的区域', config.OUT_IN_FRIENDS_REGION_RIGHT, config.OUT_IN_FRIENDS_COLOR, canvas, paint)
+      drawRectAndText('判断小鸡在好友家，左边的区域', config.OUT_IN_FRIENDS_REGION_LEFT, config.OUT_IN_FRIENDS_COLOR, canvas, paint)
+      drawRectAndText('判断偷吃的小鸡，左边的区域', config.LEFT_THIEF_REGION, config.THIEF_COLOR, canvas, paint)
+      drawRectAndText('判断左边拳头的区域', config.LEFT_PUNCH_REGION, config.PUNCH_COLOR, canvas, paint)
+      drawRectAndText('判断偷吃的小鸡，右边的区域', config.RIGHT_THIEF_REGION, config.THIEF_COLOR, canvas, paint)
+      drawRectAndText('判断右边拳头的区域', config.RIGHT_PUNCH_REGION, config.PUNCH_COLOR, canvas, paint)
+      drawRectAndText('判断关闭按钮的区域', config.DISMISS_REGION, config.DISMISS_COLOR, canvas, paint)
+      drawRectAndText('判断食盆的区域，主要校验是否存在饲料', config.FOOD_REGION, config.FOOD_COLOR, canvas, paint)
+      drawRectAndText('判断是否成功使用加速卡的区域', config.SPEED_CHECK_REGION, config.SPEED_CHECK_COLOR, canvas, paint)
+      drawText('喂饲料按钮', config.FEED_POSITION, canvas, paint)
+      drawText('背包按钮', config.TOOL_POSITION, canvas, paint)
+      drawText('加速卡位置', config.SPEED_CARD_POSITION, canvas, paint)
+      drawText('确认按钮位置', config.CONFIRM_POSITON, canvas, paint)
+
+      drawCoordinateAxis(canvas, paint)
+
       new_img = canvas.toImage()
       new_img.saveTo(files.cwd() + "/converted_img.jpg")
       converted = true
     }
     liveCanvas.drawImage(new_img, matrix, paint)
+    
   } catch (e) {
     toastLog(e)
     exit()
