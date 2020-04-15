@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2020-04-14 20:21:01
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-15 18:51:52
+ * @Last Modified time: 2020-04-15 19:27:43
  * @Description: 
  */
 "ui";
@@ -172,19 +172,20 @@ function drawCoordinateAxis (canvas, paint) {
   let width = canvas.width
   let height = canvas.height
   paint.setStyle(Paint.Style.FILL)
-  paint.setStrokeWidth(1)
   paint.setTextSize(10)
   let colorVal = colors.parseColor('#65f4fb')
   paint.setARGB(255, colorVal >> 16 & 0xFF, colorVal >> 8 & 0xFF, colorVal & 0xFF)
   for (let x = 50; x < width; x += 50) {
     paint.setStrokeWidth(0)
     canvas.drawText(x, x, 10, paint)
+    paint.setStrokeWidth(0.2)
     canvas.drawLine(x, 0, x, height, paint)
   }
 
   for (let y = 50; y < height; y += 50) {
     paint.setStrokeWidth(0)
     canvas.drawText(y, 0, y, paint)
+    paint.setStrokeWidth(0.2)
     canvas.drawLine(0, y, width, y, paint)
   }
 }
