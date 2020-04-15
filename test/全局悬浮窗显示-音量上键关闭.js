@@ -1,26 +1,34 @@
-/*
- * @Author: TonyJiangWJ
- * @Date: 2020-04-14 20:21:01
- * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-15 20:22:07
- * @Description: 
- */
-"ui";
+/**
+ *作者QQ: 1811588980
+**/
+
+toastLog("Are you ready？");
+var IMG, img;
+
+if (!requestScreenCapture()) {
+  toast("请求截图失败");
+  exit();
+};
+
+IMG = captureScreen();
+img = images.copy(IMG);
 
 
-ui.layout(
-  <frame>
-    <canvas id="board" w="*" h="*" />
-  </frame>
+
+var window = floaty.rawWindow(
+  <canvas id="canvas" layout_weight="1" />
 );
 
-let img_path = files.cwd() + "/蚂蚁庄园截图.jpg"
-let img_obj = images.read(img_path)
+window.setSize(1080, 2160);
+window.setTouchable(false)
 
-if (!img_obj) {
-  toastLog('图像资源不存在:' + img_path)
-  exit()
-}
+// let img_path = files.cwd() + "/蚂蚁庄园截图.jpg"
+// let img_obj = images.read(img_path)
+
+// if (!img_obj) {
+//   toastLog('图像资源不存在:' + img_path)
+//   exit()
+// }
 
 let config = {
 
@@ -130,11 +138,11 @@ function convertArrayToRect (a) {
   return new android.graphics.Rect(a[0], a[1], (a[0] + a[2]), (a[1] + a[3]))
 }
 
-function getPositionDesc(position) {
+function getPositionDesc (position) {
   return position[0] + ', ' + position[1] + ' w:' + position[2] + ',h:' + position[3]
 }
 
-function getRectCenter(position) {
+function getRectCenter (position) {
   return {
     x: parseInt(position[0] + position[2] / 2),
     y: parseInt(position[1] + position[3] / 2)
@@ -143,7 +151,7 @@ function getRectCenter(position) {
 
 function drawRectAndText (desc, position, colorStr, canvas, paint) {
   let color = colors.parseColor(colorStr)
-  
+
   paint.setStrokeWidth(1)
   paint.setStyle(Paint.Style.STROKE)
   // 反色
@@ -193,11 +201,17 @@ function drawCoordinateAxis (canvas, paint) {
 let converted = false
 let new_img = null
 
-ui.board.on("draw", function (liveCanvas) {
+
+window.canvas.on("draw", function (canvas) {
   try {
-    var width = liveCanvas.getWidth()
-    var height = liveCanvas.getHeight()
-    console.log('画布大小：' + width + ', ' + height)
+    var width = canvas.getWidth()
+    var height = canvas.getHeight()
+    var matrix = new android.graphics.Matrix()
+    if (!converted) {
+      toastLog('画布大小：' + width + ', ' + height)
+    }
+
+    // let canvas = new com.stardust.autojs.core.graphics.ScriptCanvas(width, height)
     let Typeface = android.graphics.Typeface
     var paint = new Paint()
     paint.setStrokeWidth(1)
@@ -206,37 +220,43 @@ ui.board.on("draw", function (liveCanvas) {
     paint.setAntiAlias(true)
     paint.setStrokeJoin(Paint.Join.ROUND)
     paint.setDither(true)
-    var matrix = new android.graphics.Matrix()
-    if (!converted) {
-      let canvas = new com.stardust.autojs.core.graphics.ScriptCanvas(img_obj)
-      canvas.drawImage(img_obj, matrix, paint)
-      drawRectAndText('判断是否打开APP', config.CHECK_APP_REGION, config.CHECK_APP_COLOR, canvas, paint)
-      drawRectAndText('判断是否打开好友页面', config.CHECK_FRIENDS_REGION, config.CHECK_FRIENDS_COLOR, canvas, paint)
-      drawRectAndText('判断小鸡是否出门，牌子的区域', config.OUT_REGION, config.OUT_COLOR, canvas, paint)
-      drawRectAndText('判断小鸡在好友家，右边的区域', config.OUT_IN_FRIENDS_REGION_RIGHT, config.OUT_IN_FRIENDS_COLOR, canvas, paint)
-      drawRectAndText('判断小鸡在好友家，左边的区域', config.OUT_IN_FRIENDS_REGION_LEFT, config.OUT_IN_FRIENDS_COLOR, canvas, paint)
-      drawRectAndText('判断偷吃的小鸡，左边的区域', config.LEFT_THIEF_REGION, config.THIEF_COLOR, canvas, paint)
-      drawRectAndText('判断左边拳头的区域', config.LEFT_PUNCH_REGION, config.PUNCH_COLOR, canvas, paint)
-      drawRectAndText('判断偷吃的小鸡，右边的区域', config.RIGHT_THIEF_REGION, config.THIEF_COLOR, canvas, paint)
-      drawRectAndText('判断右边拳头的区域', config.RIGHT_PUNCH_REGION, config.PUNCH_COLOR, canvas, paint)
-      drawRectAndText('判断关闭按钮的区域', config.DISMISS_REGION, config.DISMISS_COLOR, canvas, paint)
-      drawRectAndText('判断食盆的区域，主要校验是否存在饲料', config.FOOD_REGION, config.FOOD_COLOR, canvas, paint)
-      drawRectAndText('判断是否成功使用加速卡的区域', config.SPEED_CHECK_REGION, config.SPEED_CHECK_COLOR, canvas, paint)
-      drawText('喂饲料按钮', config.FEED_POSITION, canvas, paint)
-      drawText('背包按钮', config.TOOL_POSITION, canvas, paint)
-      drawText('加速卡位置', config.SPEED_CARD_POSITION, canvas, paint)
-      drawText('确认按钮位置', config.CONFIRM_POSITON, canvas, paint)
+    drawRectAndText('判断是否打开APP', config.CHECK_APP_REGION, config.CHECK_APP_COLOR, canvas, paint)
+    drawRectAndText('判断是否打开好友页面', config.CHECK_FRIENDS_REGION, config.CHECK_FRIENDS_COLOR, canvas, paint)
+    drawRectAndText('判断小鸡是否出门，牌子的区域', config.OUT_REGION, config.OUT_COLOR, canvas, paint)
+    drawRectAndText('判断小鸡在好友家，右边的区域', config.OUT_IN_FRIENDS_REGION_RIGHT, config.OUT_IN_FRIENDS_COLOR, canvas, paint)
+    drawRectAndText('判断小鸡在好友家，左边的区域', config.OUT_IN_FRIENDS_REGION_LEFT, config.OUT_IN_FRIENDS_COLOR, canvas, paint)
+    drawRectAndText('判断偷吃的小鸡，左边的区域', config.LEFT_THIEF_REGION, config.THIEF_COLOR, canvas, paint)
+    drawRectAndText('判断左边拳头的区域', config.LEFT_PUNCH_REGION, config.PUNCH_COLOR, canvas, paint)
+    drawRectAndText('判断偷吃的小鸡，右边的区域', config.RIGHT_THIEF_REGION, config.THIEF_COLOR, canvas, paint)
+    drawRectAndText('判断右边拳头的区域', config.RIGHT_PUNCH_REGION, config.PUNCH_COLOR, canvas, paint)
+    drawRectAndText('判断关闭按钮的区域', config.DISMISS_REGION, config.DISMISS_COLOR, canvas, paint)
+    drawRectAndText('判断食盆的区域，主要校验是否存在饲料', config.FOOD_REGION, config.FOOD_COLOR, canvas, paint)
+    drawRectAndText('判断是否成功使用加速卡的区域', config.SPEED_CHECK_REGION, config.SPEED_CHECK_COLOR, canvas, paint)
+    drawText('喂饲料按钮', config.FEED_POSITION, canvas, paint)
+    drawText('背包按钮', config.TOOL_POSITION, canvas, paint)
+    drawText('加速卡位置', config.SPEED_CARD_POSITION, canvas, paint)
+    drawText('确认按钮位置', config.CONFIRM_POSITON, canvas, paint)
 
-      drawCoordinateAxis(canvas, paint)
+    // drawCoordinateAxis(canvas, paint)
+    converted = true
 
-      new_img = canvas.toImage()
-      new_img.saveTo(files.cwd() + "/converted_img.jpg")
-      converted = true
-    }
-    liveCanvas.drawImage(new_img, matrix, paint)
-    
+
+    // canvas.drawImage(new_img, matrix, null)
   } catch (e) {
     toastLog(e)
     exit()
   }
+});
+
+threads.start(function () {
+  toastLog('按音量上键关闭')
+  events.removeAllKeyDownListeners('volume_down')
+  events.observeKey()
+  events.on("key_down", function (keyCode, event) {
+    if (keyCode === 24) {
+      exit()
+    }
+  })
 })
+
+setInterval(function () { }, 5000)
