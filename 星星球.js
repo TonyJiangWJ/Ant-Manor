@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 23:07:35
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-15 20:39:57
+ * @Last Modified time: 2020-04-16 09:08:24
  * @Description: 星星球自动游玩
  */
 importClass(java.util.concurrent.LinkedBlockingQueue)
@@ -12,6 +12,7 @@ importClass(java.util.concurrent.TimeUnit)
 let { commonFunctions } = require('./lib/CommonFunction.js')
 let { runningQueueDispatcher } = require('./lib/RunningQueueDispatcher.js')
 let _config = require('./config.js').config
+let FileUtils = require('./lib/FileUtils.js').FileUtils
 
 requestScreenCapture(false)
 
