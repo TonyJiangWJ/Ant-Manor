@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 23:07:35
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-16 09:08:24
+ * @Last Modified time: 2020-04-17 09:59:53
  * @Description: 星星球自动游玩
  */
 importClass(java.util.concurrent.LinkedBlockingQueue)
@@ -241,7 +241,7 @@ function Player () {
 }
 
 
-if (!commonFunctions.checkAccessibilityService(true)) {
+if (!commonFunctions.checkAccessibilityService()) {
   try {
     auto.waitFor()
   } catch (e) {

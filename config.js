@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-01-12 20:56:38
+ * @Last Modified time: 2020-04-23 15:58:48
  * @Description: 
  */
 'ui';
@@ -36,7 +36,10 @@ var default_config = {
   windowTime: 5,
   recheckTime: 5,
   device_width: device.width,
-  device_height: device.height
+  device_height: device.height,
+  auto_lock: false,
+  lock_x: 150,
+  lock_y: 970
 }
 
 // 配置缓存的key值
@@ -76,6 +79,7 @@ if (!isRunningMode) {
   let { commonFunctions } = require('./lib/CommonFunction.js')
   let AesUtil = require('./lib/AesUtil.js')
   let loadingDialog = null
+  const _hasRootPermission = files.exists("/sbin/su") || files.exists("/system/xbin/su") || files.exists("/system/bin/su")
   threads.start(function () {
     loadingDialog = dialogs.build({
       title: "加载中...",
@@ -144,6 +148,12 @@ if (!isRunningMode) {
     ui.saveLogFileChkBox.setChecked(config.saveLogFile)
     ui.starBallScoreInpt.setText(config.starBallScore + '')
 
+    ui.lockX.text(config.lock_x + '')
+    ui.lockXSeekBar.setProgress(parseInt(config.lock_x / config.device_width * 100))
+    ui.lockY.text(config.lock_y + '')
+    ui.lockYSeekBar.setProgress(parseInt(config.lock_y / config.device_height * 100))
+    ui.autoLockChkBox.setChecked(config.auto_lock)
+
     setDeviceSizeText()
   }
 
@@ -190,6 +200,28 @@ if (!isRunningMode) {
               <horizontal padding="10 0" gravity="center">
                 <text text="循环检测等待时间：" layout_weight="20" />
                 <input id="recheckTimeInpt" inputType="number" textSize="14sp" layout_weight="80" />
+              </horizontal>
+              <horizontal w="*" h="1sp" bg="#cccccc" margin="5 0"></horizontal>
+              {/* 自动锁屏 */}
+              <vertical id="lockDescNoRoot">
+                <text text="锁屏功能仅限于下拉状态栏中有锁屏按钮的情况下可用" textSize="12sp" />
+                <text text="实在想用可以自行修改Automator中的lockScreen方法" textSize="12sp" />
+              </vertical>
+              <horizontal gravity="center">
+                <checkbox id="autoLockChkBox" text="是否自动锁屏" />
+                <vertical padding="10 0" id="lockPositionContainer" gravity="center" layout_weight="75">
+                  <horizontal margin="10 0" gravity="center">
+                    <text text="x:" />
+                    <seekbar id="lockXSeekBar" progress="20" layout_weight="80" />
+                    <text id="lockX" />
+                  </horizontal>
+                  <horizontal margin="10 0" gravity="center">
+                    <text text="y:" />
+                    <seekbar id="lockYSeekBar" progress="20" layout_weight="80" />
+                    <text id="lockY" />
+                  </horizontal>
+                  <button id="showLockPointConfig" >手动输入坐标</button>
+                </vertical>
               </horizontal>
               <horizontal w="*" h="1sp" bg="#cccccc" margin="5 0"></horizontal>
               {/* 是否显示debug日志 */}
@@ -416,13 +448,63 @@ if (!isRunningMode) {
       config.saveLogFile = ui.saveLogFileChkBox.isChecked()
     })
 
+    ui.autoLockChkBox.on('click', () => {
+      let checked = ui.autoLockChkBox.isChecked()
+      config.auto_lock = checked
+      ui.lockPositionContainer.setVisibility(checked && !_hasRootPermission ? View.VISIBLE : View.INVISIBLE)
+    })
+
+    ui.lockXSeekBar.on('touch', () => {
+      let precent = ui.lockXSeekBar.getProgress()
+      let trueVal = parseInt(precent * config.device_width / 100)
+      ui.lockX.text('' + trueVal)
+      config.lock_x = trueVal
+    })
+
+    ui.lockYSeekBar.on('touch', () => {
+      let precent = ui.lockYSeekBar.getProgress()
+      let trueVal = parseInt(precent * config.device_height / 100)
+      ui.lockY.text('' + trueVal)
+      config.lock_y = trueVal
+    })
+
+    ui.showLockPointConfig.on('click', () => {
+      Promise.resolve().then(() => {
+        return dialogs.rawInput('请输入X坐标：', config.lock_x + '')
+      }).then(x => {
+        if (x) {
+          let xVal = parseInt(x)
+          if (isFinite(xVal)) {
+            config.lock_x = xVal
+          } else {
+            toast('输入值无效')
+          }
+        }
+      }).then(() => {
+        return dialogs.rawInput('请输入Y坐标：', config.lock_y + '')
+      }).then(y => {
+        if (y) {
+          let yVal = parseInt(y)
+          if (isFinite(yVal)) {
+            config.lock_y = yVal
+          } else {
+            toast('输入值无效')
+          }
+        }
+      }).then(() => {
+        ui.lockX.text(config.lock_x + '')
+        ui.lockXSeekBar.setProgress(parseInt(config.lock_x / config.device_width * 100))
+        ui.lockY.text(config.lock_y + '')
+        ui.lockYSeekBar.setProgress(parseInt(config.lock_y / config.device_height * 100))
+      })
+    })
+
     setTimeout(() => {
       loadingDialog.dismiss()
     }, 500)
   }, 400)
 
   ui.emitter.on('pause', () => {
-    ui.finish()
     Object.keys(default_config).forEach(key => {
       let newVal = config[key]
       if (typeof newVal !== 'undefined') {

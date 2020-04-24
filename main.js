@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-07 13:10:04
+ * @Last Modified time: 2020-04-23 15:32:27
  * @Description: 
  */
 let { config } = require('./config.js')
@@ -15,6 +15,7 @@ let { commonFunctions } = require('./lib/CommonFunction.js')
 let unlocker = require('./lib/Unlock.js')
 let FloatyInstance = require('./lib/FloatyUtil.js')
 let { manorRunner } = require('./core/AntManorRunner.js')
+let automator = require('./lib/Automator.js').automator
 
 logInfo('======校验是否重复运行=======')
 // 检查脚本是否重复运行
@@ -25,7 +26,7 @@ runningQueueDispatcher.addRunningTask()
  ***********************/
 logInfo('======校验无障碍功能======')
 // 检查手机是否开启无障碍服务
-if (!commonFunctions.checkAccessibilityService(true)) {
+if (!commonFunctions.checkAccessibilityService()) {
   try {
     auto.waitFor()
   } catch (e) {
@@ -78,8 +79,12 @@ if (!FloatyInstance.init()) {
  * 主程序
  ***********************/
 try {
-  commonFunctions.showDialogAndWait(false)
+  commonFunctions.showDialogAndWait(true)
   manorRunner.start()
+  if (config.auto_lock === true && unlocker.needRelock() === true) {
+    debugInfo('重新锁定屏幕')
+    automator.lockScreen()
+  }
 } catch (e) {
   errorInfo('执行发生异常' + e + ' 三分钟后重启')
   commonFunctions.setUpAutoStart(3)
