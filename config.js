@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-23 15:58:48
+ * @Last Modified time: 2020-04-24 13:36:42
  * @Description: 
  */
 'ui';
@@ -153,6 +153,8 @@ if (!isRunningMode) {
     ui.lockY.text(config.lock_y + '')
     ui.lockYSeekBar.setProgress(parseInt(config.lock_y / config.device_height * 100))
     ui.autoLockChkBox.setChecked(config.auto_lock)
+    ui.lockPositionContainer.setVisibility(config.auto_lock && !_hasRootPermission ? View.VISIBLE : View.INVISIBLE)
+    ui.lockDescNoRoot.setVisibility(!_hasRootPermission ? View.VISIBLE : View.INVISIBLE)
 
     setDeviceSizeText()
   }
