@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-23 15:32:27
+ * @Last Modified time: 2020-04-26 00:52:12
  * @Description: 
  */
 let { config } = require('./config.js')
@@ -42,13 +42,13 @@ try {
   unlocker.exec()
 } catch (e) {
   let currentDate = new Date()
-  let sleep = 3
+  let sleepTime = 3
   if (currentDate.getHours() <= 7 && currentDate.getHours() >= 0) {
     // 夜间15分钟
-    sleep = 15
+    sleepTime = 15
   }
-  errorInfo(['解锁发生异常, {}分钟后重新开始' + e, sleep])
-  commonFunctions.setUpAutoStart(sleep)
+  errorInfo(['解锁发生异常, {}分钟后重新开始' + e, sleepTime])
+  commonFunctions.setUpAutoStart(sleepTime)
   runningQueueDispatcher.removeRunningTask()
   exit()
 }
