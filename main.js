@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-26 00:52:12
+ * @Last Modified time: 2020-04-26 18:52:21
  * @Description: 
  */
 let { config } = require('./config.js')(runtime, this)
@@ -13,15 +13,16 @@ let { logInfo, errorInfo, warnInfo, debugInfo, infoLog } = singletoneRequire('Lo
 let FloatyInstance = singletoneRequire('FloatyUtil')
 let commonFunctions = singletoneRequire('CommonFunction')
 let automator = singletoneRequire('Automator')
-
+let tryRequestScreenCapture = singletoneRequire('TryRequestScreenCapture')
 let unlocker = require('./lib/Unlock.js')
 
 let manorRunner = require('./core/AntManorRunner.js')
 
-
-logInfo('======校验是否重复运行=======')
-// 检查脚本是否重复运行
-// commonFunctions.checkDuplicateRunning()
+if (config.single_script) {
+  logInfo('======单脚本运行直接清空任务队列=======')
+  runningQueueDispatcher.clearAll()
+}
+logInfo('======加入任务队列，并关闭重复运行的脚本=======')
 runningQueueDispatcher.addRunningTask()
 /***********************
  * 初始化
@@ -38,7 +39,15 @@ if (!commonFunctions.checkAccessibilityService()) {
 }
 
 logInfo('---前置校验完成;启动系统--->>>>')
+// 打印运行环境信息
+if (files.exists('version.json')) {
+  let content = JSON.parse(files.read('version.json'))
+  logInfo(['版本信息：{} nodeId:{}', content.version, content.nodeId])
+} else {
+  logInfo('无法获取脚本版本信息')
+}
 
+logInfo(['设备分辨率：[{}, {}]', config.device_width, config.device_height])
 logInfo('======解锁======')
 try {
   unlocker.exec()
@@ -57,12 +66,13 @@ try {
 logInfo('解锁成功')
 let screenPermission = false
 let actionSuccess = commonFunctions.waitFor(function () {
-  if (!requestScreenCapture(false)) {
-    screenPermission = false
+  if (config.request_capture_permission) {
+    screenPermission = tryRequestScreenCapture()
   } else {
-    screenPermission = true
+    screenPermission = requestScreenCapture(false)
   }
-}, 1000)
+}, 15000)
+
 if (!actionSuccess || !screenPermission) {
   errorInfo('请求截图失败, 设置6秒后重启')
   runningQueueDispatcher.removeRunningTask()
@@ -82,6 +92,7 @@ if (!FloatyInstance.init()) {
  ***********************/
 try {
   commonFunctions.showDialogAndWait(true)
+  commonFunctions.listenDelayStart()
   manorRunner.start()
   if (config.auto_lock === true && unlocker.needRelock() === true) {
     debugInfo('重新锁定屏幕')
@@ -91,5 +102,9 @@ try {
   errorInfo('执行发生异常' + e + ' 三分钟后重启')
   commonFunctions.setUpAutoStart(3)
 } finally {
-  runningQueueDispatcher.removeRunningTask()
+  events.removeAllListeners()
+  events.recycle()
+  FloatyInstance.close()
+  runningQueueDispatcher.removeRunningTask(true)
 }
+exit()

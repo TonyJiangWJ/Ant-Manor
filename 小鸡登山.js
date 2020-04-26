@@ -9,7 +9,7 @@ importClass(java.util.concurrent.ThreadPoolExecutor)
 importClass(java.util.concurrent.TimeUnit)
 importClass(java.util.concurrent.CountDownLatch)
 let ColorCenterCalculator = require('./lib/ColorCenterCalculator.js')
-let config = require('./config.js')
+let { config } = require('./config.js')(runtime, this)
 if (!checkAccessibilityService(true)) {
   try {
     auto.waitFor()

@@ -9,10 +9,12 @@ importClass(java.util.concurrent.LinkedBlockingQueue)
 importClass(java.util.concurrent.ThreadPoolExecutor)
 importClass(java.util.concurrent.TimeUnit)
 
-let { commonFunctions } = require('./lib/CommonFunction.js')
-let { runningQueueDispatcher } = require('./lib/RunningQueueDispatcher.js')
-let _config = require('./config.js').config
-let FileUtils = require('./lib/FileUtils.js').FileUtils
+let { config: _config } = require('./config.js')(runtime, this)
+let singletoneRequire = require('./lib/SingletonRequirer.js')(runtime, this)
+
+let commonFunctions = singletoneRequire('CommonFunction')
+let runningQueueDispatcher = singletoneRequire('RunningQueueDispatcher')
+let FileUtils = singletoneRequire('FileUtils')
 
 requestScreenCapture(false)
 

@@ -6,7 +6,7 @@
  * @Description: 
  */
 let ColorCenterCalculator = require('./lib/ColorCenterCalculator.js')
-let FloatyUtil = require('./lib/FloatyUtil.js')
+let FloatyUtil = require('./lib/prototype/FloatyUtil.js')
 let coinColor = '#e2b201'
 let threshold = 50
 FloatyUtil.init()

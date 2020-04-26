@@ -2,13 +2,13 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-24 13:36:42
+ * @Last Modified time: 2020-04-26 18:08:02
  * @Description: 
  */
 'ui';
 
 let currentEngine = engines.myEngine().getSource() + ''
-let isRunningMode = currentEngine.endsWith('/config.js')
+let isRunningMode = currentEngine.endsWith('/config.js') && typeof module === 'undefined'
 importClass(android.text.TextWatcher)
 importClass(android.view.View)
 importClass(android.view.MotionEvent)
@@ -39,11 +39,17 @@ var default_config = {
   device_height: device.height,
   auto_lock: false,
   lock_x: 150,
-  lock_y: 970
+  lock_y: 970,
+  // 单脚本模式 是否只运行一个脚本 不会同时使用其他的 开启单脚本模式 会取消任务队列的功能。
+  // 比如同时使用其他脚本 则保持默认 false 否则设置为true 无视其他运行中的脚本
+  single_script: false,
+  // 延迟启动时延 5秒 悬浮窗中进行的倒计时时间
+  delayStartTime: 5,
 }
 
 // 配置缓存的key值
 const CONFIG_STORAGE_NAME = 'chick_config_version'
+const PROJECT_NAME = '蚂蚁庄园'
 var storageConfig = storages.create(CONFIG_STORAGE_NAME)
 var config = {}
 if (!storageConfig.contains('password')) {
@@ -73,7 +79,8 @@ if (!isRunningMode) {
       scope.config_instance = {
         config: config,
         default_config: default_config,
-        storage_name: CONFIG_STORAGE_NAME
+        storage_name: CONFIG_STORAGE_NAME,
+        project_name: PROJECT_NAME
       }
     }
     return scope.config_instance
@@ -132,7 +139,8 @@ if (!isRunningMode) {
     ui.showDebugLogChkBox.setChecked(config.show_debug_log)
     ui.saveLogFileChkBox.setChecked(config.saveLogFile)
     ui.starBallScoreInpt.setText(config.starBallScore + '')
-
+    ui.delayStartTimeInpt.text(config.delayStartTime + '')
+    ui.singleScriptChkBox.setChecked(config.single_script)
     ui.lockX.text(config.lock_x + '')
     ui.lockXSeekBar.setProgress(parseInt(config.lock_x / config.device_width * 100))
     ui.lockY.text(config.lock_y + '')
@@ -240,6 +248,14 @@ if (!isRunningMode) {
               <horizontal padding="10 0" gravity="center">
                 <text text="星星球目标分数：" layout_weight="20" />
                 <input id="starBallScoreInpt" inputType="number" textSize="14sp" layout_weight="80" />
+              </horizontal>
+              {/* 单脚本使用，无视多任务队列 */}
+              <text text="当需要使用多个脚本时不要勾选（如同时使用我写的蚂蚁庄园脚本），避免抢占前台" textSize="9sp" />
+              <checkbox id="singleScriptChkBox" text="是否单脚本运行" />
+              {/* 脚本延迟启动 */}
+              <horizontal gravity="center">
+                <text text="延迟启动时间（秒）:" />
+                <input layout_weight="70" inputType="number" id="delayStartTimeInpt" layout_weight="70" />
               </horizontal>
             </vertical>
           </frame>
@@ -509,6 +525,14 @@ if (!isRunningMode) {
       })
     })
 
+
+    ui.singleScriptChkBox.on('click', () => {
+      config.single_script = ui.singleScriptChkBox.isChecked()
+    })
+    
+    ui.delayStartTimeInpt.addTextChangedListener(
+      TextWatcherBuilder(text => { config.delayStartTime = parseInt(text) })
+    )
     setTimeout(() => {
       loadingDialog.dismiss()
     }, 500)

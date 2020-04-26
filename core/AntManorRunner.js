@@ -2,8 +2,8 @@ importClass(android.content.Context)
 importClass(android.provider.Settings)
 
 
-let { config } = require('./config.js')(runtime, this)
-let singletoneRequire = require('./lib/SingletonRequirer.js')(runtime, this)
+let { config } = require('../config.js')(runtime, this)
+let singletoneRequire = require('../lib/SingletonRequirer.js')(runtime, this)
 
 let _runningQueueDispatcher = singletoneRequire('RunningQueueDispatcher')
 let _commonFunctions = singletoneRequire('CommonFunction')
