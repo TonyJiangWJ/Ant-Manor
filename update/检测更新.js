@@ -1,20 +1,15 @@
-let { FileUtils } = require('../lib/FileUtils.js')
+/*
+ * @Author: TonyJiangWJ
+ * @Date: 2019-12-23 22:54:22
+ * @Last Modified by: TonyJiangWJ
+ * @Last Modified time: 2020-01-10 17:08:34
+ * @Description: 
+ */
+
+runtime.loadDex('../lib/autojs-tools.dex')
+let FileUtils = require('../lib/prototype/FileUtils.js')
 let loadingDialog = null
-try {
-  importClass(com.tony.DownloaderListener)
-} catch (e) {
-  toastLog('未载入dex, 请稍等')
-  loadingDialog = dialogs.build({
-    title: '正在加载dex',
-    content: '请稍等...'
-  }).show()
-  runtime.loadDex('../lib/autojs-tools.dex')
-  loadingDialog.setContent('加载完成！')
-  sleep(1000)
-  loadingDialog.dismiss()
-  engines.execScriptFile(engines.myEngine().getSource())
-  exit()
-}
+
 
 importClass(com.tony.Downloader)
 importClass(com.tony.DownloaderListener)
@@ -78,6 +73,9 @@ let downloadingExecutor = function (backup) {
     sleep(1000)
   }
   downloader.downloadZip()
+  // 覆盖新的dex到lib下
+  let copy_result = files.copy(targetOutputDir + '/resources/for_update/autojs-tools.dex', targetOutputDir + '/lib/autojs-tools.dex')
+  toastLog('复制新的dex文件' + (copy_result ? '成功' : '失败'))
   downloadDialog.setContent('更新完成')
   sleep(2000)
   downloadDialog.dismiss()

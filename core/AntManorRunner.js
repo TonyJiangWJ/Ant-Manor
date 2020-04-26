@@ -1,39 +1,16 @@
 importClass(android.content.Context)
 importClass(android.provider.Settings)
-let {
-  _logInfo, _debugInfo, _warnInfo, _infoLog, _errorInfo
-} = typeof logInfo === 'undefined' ? (() => {
-  let { logInfo, debugInfo, warnInfo, infoLog, errorInfo } = require('../lib/LogUtils.js')
-  debugInfo('Runner重新载入日志方法')
-  return {
-    _logInfo: logInfo,
-    _debugInfo: debugInfo,
-    _warnInfo: warnInfo,
-    _infoLog: infoLog,
-    _errorInfo: errorInfo
-  }
-})() : {
-      _logInfo: logInfo,
-      _debugInfo: debugInfo,
-      _warnInfo: warnInfo,
-      _infoLog: infoLog,
-      _errorInfo: errorInfo
-    }
-let _runningQueueDispatcher = typeof runningQueueDispatcher === 'undefined' ?
-  (() => {
-    let { runningQueueDispatcher } = require('../lib/RunningQueueDispatcher.js')
-    return runningQueueDispatcher
-  })() : runningQueueDispatcher
-let _commonFunctions = typeof commonFunctions === 'undefined' ?
-  (() => {
-    _debugInfo('Runner重新载入commonFunctions')
-    let { commonFunctions } = require('../lib/CommonFunction.js')
-    return commonFunctions
-  })() : commonFunctions
-let { config } = require('../config.js')
-let alipayUnlocker = require('../lib/AlipayUnlocker.js')
-let _FloatyInstance = typeof FloatyInstance === 'undefined' ? require('./FloatyUtil.js') : FloatyInstance
-let FileUtils = require('../lib/FileUtils.js').FileUtils
+
+
+let { config } = require('./config.js')(runtime, this)
+let singletoneRequire = require('./lib/SingletonRequirer.js')(runtime, this)
+
+let _runningQueueDispatcher = singletoneRequire('RunningQueueDispatcher')
+let _commonFunctions = singletoneRequire('CommonFunction')
+let alipayUnlocker = singletoneRequire('AlipayUnlocker')
+let { logInfo: _logInfo, errorInfo: _errorInfo, warnInfo: _warnInfo, debugInfo: _debugInfo, infoLog: _infoLog } = singletoneRequire('LogUtils')
+let _FloatyInstance = singletoneRequire('FloatyUtil')
+let FileUtils = singletoneRequire('FileUtils')
 
 
 const default_chick_config = {
@@ -418,7 +395,7 @@ function AntManorRunner () {
     let punchedLeft = this.checkThiefLeft()
     let punchedRight = this.checkThiefRight()
     if (punchedLeft || punchedRight) {
-      // 揍过🐔直接设置300
+      // 揍过�直接设置300
       _commonFunctions.updateSleepTime(300)
     }
 
@@ -498,6 +475,4 @@ function AntManorRunner () {
 
 // console.show()
 
-module.exports = {
-  manorRunner: new AntManorRunner()
-}
+module.exports = new AntManorRunner()

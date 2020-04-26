@@ -68,41 +68,26 @@ if (!isRunningMode) {
     toastLog('请先运行config.js并输入设备宽高')
     exit()
   }
-  module.exports = {
-    config: config,
-    default_config: default_config,
-    storage_name: CONFIG_STORAGE_NAME
+  module.exports = function (__runtime__, scope) {
+    if (typeof scope.config_instance === 'undefined') {
+      scope.config_instance = {
+        config: config,
+        default_config: default_config,
+        storage_name: CONFIG_STORAGE_NAME
+      }
+    }
+    return scope.config_instance
   }
+
 } else {
-  // 传递给commonFunction 避免二次引用config.js
-  const storage_name = CONFIG_STORAGE_NAME
-  let { commonFunctions } = require('./lib/CommonFunction.js')
-  let AesUtil = require('./lib/AesUtil.js')
+
+
+
   let loadingDialog = null
   const _hasRootPermission = files.exists("/sbin/su") || files.exists("/system/xbin/su") || files.exists("/system/bin/su")
-  threads.start(function () {
-    loadingDialog = dialogs.build({
-      title: "加载中...",
-      progress: {
-        max: -1
-      },
-      cancelable: false
-    }).show()
-    setTimeout(function () {
-      loadingDialog.dismiss()
-    }, 3000)
-  })
-
-  const TextWatcherBuilder = function (textCallback) {
-    return new TextWatcher({
-      onTextChanged: (text) => {
-        textCallback(text + '')
-      },
-      beforeTextChanged: function (s) { }
-      ,
-      afterTextChanged: function (s) { }
-    })
-  }
+  let commonFunctions = require('./lib/prototype/CommonFunction.js')
+  let AesUtil = require('./lib/AesUtil.js')
+  
 
   const inputDeviceSize = function () {
     return Promise.resolve().then(() => {
@@ -159,6 +144,29 @@ if (!isRunningMode) {
     setDeviceSizeText()
   }
 
+  threads.start(function () {
+    loadingDialog = dialogs.build({
+      title: "加载中...",
+      progress: {
+        max: -1
+      },
+      cancelable: false
+    }).show()
+    setTimeout(function () {
+      loadingDialog.dismiss()
+    }, 3000)
+  })
+
+  const TextWatcherBuilder = function (textCallback) {
+    return new TextWatcher({
+      onTextChanged: (text) => {
+        textCallback(text + '')
+      },
+      beforeTextChanged: function (s) { }
+      ,
+      afterTextChanged: function (s) { }
+    })
+  }
   setTimeout(function () {
     ui.layout(
       <drawer>
@@ -242,8 +250,8 @@ if (!isRunningMode) {
     // 创建选项菜单(右上角)
     ui.emitter.on("create_options_menu", menu => {
       menu.add("全部重置为默认")
-      menu.add("从配置文件中读取")
-      menu.add("将配置导出")
+      menu.add("从配置文件导入")
+      menu.add("导出到配置文件")
       menu.add("导入运行时数据")
       menu.add("导出运行时数据")
     })
@@ -265,7 +273,7 @@ if (!isRunningMode) {
             }
           })
           break
-        case "从配置文件中读取":
+        case "从配置文件导入":
           confirm('确定要从local_config.cfg中读取配置吗？').then(ok => {
             if (ok) {
               try {
@@ -309,7 +317,7 @@ if (!isRunningMode) {
             }
           })
           break
-        case "将配置导出":
+        case "导出到配置文件":
           confirm('确定要将配置导出到local_config.cfg吗？此操作会覆盖已有的local_config数据').then(ok => {
             if (ok) {
               Object.keys(default_config).forEach(key => {

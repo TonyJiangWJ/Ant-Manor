@@ -5,17 +5,19 @@
  * @Last Modified time: 2020-04-26 00:52:12
  * @Description: 
  */
-let { config } = require('./config.js')
-let { runningQueueDispatcher } = require('./lib/RunningQueueDispatcher.js')
-let LogUtils = require('./lib/LogUtils.js')
-let {
-  debugInfo, debugForDev, logInfo, infoLog, warnInfo, errorInfo, clearLogFile, appendLog, removeOldLogFiles
-} = LogUtils
-let { commonFunctions } = require('./lib/CommonFunction.js')
+let { config } = require('./config.js')(runtime, this)
+let singletoneRequire = require('./lib/SingletonRequirer.js')(runtime, this)
+
+let runningQueueDispatcher = singletoneRequire('RunningQueueDispatcher')
+let { logInfo, errorInfo, warnInfo, debugInfo, infoLog } = singletoneRequire('LogUtils')
+let FloatyInstance = singletoneRequire('FloatyUtil')
+let commonFunctions = singletoneRequire('CommonFunction')
+let automator = singletoneRequire('Automator')
+
 let unlocker = require('./lib/Unlock.js')
-let FloatyInstance = require('./lib/FloatyUtil.js')
-let { manorRunner } = require('./core/AntManorRunner.js')
-let automator = require('./lib/Automator.js').automator
+
+let manorRunner = require('./core/AntManorRunner.js')
+
 
 logInfo('======校验是否重复运行=======')
 // 检查脚本是否重复运行

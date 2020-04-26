@@ -1,14 +1,6 @@
-/*
- * @Author: TonyJiangWJ
- * @Date: 2020-01-09 11:10:55
- * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-01-09 11:13:56
- * @Description: 
- */
 let AesUtil = require('../lib/AesUtil.js')
 let Base64 = require('../lib/Base64.js')
 let CryptoJS = require('../lib/crypto-js.js')
-let { commonFunctions } = require('../lib/CommonFunction.js')
 var key = device.getAndroidId()  //秘钥必须为：8/16/32位
 var message = "123456";
 console.show()
@@ -21,7 +13,7 @@ console.log("encrypted: " + encrypt);
 console.log("decrypted: " + AesUtil.decrypt(encrypt, key));
 
 key = key + key
-encrypt = CryptoJS.AES.encrypt(commonFunctions.exportRuntimeStorage(), CryptoJS.enc.Utf8.parse(key), {
+encrypt = CryptoJS.AES.encrypt(message, CryptoJS.enc.Utf8.parse(key), {
   mode: CryptoJS.mode.ECB,
   padding: CryptoJS.pad.Pkcs7
 })
