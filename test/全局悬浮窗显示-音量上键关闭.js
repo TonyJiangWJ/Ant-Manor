@@ -1,34 +1,9 @@
-/**
- *作者QQ: 1811588980
-**/
-
-toastLog("Are you ready？");
-var IMG, img;
-
-if (!requestScreenCapture()) {
-  toast("请求截图失败");
-  exit();
-};
-
-IMG = captureScreen();
-img = images.copy(IMG);
-
-
-
 var window = floaty.rawWindow(
   <canvas id="canvas" layout_weight="1" />
 );
 
 window.setSize(1080, 2160);
 window.setTouchable(false)
-
-// let img_path = files.cwd() + "/蚂蚁庄园截图.jpg"
-// let img_obj = images.read(img_path)
-
-// if (!img_obj) {
-//   toastLog('图像资源不存在:' + img_path)
-//   exit()
-// }
 
 let config = {
 
@@ -200,14 +175,12 @@ function drawCoordinateAxis (canvas, paint) {
 }
 
 let converted = false
-let new_img = null
 
 
 window.canvas.on("draw", function (canvas) {
   try {
     var width = canvas.getWidth()
     var height = canvas.getHeight()
-    var matrix = new android.graphics.Matrix()
     if (!converted) {
       toastLog('画布大小：' + width + ', ' + height)
     }
@@ -242,8 +215,6 @@ window.canvas.on("draw", function (canvas) {
     // drawCoordinateAxis(canvas, paint)
     converted = true
 
-
-    // canvas.drawImage(new_img, matrix, null)
   } catch (e) {
     toastLog(e)
     exit()

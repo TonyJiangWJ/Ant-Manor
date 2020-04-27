@@ -90,21 +90,29 @@ if (!FloatyInstance.init()) {
 /************************
  * 主程序
  ***********************/
-try {
+function mainExec() {
   commonFunctions.showDialogAndWait(true)
   commonFunctions.listenDelayStart()
   manorRunner.start()
-  if (config.auto_lock === true && unlocker.needRelock() === true) {
-    debugInfo('重新锁定屏幕')
-    automator.lockScreen()
+} 
+
+if (config.develop_mode) {
+  mainExec()
+} else {
+ 
+  try {
+    mainExec()
+  } catch (e) {
+    errorInfo('执行发生异常' + e + ' 三分钟后重启')
+    commonFunctions.setUpAutoStart(3)
   }
-} catch (e) {
-  errorInfo('执行发生异常' + e + ' 三分钟后重启')
-  commonFunctions.setUpAutoStart(3)
-} finally {
-  events.removeAllListeners()
-  events.recycle()
-  FloatyInstance.close()
-  runningQueueDispatcher.removeRunningTask(true)
 }
+if (config.auto_lock === true && unlocker.needRelock() === true) {
+  debugInfo('重新锁定屏幕')
+  automator.lockScreen()
+}
+events.removeAllListeners()
+events.recycle()
+FloatyInstance.close()
+runningQueueDispatcher.removeRunningTask(true)
 exit()

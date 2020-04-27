@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-26 18:08:02
+ * @Last Modified time: 2020-04-27 19:23:45
  * @Description: 
  */
 'ui';
@@ -26,6 +26,8 @@ var default_config = {
   show_debug_log: true,
   // 是否toast调试日志
   toast_debug_info: false,
+  show_engine_id: false,
+  develop_mode: false,
   saveLogFile: true,
   // 完成后通过手势kill支付宝应用，目前只支持MIUI全面屏手势 默认关闭
   killAppWithGesture: false,
@@ -48,8 +50,8 @@ var default_config = {
 }
 
 // 配置缓存的key值
-const CONFIG_STORAGE_NAME = 'chick_config_version'
-const PROJECT_NAME = '蚂蚁庄园'
+let CONFIG_STORAGE_NAME = 'chick_config_version'
+let PROJECT_NAME = '蚂蚁庄园'
 var storageConfig = storages.create(CONFIG_STORAGE_NAME)
 var config = {}
 if (!storageConfig.contains('password')) {
@@ -91,12 +93,12 @@ if (!isRunningMode) {
 
 
   let loadingDialog = null
-  const _hasRootPermission = files.exists("/sbin/su") || files.exists("/system/xbin/su") || files.exists("/system/bin/su")
+  let _hasRootPermission = files.exists("/sbin/su") || files.exists("/system/xbin/su") || files.exists("/system/bin/su")
   let commonFunctions = require('./lib/prototype/CommonFunction.js')
   let AesUtil = require('./lib/AesUtil.js')
   
 
-  const inputDeviceSize = function () {
+  let inputDeviceSize = function () {
     return Promise.resolve().then(() => {
       return dialogs.rawInput('请输入设备宽度：', config.device_width + '')
     }).then(x => {
@@ -121,10 +123,10 @@ if (!isRunningMode) {
       }
     })
   }
-  const setDeviceSizeText = function () {
+  let setDeviceSizeText = function () {
     ui.deviceSizeText.text(config.device_width + 'px ' + config.device_height + 'px')
   }
-  const resetUiValues = function () {
+  let resetUiValues = function () {
     ui.password.text(config.password)
     ui.isAlipayLockedChkBox.setChecked(config.is_alipay_locked)
     ui.alipayLockPasswordInpt.setText(config.alipay_lock_password)
@@ -138,6 +140,8 @@ if (!isRunningMode) {
     ui.recheckTimeInpt.text('' + config.recheckTime)
     ui.showDebugLogChkBox.setChecked(config.show_debug_log)
     ui.saveLogFileChkBox.setChecked(config.saveLogFile)
+    ui.showEngineIdChkBox.setChecked(config.show_engine_id)
+    ui.developModeChkBox.setChecked(config.develop_mode)
     ui.starBallScoreInpt.setText(config.starBallScore + '')
     ui.delayStartTimeInpt.text(config.delayStartTime + '')
     ui.singleScriptChkBox.setChecked(config.single_script)
@@ -165,7 +169,7 @@ if (!isRunningMode) {
     }, 3000)
   })
 
-  const TextWatcherBuilder = function (textCallback) {
+  let TextWatcherBuilder = function (textCallback) {
     return new TextWatcher({
       onTextChanged: (text) => {
         textCallback(text + '')
@@ -244,13 +248,15 @@ if (!isRunningMode) {
               <horizontal w="*" h="1sp" bg="#cccccc" margin="5 0"></horizontal>
               {/* 是否显示debug日志 */}
               <checkbox id="showDebugLogChkBox" text="是否显示debug日志" />
+              <checkbox id="showEngineIdChkBox" text="是否在控制台中显示脚本引擎id" />
+              <checkbox id="developModeChkBox" text="是否启用开发模式" />
               <checkbox id="saveLogFileChkBox" text="是否保存日志到文件" />
               <horizontal padding="10 0" gravity="center">
                 <text text="星星球目标分数：" layout_weight="20" />
                 <input id="starBallScoreInpt" inputType="number" textSize="14sp" layout_weight="80" />
               </horizontal>
               {/* 单脚本使用，无视多任务队列 */}
-              <text text="当需要使用多个脚本时不要勾选（如同时使用我写的蚂蚁庄园脚本），避免抢占前台" textSize="9sp" />
+              <text text="当需要使用多个脚本时不要勾选（如同时使用我写的蚂蚁森林脚本），避免抢占前台" textSize="9sp" />
               <checkbox id="singleScriptChkBox" text="是否单脚本运行" />
               {/* 脚本延迟启动 */}
               <horizontal gravity="center">
@@ -294,7 +300,7 @@ if (!isRunningMode) {
             if (ok) {
               try {
                 if (files.exists(local_config_path)) {
-                  const refillConfigs = function (configStr) {
+                  let refillConfigs = function (configStr) {
                     let local_config = JSON.parse(configStr)
                     Object.keys(default_config).forEach(key => {
                       let defaultValue = local_config[key]
@@ -367,7 +373,7 @@ if (!isRunningMode) {
             if (ok) {
               if (files.exists(runtime_store_path)) {
                 let encrypt_content = files.read(runtime_store_path)
-                const resetRuntimeStore = function (runtimeStorageStr) {
+                let resetRuntimeStore = function (runtimeStorageStr) {
                   if (commonFunctions.importRuntimeStorage(runtimeStorageStr)) {
                     resetUiValues()
                     return true
@@ -468,6 +474,14 @@ if (!isRunningMode) {
 
     ui.showDebugLogChkBox.on('click', () => {
       config.show_debug_log = ui.showDebugLogChkBox.isChecked()
+    })
+
+    ui.showEngineIdChkBox.on('click', () => {
+      config.show_engine_id = ui.showEngineIdChkBox.isChecked()
+    })
+
+    ui.developModeChkBox.on('click', () => {
+      config.develop_mode = ui.developModeChkBox.isChecked()
     })
 
     ui.saveLogFileChkBox.on('click', () => {
