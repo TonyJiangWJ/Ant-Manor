@@ -1,5 +1,6 @@
 .DS_Store
 *.zip
 extends/CustomConfig.js
+LockScreen.js
 *.log
 *.ign.js
