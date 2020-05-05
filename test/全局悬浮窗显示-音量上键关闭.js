@@ -174,6 +174,15 @@ function drawCoordinateAxis (canvas, paint) {
   }
 }
 
+function exitAndClean () {
+  if (window !== null) {
+    window.canvas.removeAllListeners()
+    toastLog('close in 1 seconds')
+    sleep(1000)
+    window.close()
+  }
+  exit()
+}
 let converted = false
 
 
@@ -217,7 +226,7 @@ window.canvas.on("draw", function (canvas) {
 
   } catch (e) {
     toastLog(e)
-    exit()
+    exitAndClean()
   }
 });
 
@@ -227,7 +236,7 @@ threads.start(function () {
   events.observeKey()
   events.on("key_down", function (keyCode, event) {
     if (keyCode === 24) {
-      exit()
+      exitAndClean()
     }
   })
 })

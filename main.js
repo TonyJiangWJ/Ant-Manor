@@ -6,14 +6,14 @@
  * @Description: 
  */
 let { config } = require('./config.js')(runtime, this)
-let singletoneRequire = require('./lib/SingletonRequirer.js')(runtime, this)
+let singletonRequire = require('./lib/SingletonRequirer.js')(runtime, this)
 
-let runningQueueDispatcher = singletoneRequire('RunningQueueDispatcher')
-let { logInfo, errorInfo, warnInfo, debugInfo, infoLog } = singletoneRequire('LogUtils')
-let FloatyInstance = singletoneRequire('FloatyUtil')
-let commonFunctions = singletoneRequire('CommonFunction')
-let automator = singletoneRequire('Automator')
-let tryRequestScreenCapture = singletoneRequire('TryRequestScreenCapture')
+let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
+let { logInfo, errorInfo, warnInfo, debugInfo, infoLog } = singletonRequire('LogUtils')
+let FloatyInstance = singletonRequire('FloatyUtil')
+let commonFunctions = singletonRequire('CommonFunction')
+let automator = singletonRequire('Automator')
+let tryRequestScreenCapture = singletonRequire('TryRequestScreenCapture')
 let unlocker = require('./lib/Unlock.js')
 
 let manorRunner = require('./core/AntManorRunner.js')

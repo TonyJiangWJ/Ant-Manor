@@ -3,14 +3,14 @@ importClass(android.provider.Settings)
 
 
 let { config } = require('../config.js')(runtime, this)
-let singletoneRequire = require('../lib/SingletonRequirer.js')(runtime, this)
+let singletonRequire = require('../lib/SingletonRequirer.js')(runtime, this)
 
-let _runningQueueDispatcher = singletoneRequire('RunningQueueDispatcher')
-let _commonFunctions = singletoneRequire('CommonFunction')
-let alipayUnlocker = singletoneRequire('AlipayUnlocker')
-let { logInfo: _logInfo, errorInfo: _errorInfo, warnInfo: _warnInfo, debugInfo: _debugInfo, infoLog: _infoLog } = singletoneRequire('LogUtils')
-let _FloatyInstance = singletoneRequire('FloatyUtil')
-let FileUtils = singletoneRequire('FileUtils')
+let _runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
+let _commonFunctions = singletonRequire('CommonFunction')
+let alipayUnlocker = singletonRequire('AlipayUnlocker')
+let { logInfo: _logInfo, errorInfo: _errorInfo, warnInfo: _warnInfo, debugInfo: _debugInfo, infoLog: _infoLog } = singletonRequire('LogUtils')
+let _FloatyInstance = singletonRequire('FloatyUtil')
+let FileUtils = singletonRequire('FileUtils')
 
 
 const default_chick_config = {
