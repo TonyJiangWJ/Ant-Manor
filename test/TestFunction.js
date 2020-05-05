@@ -5,12 +5,12 @@
  * @Last Modified time: 2019-11-30 23:52:22
  * @Description: 
  */
-let singletoneRequire = require('../SingletonRequirer.js')(runtime, this)
+let singletonRequire = require('../SingletonRequirer.js')(runtime, this)
 let {
   debugInfo, debugForDev, logInfo, infoLog, warnInfo, errorInfo
-} = singletoneRequire('LogUtils')
-let commonFunctions = singletoneRequire('CommonFunction')
-let runningQueueDispatcher = singletoneRequire('RunningQueueDispatcher')
+} = singletonRequire('LogUtils')
+let commonFunctions = singletonRequire('CommonFunction')
+let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
 
 function testSleepTime() {
   toastLog(commonFunctions.getSleepTime())

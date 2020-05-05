@@ -10,11 +10,11 @@ importClass(java.util.concurrent.ThreadPoolExecutor)
 importClass(java.util.concurrent.TimeUnit)
 
 let { config: _config } = require('./config.js')(runtime, this)
-let singletoneRequire = require('./lib/SingletonRequirer.js')(runtime, this)
+let singletonRequire = require('./lib/SingletonRequirer.js')(runtime, this)
 
-let commonFunctions = singletoneRequire('CommonFunction')
-let runningQueueDispatcher = singletoneRequire('RunningQueueDispatcher')
-let FileUtils = singletoneRequire('FileUtils')
+let commonFunctions = singletonRequire('CommonFunction')
+let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
+let FileUtils = singletonRequire('FileUtils')
 
 requestScreenCapture(false)
 
