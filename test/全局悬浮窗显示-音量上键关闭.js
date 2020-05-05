@@ -146,7 +146,6 @@ function drawRectAndText (desc, position, colorStr, canvas, paint) {
 }
 
 function drawText (text, position, canvas, paint) {
-  paint.setARGB(255, 0, 0, 255)
   paint.setStrokeWidth(1)
   paint.setStyle(Paint.Style.FILL)
   canvas.drawText(text, position.x, position.y, paint)
@@ -184,10 +183,13 @@ function exitAndClean () {
   exit()
 }
 let converted = false
-
+// 两分钟后自动关闭
+let targetEndTime = new Date().getTime() + 120000
 
 window.canvas.on("draw", function (canvas) {
   try {
+    // 清空内容
+    canvas.drawColor(0xFFFFFF, android.graphics.PorterDuff.Mode.CLEAR);
     var width = canvas.getWidth()
     var height = canvas.getHeight()
     if (!converted) {
@@ -216,12 +218,19 @@ window.canvas.on("draw", function (canvas) {
     drawRectAndText('判断食盆的区域，主要校验是否存在饲料', config.FOOD_REGION, config.FOOD_COLOR, canvas, paint)
     drawRectAndText('判断是否成功使用加速卡的区域', config.SPEED_CHECK_REGION, config.SPEED_CHECK_COLOR, canvas, paint)
     drawRectAndText('星星球的判断区域', config.reco, '#000000', canvas, paint)
+
+    paint.setARGB(255, 0, 0, 255)
     drawText('喂饲料按钮', config.FEED_POSITION, canvas, paint)
     drawText('背包按钮', config.TOOL_POSITION, canvas, paint)
     drawText('加速卡位置', config.SPEED_CARD_POSITION, canvas, paint)
     drawText('确认按钮位置', config.CONFIRM_POSITON, canvas, paint)
 
-    // drawCoordinateAxis(canvas, paint)
+
+    let countdown = (targetEndTime - new Date().getTime()) / 1000
+    paint.setTextSize(25)
+    paint.setARGB(255, 255, 0, 0)
+    drawText('关闭倒计时：' + countdown.toFixed(0) + 's', { x: 100, y: 100 }, canvas, paint)
+    drawCoordinateAxis(canvas, paint)
     converted = true
 
   } catch (e) {
@@ -241,4 +250,6 @@ threads.start(function () {
   })
 })
 
-setInterval(function () { }, 5000)
+setTimeout(function () {
+  exitAndClean()
+}, 120000)
