@@ -123,7 +123,7 @@ function AntManorRunner () {
       img = _commonFunctions.checkCaptureScreenPermission()
       findColor = images.findColor(img, color, {
         region: region,
-        threshold: threshold || 4
+        threshold: threshold || config.color_offset || 4
       })
       img.recycle()
     } while (!findColor && timeoutCount-- > 0)
@@ -309,7 +309,7 @@ function AntManorRunner () {
     if (img) {
       let findColor = images.findColor(img, chick_config.FOOD_COLOR, {
         region: chick_config.FOOD_REGION,
-        threshold: 4
+        threshold: config.color_offset || 4
       })
       img.recycle()
       if (findColor) {
@@ -363,7 +363,7 @@ function AntManorRunner () {
       img = _commonFunctions.checkCaptureScreenPermission()
       checkSpeedup = images.findColor(img, chick_config.SPEED_CHECK_COLOR, {
         region: chick_config.SPEED_CHECK_REGION,
-        threshold: 4
+        threshold: config.color_offset || 4
       })
       img.recycle()
     } while (!checkSpeedup && --checkCount > 0)
