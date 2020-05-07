@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-26 18:52:21
+ * @Last Modified time: 2020-05-07 10:43:32
  * @Description: 
  */
 let { config } = require('./config.js')(runtime, this)
@@ -43,9 +43,14 @@ logInfo('---前置校验完成;启动系统--->>>>')
 if (files.exists('version.json')) {
   let content = JSON.parse(files.read('version.json'))
   logInfo(['版本信息：{} nodeId:{}', content.version, content.nodeId])
+} else if (files.exists('project.json')) {
+  let content = JSON.parse(files.read('project.json'))
+  logInfo(['版本信息：{}', content.versionName])
 } else {
   logInfo('无法获取脚本版本信息')
 }
+logInfo(['AutoJS version: {}', app.autojs.versionName])
+logInfo(['device info: {} {} {}', device.brand, device.product, device.release])
 
 logInfo(['设备分辨率：[{}, {}]', config.device_width, config.device_height])
 logInfo('======解锁======')
@@ -76,7 +81,8 @@ let actionSuccess = commonFunctions.waitFor(function () {
 if (!actionSuccess || !screenPermission) {
   errorInfo('请求截图失败, 设置6秒后重启')
   runningQueueDispatcher.removeRunningTask()
-  commonFunctions.setUpAutoStart(0.1)
+  sleep(6000)
+  runningQueueDispatcher.executeTargetScript(FileUtils.getRealMainScriptPath())
   exit()
 } else {
   logInfo('请求截屏权限成功')
@@ -85,7 +91,9 @@ if (!actionSuccess || !screenPermission) {
 if (!FloatyInstance.init()) {
   runningQueueDispatcher.removeRunningTask()
   // 悬浮窗初始化失败，6秒后重试
-  commonFunctions.setUpAutoStart(0.1)
+  sleep(6000)
+  runningQueueDispatcher.executeTargetScript(FileUtils.getRealMainScriptPath())
+  exit()
 }
 /************************
  * 主程序

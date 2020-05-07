@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-12-23 22:54:22
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-01-10 17:08:34
+ * @Last Modified time: 2020-04-25 15:24:56
  * @Description: 
  */
 
@@ -17,9 +17,15 @@ importClass(com.tony.DownloaderListener)
 let apiUrl = 'https://api.github.com/repos/TonyJiangWJ/Ant-Manor/releases/latest'
 let targetOutputDir = FileUtils.getRealMainScriptPath(true)
 let downloader = new Downloader()
+downloader.setListener(new DownloaderListener({
+  updateGui: function (string) {
+    log(string)
+  },
+  updateProgress: function (progressInfo) { }
+}))
 log('下载并解压文件到目录：' + targetOutputDir)
 // 设置尝试获取总大小的次数，默认5次，github的content-length偶尔会给 偶尔不会给，主要原因是服务端用了分块传输的缘故
-// downloader.setTryCount(5)
+downloader.setTryCount(2)
 downloader.setTargetReleasesApiUrl(apiUrl)
 downloader.setOutputDir(targetOutputDir)
 // 设置不需要解压覆盖的文件
@@ -73,9 +79,31 @@ let downloadingExecutor = function (backup) {
     sleep(1000)
   }
   downloader.downloadZip()
+
   // 覆盖新的dex到lib下
   let copy_result = files.copy(targetOutputDir + '/resources/for_update/autojs-tools.dex', targetOutputDir + '/lib/autojs-tools.dex')
   toastLog('复制新的dex文件' + (copy_result ? '成功' : '失败'))
+  log('清理过时lib文件')
+  downloadDialog.setContent('清理过期文件...')
+  let outdateFiles = require(targetOutputDir + '/resources/for_update/OutdateFiles.js')
+  outdateFiles && outdateFiles.length > 0 && outdateFiles.forEach(fileName => {
+    let fullPath = targetOutputDir + '/' + fileName
+    if (files.exists(fullPath)) {
+      let deleteResult = false
+      if (files.isDir(fullPath) && !files.isEmptyDir(fullPath)) {
+        deleteResult = files.removeDir(fullPath)
+      } else {
+        deleteResult = files.remove(fullPath)
+      }
+      console.verbose('删除过期文件：' + fullPath + ' ' + (deleteResult ? '成功' : '失败'))
+    }
+  })
+  let extendMultiTouchPath = targetOutputDir + '/extends/MuiltiTouchCollect.js'
+  if (files.exists(extendMultiTouchPath)) {
+    let newName = targetOutputDir + '/extends/MultiTouchCollect.js'
+    log('重命名已存在的扩展：' + extendMultiTouchPath)
+    files.move(extendMultiTouchPath, newName)
+  }
   downloadDialog.setContent('更新完成')
   sleep(2000)
   downloadDialog.dismiss()
