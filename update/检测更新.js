@@ -2,24 +2,129 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-12-23 22:54:22
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-05-07 23:28:14
+ * @Last Modified time: 2020-05-16 19:14:53
  * @Description: 
  */
 
-runtime.loadDex('../lib/autojs-tools.dex')
+runtime.loadDex('../lib/download.dex')
 let FileUtils = require('../lib/prototype/FileUtils.js')
 let loadingDialog = null
+let is_pro = Object.prototype.toString.call(com.stardust.autojs.core.timing.TimedTask.Companion).match(/Java(Class|Object)/)
+try {
+  importClass(com.tony.listener.DownloaderListener)
+} catch (e) {
+  let errorInfo = e + ''
+  if (/importClass must be called/.test(errorInfo)) {
+    toastLog('请强制关闭AutoJS并重新启动')
+    exit()
+  }
+}
 
+importClass(com.tony.listener.DownloaderListener)
+importClass(com.tony.resolver.JSONResolver)
+importClass(com.tony.downloader.GithubReleaseDownloader)
+importClass(com.tony.downloader.GiteeReleaseDownloader)
 
-importClass(com.tony.Downloader)
-importClass(com.tony.DownloaderListener)
+let chose = dialogs.singleChoice('请选择更新源', ['Github Release(推荐)', 'Gitee Release(备用)'], 0)
 
 let apiUrl = 'https://api.github.com/repos/TonyJiangWJ/Ant-Manor/releases/latest'
+let downloader = new GithubReleaseDownloader()
+
+if (is_pro) {
+  let origin = {}
+  let new_object = {}
+  downloader.setJsonResolver(new JSONResolver({
+    /**
+     * 将对象转换成 JSON字符串
+     *
+     * @param obj
+     * @return jsonString
+     */
+    toJSONString (obj) {
+      return JSON.stringify(obj)
+    },
+
+    /**
+     * 根据json字符串获取 指定json key内容 并转为String
+     *
+     * @param jsonString
+     * @param name       key
+     * @return
+     */
+    getString: function (jsonString, name) {
+      let v = JSON.parse(jsonString)[name]
+      return v ? v.toString() : ''
+    },
+
+    /**
+     * 可以嵌套调用 获取对象，不转为String
+     *
+     * @param jsonString
+     * @param name
+     * @return
+     */
+    getObject (jsonString, name) {
+      return JSON.parse(jsonString)[name]
+    },
+
+    //---------------
+
+    /**
+     * 设置原始JSONString
+     *
+     * @param jsonString
+     * @return
+     */
+    setOrigin: function (jsonString) {
+      origin = JSON.parse(jsonString)
+      return this
+    },
+
+    getString: function (name) {
+      let v = origin[name]
+      return v ? v.toString() : ''
+    },
+
+    getObject: function (name) {
+      return origin[name]
+    },
+
+    //---------------
+
+    /**
+     * 创建新的封装 内部new一个Map 创建JSON对象
+     *
+     * @return
+     */
+    newObject: function () {
+      new_object = {}
+      return this
+    },
+    put: function (name, value) {
+      new_object[name] = value
+      return this
+    },
+
+    /**
+     * 将创建的JSON对象转换成字符串
+     *
+     * @return
+     */
+    toJSONString: function () {
+      return JSON.stringify(new_object)
+    }
+  })
+  )
+}
+
 let targetOutputDir = FileUtils.getRealMainScriptPath(true)
-let downloader = new Downloader()
+
 downloader.setListener(new DownloaderListener({
   updateGui: function (string) {
     log(string)
+  },
+  updateError: function (string) {
+    console.error(string)
   },
   updateProgress: function (progressInfo) { }
 }))
@@ -30,14 +135,20 @@ downloader.setTargetReleasesApiUrl(apiUrl)
 downloader.setOutputDir(targetOutputDir)
 // 设置不需要解压覆盖的文件
 // 请勿移除'lib/autojs-tools.dex' 否则引起报错
-downloader.setUnzipSkipFiles(['.gitignore', 'lib/autojs-tools.dex'])
+downloader.setUnzipSkipFiles(['.gitignore', 'lib/autojs-tools.dex', 'lib/download.dex'])
 // 设置不需要备份的文件
 downloader.setBackupIgnoreFiles([])
 
 loadingDialog = dialogs.build({
-  title: '正在请求网络',
+  cancelable: false,
+  negative: '取消',
+  title: '正在从' + (chose == 0 ? 'Github' : 'Gitee') + '获取更新信息',
   content: '加载中，请稍等...'
-}).show()
+})
+  .on('negative', () => {
+    exit()
+  })
+  .show()
 let summary = downloader.getUpdateSummary()
 if (summary === null) {
   loadingDialog.setContent('无法获取release版本信息')
@@ -57,17 +168,25 @@ loadingDialog.dismiss()
 let downloadDialog = dialogs.build({
   title: '更新中...',
   content: '更新中',
+  cancelable: false,
+  negative: '取消',
   progress: {
     max: 100,
     horizontal: true,
     showMinMax: false
   }
 })
-let setMaxProgress = false
+  .on('negative', () => {
+    exit()
+  })
+
 downloader.setListener(new DownloaderListener({
   updateGui: function (string) {
     log(string)
     downloadDialog.setContent(string)
+  },
+  updateError: function (string) {
+    console.error(string)
   },
   updateProgress: function (progressInfo) {
     downloadDialog.setProgress(progressInfo.getProgress() * 100)
@@ -81,13 +200,13 @@ let downloadingExecutor = function (backup) {
   downloader.downloadZip()
 
   // 覆盖新的dex到lib下
-  let copy_result = files.copy(targetOutputDir + '/resources/for_update/autojs-tools.dex', targetOutputDir + '/lib/autojs-tools.dex')
+  let copy_result = files.copy(targetOutputDir + '/resources/for_update/download.dex', targetOutputDir + '/lib/download.dex')
   toastLog('复制新的dex文件' + (copy_result ? '成功' : '失败'))
   log('清理过时lib文件')
-  let outdateFilePath = targetOutputDir + '/resources/for_update/OutdateFiles.js'
-  if (files.exists(outdateFilePath)) {
+  let outdate_file_path = targetOutputDir + '/resources/for_update/OutdateFiles.js'
+  if (files.exists(outdate_file_path)) {
     downloadDialog.setContent('清理过期文件...')
-    let outdateFiles = require(outdateFilePath)
+    let outdateFiles = require(outdate_file_path)
     outdateFiles && outdateFiles.length > 0 && outdateFiles.forEach(fileName => {
       let fullPath = targetOutputDir + '/' + fileName
       if (files.exists(fullPath)) {
@@ -108,7 +227,7 @@ let downloadingExecutor = function (backup) {
 dialogs.build({
   title: '是否下载更新',
   content: content,
-
+  cancelable: false,
   neutral: '备份后更新',
   negative: '取消',
   positive: '覆盖更新',
