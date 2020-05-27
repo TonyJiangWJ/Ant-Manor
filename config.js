@@ -43,7 +43,7 @@ var default_config = {
   lock_x: 150,
   lock_y: 970,
   // 锁屏启动关闭提示框
-  dismissDialogIfLocked: true,
+  dismiss_dialog_if_locked: true,
   // 单脚本模式 是否只运行一个脚本 不会同时使用其他的 开启单脚本模式 会取消任务队列的功能。
   // 比如同时使用其他脚本 则保持默认 false 否则设置为true 无视其他运行中的脚本
   single_script: false,
@@ -157,7 +157,7 @@ if (!isRunningMode) {
     ui.lockPositionContainer.setVisibility(config.auto_lock && !_hasRootPermission ? View.VISIBLE : View.INVISIBLE)
     ui.lockDescNoRoot.setVisibility(!_hasRootPermission ? View.VISIBLE : View.INVISIBLE)
 
-    ui.dismissDialogIfLockedChkBox.setChecked(config.dismissDialogIfLocked)
+    ui.dismissDialogIfLockedChkBox.setChecked(config.dismiss_dialog_if_locked)
     setDeviceSizeText()
   }
 
@@ -496,7 +496,7 @@ if (!isRunningMode) {
     })
     
     ui.dismissDialogIfLockedChkBox.on('click', () => {
-      config.dismissDialogIfLocked = ui.dismissDialogIfLockedChkBox.isChecked()
+      config.dismiss_dialog_if_locked = ui.dismissDialogIfLockedChkBox.isChecked()
     })
 
     ui.autoLockChkBox.on('click', () => {

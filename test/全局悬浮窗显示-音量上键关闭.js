@@ -78,35 +78,52 @@ const getCurrentWorkPath = function () {
   return getRealMainScriptPath(true)
 }
 
-let custom_config = files.exists(getCurrentWorkPath() + '/extends/CustomConfig.js') ? require('../extends/CustomConfig.js') : config
-let offset = typeof custom_config.OFFSET === 'number' ? custom_config.OFFSET : 0
-let chick_config = {}
-Object.keys(custom_config).forEach(key => {
-  let val = custom_config[key]
-  if (typeof val === 'undefined') {
-    return
-  }
-  if (typeof val === 'string') {
-    chick_config[key] = val
-  } else if (Object.prototype.toString.call(val) === '[object Array]') {
-    let newArrayConfig = [
-      parseInt(val[0]),
-      parseInt(val[1] + offset),
-      parseInt(val[2]),
-      parseInt(val[3] + offset)
-    ]
-    chick_config[key] = newArrayConfig
-  } else if (val.x) {
-    chick_config[key] = {
-      x: parseInt(val.x),
-      y: parseInt(val.y + offset)
+function reloadConfigs () {
+  let custom_config_path = getCurrentWorkPath() + '/extends/CustomConfig.js'
+  delete require.cache[require.resolve(custom_config_path)]
+  let custom_config = files.exists(custom_config_path)
+    ? require(custom_config_path + '?' + (new Date().getTime() % 100000))
+    // ? require(custom_config_path)
+    : config
+  let offset = typeof custom_config.OFFSET === 'number' ? custom_config.OFFSET : 0
+  let chick_config = {}
+  Object.keys(custom_config).forEach(key => {
+    let val = custom_config[key]
+    if (typeof val === 'undefined') {
+      return
     }
-  } else {
-    chick_config[key] = val
+    if (typeof val === 'string') {
+      chick_config[key] = val
+    } else if (Object.prototype.toString.call(val) === '[object Array]') {
+      let newArrayConfig = [
+        parseInt(val[0]),
+        parseInt(val[1] + offset),
+        parseInt(val[2]),
+        parseInt(val[3] + offset)
+      ]
+      chick_config[key] = newArrayConfig
+    } else if (val.x) {
+      chick_config[key] = {
+        x: parseInt(val.x),
+        y: parseInt(val.y + offset)
+      }
+    } else {
+      chick_config[key] = val
+    }
+  })
+  return chick_config
+}
+// config = reloadConfigs()
+
+let config_load_thread = threads.start(function () {
+  while (true) {
+    config = reloadConfigs()
+    log('重新加载config:' + JSON.stringify(config))
+    // 两秒钟加载一次
+    sleep(2000)
   }
 })
 
-config = chick_config
 
 function convertArrayToRect (a) {
   // origin array left top width height
@@ -174,6 +191,7 @@ function drawCoordinateAxis (canvas, paint) {
 }
 
 function exitAndClean () {
+  config_load_thread.interrupt()
   if (window !== null) {
     window.canvas.removeAllListeners()
     toastLog('close in 1 seconds')

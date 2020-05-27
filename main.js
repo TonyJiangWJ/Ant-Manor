@@ -9,11 +9,12 @@ let { config } = require('./config.js')(runtime, this)
 let singletonRequire = require('./lib/SingletonRequirer.js')(runtime, this)
 
 let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
-let { logInfo, errorInfo, warnInfo, debugInfo, infoLog } = singletonRequire('LogUtils')
+let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile } = singletonRequire('LogUtils')
 let FloatyInstance = singletonRequire('FloatyUtil')
 let commonFunctions = singletonRequire('CommonFunction')
 let automator = singletonRequire('Automator')
 let tryRequestScreenCapture = singletonRequire('TryRequestScreenCapture')
+//let resourceMonitor = require('./lib/ResourceMonitor.js')(runtime, this)
 let unlocker = require('./lib/Unlock.js')
 
 let manorRunner = require('./core/AntManorRunner.js')
@@ -64,6 +65,7 @@ try {
     sleepTime = 15
   }
   errorInfo(['解锁发生异常, {}分钟后重新开始' + e, sleepTime])
+  commonFunctions.printExceptionStack(e)
   commonFunctions.setUpAutoStart(sleepTime)
   runningQueueDispatcher.removeRunningTask()
   exit()
@@ -111,6 +113,7 @@ if (config.develop_mode) {
   try {
     mainExec()
   } catch (e) {
+    commonFunctions.printExceptionStack(e)
     errorInfo('执行发生异常' + e + ' 三分钟后重启')
     commonFunctions.setUpAutoStart(3)
   }
