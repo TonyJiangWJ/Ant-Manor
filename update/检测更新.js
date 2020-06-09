@@ -25,7 +25,6 @@ importClass(com.tony.resolver.JSONResolver)
 importClass(com.tony.downloader.GithubReleaseDownloader)
 importClass(com.tony.downloader.GiteeReleaseDownloader)
 
-let chose = dialogs.singleChoice('请选择更新源', ['Github Release(推荐)', 'Gitee Release(备用)'], 0)
 
 let apiUrl = 'https://api.github.com/repos/TonyJiangWJ/Ant-Manor/releases/latest'
 let downloader = new GithubReleaseDownloader()
@@ -142,7 +141,7 @@ downloader.setBackupIgnoreFiles([])
 loadingDialog = dialogs.build({
   cancelable: false,
   negative: '取消',
-  title: '正在从' + (chose == 0 ? 'Github' : 'Gitee') + '获取更新信息',
+  title: '正在从Github获取更新信息',
   content: '加载中，请稍等...'
 })
   .on('negative', () => {
