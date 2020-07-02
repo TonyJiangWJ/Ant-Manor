@@ -2,13 +2,14 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-05-07 19:58:25
+ * @Last Modified time: 2020-06-24 11:36:32
  * @Description: 
  */
 'ui';
 
 let currentEngine = engines.myEngine().getSource() + ''
 let isRunningMode = currentEngine.endsWith('/config.js') && typeof module === 'undefined'
+let is_pro = Object.prototype.toString.call(com.stardust.autojs.core.timing.TimedTask.Companion).match(/Java(Class|Object)/)
 importClass(android.text.TextWatcher)
 importClass(android.view.View)
 importClass(android.view.MotionEvent)
@@ -49,6 +50,8 @@ var default_config = {
   single_script: false,
   // 延迟启动时延 5秒 悬浮窗中进行的倒计时时间
   delayStartTime: 5,
+  // 是否是AutoJS Pro  需要屏蔽部分功能，暂时无法实现：生命周期监听等 包括通话监听
+  is_pro: is_pro
 }
 
 // 配置缓存的key值
