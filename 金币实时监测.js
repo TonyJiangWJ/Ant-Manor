@@ -2,12 +2,14 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-12-06 23:11:16
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-05-07 00:42:24
+ * @Last Modified time: 2020-08-04 23:44:16
  * @Description: 
  */
-
+let resolver = require('./lib/AutoJSRemoveDexResolver.js')
+resolver()
 runtime.loadDex('./lib/color-region-center.dex')
 importClass(com.tony.ColorCenterCalculatorWithInterval)
+resolver()
 let FloatyUtil = require('./lib/prototype/FloatyUtil.js')
 let coinColor = '#fee651'
 let threshold = 50
