@@ -2,10 +2,11 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-12-23 22:54:22
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-05-16 19:14:53
+ * @Last Modified time: 2020-08-04 23:45:19
  * @Description: 
  */
-
+let resolver = require('../lib/AutoJSRemoveDexResolver.js')
+resolver()
 runtime.loadDex('../lib/download.dex')
 let FileUtils = require('../lib/prototype/FileUtils.js')
 let loadingDialog = null
@@ -24,7 +25,7 @@ importClass(com.tony.listener.DownloaderListener)
 importClass(com.tony.resolver.JSONResolver)
 importClass(com.tony.downloader.GithubReleaseDownloader)
 importClass(com.tony.downloader.GiteeReleaseDownloader)
-
+resolver()
 
 let apiUrl = 'https://api.github.com/repos/TonyJiangWJ/Ant-Manor/releases/latest'
 let downloader = new GithubReleaseDownloader()
