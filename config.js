@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-07-20 19:27:31
+ * @Last Modified time: 2020-08-04 23:54:32
  * @Description: 
  */
 'ui';
@@ -197,7 +197,7 @@ if (!isRunningMode) {
             <toolbar id="toolbar" title="运行配置" />
           </appbar>
           <frame>
-            <ScallView>
+            <ScrollView>
               <vertical padding="24 0">
                 {/* 锁屏密码 */}
                 <horizontal gravity="center">
@@ -277,7 +277,7 @@ if (!isRunningMode) {
                   <input layout_weight="70" inputType="number" id="delayStartTimeInpt" layout_weight="70" />
                 </horizontal>
               </vertical>
-            </ScallView>
+            </ScrollView>
           </frame>
         </vertical>
       </drawer>
