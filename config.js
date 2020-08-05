@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-08-04 23:54:32
+ * @Last Modified time: 2020-08-05 23:13:08
  * @Description: 
  */
 'ui';
@@ -53,7 +53,8 @@ var default_config = {
   // 是否是AutoJS Pro  需要屏蔽部分功能，暂时无法实现：生命周期监听等 包括通话监听
   is_pro: is_pro,
   // 是否捡屎
-  pick_shit: true
+  pick_shit: true,
+  request_capture_permission: true
 }
 
 // 配置缓存的key值
@@ -105,7 +106,7 @@ if (!isRunningMode) {
   let _hasRootPermission = files.exists("/sbin/su") || files.exists("/system/xbin/su") || files.exists("/system/bin/su")
   let commonFunctions = require('./lib/prototype/CommonFunction.js')
   let AesUtil = require('./lib/AesUtil.js')
-  
+
 
   let inputDeviceSize = function () {
     return Promise.resolve().then(() => {
@@ -154,6 +155,7 @@ if (!isRunningMode) {
     ui.starBallScoreInpt.setText(config.starBallScore + '')
     ui.delayStartTimeInpt.text(config.delayStartTime + '')
     ui.singleScriptChkBox.setChecked(config.single_script)
+    ui.requestCapturePermissionChkBox.setChecked(config.request_capture_permission)
     ui.lockX.text(config.lock_x + '')
     ui.lockXSeekBar.setProgress(parseInt(config.lock_x / config.device_width * 100))
     ui.lockY.text(config.lock_y + '')
@@ -268,6 +270,9 @@ if (!isRunningMode) {
                   <text text="星星球目标分数：" layout_weight="20" />
                   <input id="starBallScoreInpt" inputType="number" textSize="14sp" layout_weight="80" />
                 </horizontal>
+                {/* 是否自动点击授权录屏权限 */}
+                <checkbox id="requestCapturePermissionChkBox" text="是否需要自动授权截图权限" />
+                <horizontal w="*" h="1sp" bg="#cccccc" margin="5 0"></horizontal>
                 {/* 单脚本使用，无视多任务队列 */}
                 <text text="当需要使用多个脚本时不要勾选（如同时使用我写的蚂蚁森林脚本），避免抢占前台" textSize="9sp" />
                 <checkbox id="singleScriptChkBox" text="是否单脚本运行" />
@@ -501,9 +506,13 @@ if (!isRunningMode) {
     ui.saveLogFileChkBox.on('click', () => {
       config.saveLogFile = ui.saveLogFileChkBox.isChecked()
     })
-    
+
     ui.dismissDialogIfLockedChkBox.on('click', () => {
       config.dismiss_dialog_if_locked = ui.dismissDialogIfLockedChkBox.isChecked()
+    })
+
+    ui.requestCapturePermissionChkBox.on('click', () => {
+      config.request_capture_permission = ui.requestCapturePermissionChkBox.isChecked()
     })
 
     ui.autoLockChkBox.on('click', () => {
@@ -561,7 +570,7 @@ if (!isRunningMode) {
     ui.singleScriptChkBox.on('click', () => {
       config.single_script = ui.singleScriptChkBox.isChecked()
     })
-    
+
     ui.delayStartTimeInpt.addTextChangedListener(
       TextWatcherBuilder(text => { config.delayStartTime = parseInt(text) })
     )
