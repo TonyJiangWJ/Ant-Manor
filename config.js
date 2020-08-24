@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-08-05 23:13:08
+ * @Last Modified time: 2020-08-20 13:14:59
  * @Description: 
  */
 'ui';
@@ -54,7 +54,8 @@ var default_config = {
   is_pro: is_pro,
   // 是否捡屎
   pick_shit: true,
-  request_capture_permission: true
+  request_capture_permission: true,
+  bang_offset: -90
 }
 
 // 配置缓存的key值
@@ -163,7 +164,7 @@ if (!isRunningMode) {
     ui.autoLockChkBox.setChecked(config.auto_lock)
     ui.lockPositionContainer.setVisibility(config.auto_lock && !_hasRootPermission ? View.VISIBLE : View.INVISIBLE)
     ui.lockDescNoRoot.setVisibility(!_hasRootPermission ? View.VISIBLE : View.INVISIBLE)
-
+    ui.bangOffsetInpt.text('' + config.bang_offset)
     ui.dismissDialogIfLockedChkBox.setChecked(config.dismiss_dialog_if_locked)
     setDeviceSizeText()
   }
@@ -269,6 +270,11 @@ if (!isRunningMode) {
                 <horizontal padding="10 0" gravity="center">
                   <text text="星星球目标分数：" layout_weight="20" />
                   <input id="starBallScoreInpt" inputType="number" textSize="14sp" layout_weight="80" />
+                </horizontal>
+                <text text="刘海屏或者挖空屏悬浮窗显示位置和实际目测位置不同，需要施加一个偏移量一般是负值：" textSize="12sp" />
+                <horizontal padding="10 0" gravity="center">
+                  <text text="挖空或水滴刘海偏移量：" layout_weight="20" />
+                  <input id="bangOffsetInpt" inputType="number" textSize="14sp" layout_weight="80" />
                 </horizontal>
                 {/* 是否自动点击授权录屏权限 */}
                 <checkbox id="requestCapturePermissionChkBox" text="是否需要自动授权截图权限" />
@@ -480,6 +486,12 @@ if (!isRunningMode) {
       TextWatcherBuilder(text => {
         let val = parseInt(text)
         config.recheckTime = val >= 0 ? val : 0
+      })
+    )
+    ui.bangOffsetInpt.addTextChangedListener(
+      TextWatcherBuilder(text => {
+        let val = parseInt(text)
+        config.bang_offset = val >= 0 ? val : 0
       })
     )
     ui.starBallScoreInpt.addTextChangedListener(

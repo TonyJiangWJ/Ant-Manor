@@ -10,14 +10,8 @@ let singletonRequire = require('./lib/SingletonRequirer.js')(runtime, this)
 
 let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
 let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile } = singletonRequire('LogUtils')
-let FloatyInstance = singletonRequire('FloatyUtil')
-let commonFunctions = singletonRequire('CommonFunction')
-let automator = singletonRequire('Automator')
-let tryRequestScreenCapture = singletonRequire('TryRequestScreenCapture')
-//let resourceMonitor = require('./lib/ResourceMonitor.js')(runtime, this)
-let unlocker = require('./lib/Unlock.js')
 
-let manorRunner = require('./core/AntManorRunner.js')
+let commonFunctions = singletonRequire('CommonFunction')
 
 if (config.single_script) {
   logInfo('======单脚本运行直接清空任务队列=======')
@@ -25,6 +19,11 @@ if (config.single_script) {
 }
 logInfo('======加入任务队列，并关闭重复运行的脚本=======')
 runningQueueDispatcher.addRunningTask()
+let FloatyInstance = singletonRequire('FloatyUtil')
+let automator = singletonRequire('Automator')
+let tryRequestScreenCapture = singletonRequire('TryRequestScreenCapture')
+let unlocker = require('./lib/Unlock.js')
+let manorRunner = require('./core/AntManorRunner.js')
 /***********************
  * 初始化
  ***********************/
