@@ -4,7 +4,8 @@ var window = floaty.rawWindow(
 
 window.setSize(1080, 2160);
 window.setTouchable(false)
-
+// 刘海高度偏移量，刘海屏以及挖空屏 悬浮窗无法正常显示，需要施加一个偏移量
+let bangOffset = -90
 let config = {
 
   CHECK_APP_COLOR: '#f1381a',         // 校验蚂蚁庄园是否打开成功的颜色
@@ -51,7 +52,12 @@ let config = {
   CONFIRM_POSITON: {
     x: 720,
     y: 1320
-  }
+  },
+  // 捡屎
+  SHIT_CHECK_REGION: [435, 1925, 40, 40],
+  COLLECT_SHIT_CHECK_REGION: [220, 2000, 80, 40],
+  PICK_SHIT_GRAY_COLOR: '#A6A6A6',
+  COLLECT_SHIT_GRAY_COLOR: '#838383'
 }
 
 
@@ -128,7 +134,7 @@ let config_load_thread = threads.start(function () {
 function convertArrayToRect (a) {
   // origin array left top width height
   // left top right bottom
-  return new android.graphics.Rect(a[0], a[1], (a[0] + a[2]), (a[1] + a[3]))
+  return new android.graphics.Rect(a[0], a[1] + bangOffset, (a[0] + a[2]), (a[1] + bangOffset + a[3]))
 }
 
 function getPositionDesc (position) {
@@ -154,18 +160,18 @@ function drawRectAndText (desc, position, colorStr, canvas, paint) {
   paint.setStrokeWidth(1)
   paint.setTextSize(20)
   paint.setStyle(Paint.Style.FILL)
-  canvas.drawText(desc, position[0], position[1], paint)
+  canvas.drawText(desc, position[0], position[1] + bangOffset, paint)
   paint.setTextSize(10)
   paint.setStrokeWidth(1)
   paint.setARGB(255, 0, 0, 0)
   let center = getRectCenter(position)
-  canvas.drawText(getPositionDesc(position), center.x, center.y, paint)
+  canvas.drawText(getPositionDesc(position), center.x, center.y + bangOffset, paint)
 }
 
 function drawText (text, position, canvas, paint) {
   paint.setStrokeWidth(1)
   paint.setStyle(Paint.Style.FILL)
-  canvas.drawText(text, position.x, position.y, paint)
+  canvas.drawText(text, position.x, position.y + bangOffset, paint)
 }
 
 function drawCoordinateAxis (canvas, paint) {
@@ -184,9 +190,9 @@ function drawCoordinateAxis (canvas, paint) {
 
   for (let y = 50; y < height; y += 50) {
     paint.setStrokeWidth(0)
-    canvas.drawText(y, 0, y, paint)
+    canvas.drawText(y, 0, y + bangOffset, paint)
     paint.setStrokeWidth(0.2)
-    canvas.drawLine(0, y, width, y, paint)
+    canvas.drawLine(0, y + bangOffset, width, y + bangOffset, paint)
   }
 }
 
@@ -236,6 +242,8 @@ window.canvas.on("draw", function (canvas) {
     drawRectAndText('判断食盆的区域，主要校验是否存在饲料', config.FOOD_REGION, config.FOOD_COLOR, canvas, paint)
     drawRectAndText('判断是否成功使用加速卡的区域', config.SPEED_CHECK_REGION, config.SPEED_CHECK_COLOR, canvas, paint)
     drawRectAndText('星星球的判断区域', config.reco, '#000000', canvas, paint)
+    drawRectAndText('判断屎的区域', config.SHIT_CHECK_REGION, config.PICK_SHIT_GRAY_COLOR, canvas, paint)
+    drawRectAndText('判断收集屎的区域', config.COLLECT_SHIT_CHECK_REGION, config.COLLECT_SHIT_GRAY_COLOR, canvas, paint)
 
     paint.setARGB(255, 0, 0, 255)
     drawText('喂饲料按钮', config.FEED_POSITION, canvas, paint)

@@ -51,7 +51,12 @@ const default_chick_config = {
   CONFIRM_POSITON: {
     x: 720,
     y: 1320
-  }
+  },
+  // 捡屎
+  SHIT_CHECK_REGION: [435, 1925, 40, 40],
+  COLLECT_SHIT_CHECK_REGION: [220, 2000, 80, 40],
+  PICK_SHIT_GRAY_COLOR: '#A6A6A6',
+  COLLECT_SHIT_GRAY_COLOR: '#838383'
 }
 
 let custom_config = files.exists(FileUtils.getCurrentWorkPath() + '/extends/CustomConfig.js') ? require('../extends/CustomConfig.js') : default_chick_config
@@ -377,6 +382,31 @@ function AntManorRunner () {
     }
   }
 
+  this.checkAndPickShit = function () {
+    let img = _commonFunctions.checkCaptureScreenPermission()
+    let pickRegion = chick_config.SHIT_CHECK_REGION || [435, 1925, 40, 40]
+    let collectRegion = chick_config.COLLECT_SHIT_CHECK_REGION || [220, 2000, 80, 40]
+    let pickShitColor = chick_config.PICK_SHIT_GRAY_COLOR || '#A6A6A6'
+    let collectShitColor = chick_config.COLLECT_SHIT_GRAY_COLOR || '#838383'
+    img = images.grayscale(img)
+    let point = images.findColor(img, pickShitColor, { region: pickRegion })
+    if (point) {
+      this.setFloatyInfo({ x: point.x, y: point.x }, "有屎可以捡")
+      click(point.x, point.y)
+      debugInfo(['find point：{},{}', point.x, point.y])
+      sleep(1000)
+      img = _commonFunctions.checkCaptureScreenPermission()
+      img = images.grayscale(img)
+      point = images.findColor(img, collectShitColor, { region: collectRegion })
+      if (point) {
+        click(point.x, point.y)
+        debugInfo(['find point：{},{}', point.x, point.y])
+      }
+    } else {
+      this.setFloatyInfo({ x: pickRegion[0], y: pickRegion[1] }, "没有屎可以捡")
+    }
+  }
+
   this.setTimeoutExit = function () {
     let _this = this
     setTimeout(function () {
@@ -402,7 +432,11 @@ function AntManorRunner () {
     sleep(1000)
     this.setFloatyInfo(null, '没有野鸡哦')
     this.checkAndFeed()
-    sleep(5000)
+    sleep(1000)
+    if (config.pick_shit) {
+      this.checkAndPickShit()
+    }
+    sleep(2000)
     _commonFunctions.killCurrentApp()
   }
 

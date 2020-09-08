@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 23:07:35
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-04-17 09:59:53
+ * @Last Modified time: 2020-09-08 20:04:12
  * @Description: 星星球自动游玩
  */
 importClass(java.util.concurrent.LinkedBlockingQueue)
@@ -15,6 +15,7 @@ let singletonRequire = require('./lib/SingletonRequirer.js')(runtime, this)
 let commonFunctions = singletonRequire('CommonFunction')
 let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
 let FileUtils = singletonRequire('FileUtils')
+let resourceMonitor = require('./lib/ResourceMonitor.js')(runtime, this)
 
 requestScreenCapture(false)
 
@@ -86,6 +87,7 @@ function Player () {
         runningQueueDispatcher.removeRunningTask()
         log('准备关闭线程')
         _this.destoryPool()
+        resourceMonitor.releaseAll()
         engines.myEngine().forceStop()
         exit()
       })
@@ -144,8 +146,10 @@ function Player () {
     }
     let _this = this
     ui.run(function () {
-      _this.floatyWindow.content.text(text)
-      _this.floatyWindow.setPosition(point.x, point.y)
+      if (text)
+        _this.floatyWindow.content.text('' + text)
+      if (point)
+        _this.floatyWindow.setPosition(point.x, point.y)
     })
     this.floatyLock.unlock()
   }
@@ -165,42 +169,60 @@ function Player () {
     let currentScore = 0
     let clickCount = 0
     let start = new Date().getTime()
-    while ((currentScore = this.getScore()) < stopScore) {
-      this.floatyLock.lock()
-      if (this.floatyWindow === null) {
-        this.floatyInitCondition.await()
+    let self = this
+    this.floatyLock.lock()
+    if (this.floatyWindow === null) {
+      this.floatyInitCondition.await()
+    }
+    this.floatyLock.unlock()
+    let countdownLatch = new java.util.concurrent.CountDownLatch(1)
+    this.threadPool.execute(function () {
+      let lastScore = 0
+      while (currentScore < stopScore) {
+        currentScore = self.getScore()
+        if (lastScore !== currentScore) {
+          lastScore = currentScore
+          self.setFloatyInfo(null, lastScore)
+        }
+        sleep(200)
       }
-      this.floatyLock.unlock()
-      sleep(30)
-      let img = captureScreen()
-      let point = images.findColor(img, config.ballColor, {
-        region: config.reco,
-        threshold: config.threshold
-      })
-      content = '蓝球球:' + currentScore
-      if (!point) {
-        point = images.findColor(img, '#ffff4c4c', {
+    })
+    this.threadPool.execute(function () {
+      while (currentScore < stopScore) {
+        let img = captureScreen()
+        let point = images.findColor(img, config.ballColor, {
           region: config.reco,
           threshold: config.threshold
         })
-        content = '红球球:' + currentScore
+        if (!point) {
+          point = images.findColor(img, '#ff4c4c', {
+            region: config.reco,
+            threshold: config.threshold
+          })
+        }
+  
+        if (point) {
+          click(point.x + 10, point.y + 20)
+          clickCount++
+          self.setFloatyInfo(point, null)
+        }
       }
+      countdownLatch.countDown()
+    })
 
-      if (point) {
-        click(point.x + 10, point.y + 20)
-        clickCount++
-        this.setFloatyInfo(point, content)
-      }
-      img.recycle()
-      while (textContains('再来一局').exists()) {
-        currentScore = currentScore < stopScore ? 0 : currentScore
+    this.threadPool.execute(function () {
+      while (currentScore < stopScore) {
         let restart = textContains('再来一局').findOne(1000)
         if (restart) {
+          currentScore = 0
           let bounds = restart.bounds()
           click(bounds.centerX(), bounds.centerY())
         }
       }
-    }
+    })
+
+    countdownLatch.await()
+
     toastLog('最终分数:' + currentScore + ' 点击了：' + clickCount + '次 总耗时：' + (new Date().getTime() - start) + 'ms')
     let point = {
       x: parseInt(WIDTH / 3),
@@ -256,5 +278,6 @@ runningQueueDispatcher.addRunningTask()
 // console.show()
 let player = new Player()
 player.startPlaying()
+resourceMonitor.releaseAll()
 runningQueueDispatcher.removeRunningTask()
 
