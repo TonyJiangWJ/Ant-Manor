@@ -52,7 +52,12 @@ let config = {
   CONFIRM_POSITON: {
     x: 720,
     y: 1320
-  }
+  },
+  // 捡屎
+  SHIT_CHECK_REGION: [435, 1925, 40, 40],
+  COLLECT_SHIT_CHECK_REGION: [220, 2000, 80, 40],
+  PICK_SHIT_GRAY_COLOR: '#A6A6A6',
+  COLLECT_SHIT_GRAY_COLOR: '#838383'
 }
 
 
@@ -237,6 +242,8 @@ window.canvas.on("draw", function (canvas) {
     drawRectAndText('判断食盆的区域，主要校验是否存在饲料', config.FOOD_REGION, config.FOOD_COLOR, canvas, paint)
     drawRectAndText('判断是否成功使用加速卡的区域', config.SPEED_CHECK_REGION, config.SPEED_CHECK_COLOR, canvas, paint)
     drawRectAndText('星星球的判断区域', config.reco, '#000000', canvas, paint)
+    drawRectAndText('判断屎的区域', config.SHIT_CHECK_REGION, config.PICK_SHIT_GRAY_COLOR, canvas, paint)
+    drawRectAndText('判断收集屎的区域', config.COLLECT_SHIT_CHECK_REGION, config.COLLECT_SHIT_GRAY_COLOR, canvas, paint)
 
     paint.setARGB(255, 0, 0, 255)
     drawText('喂饲料按钮', config.FEED_POSITION, canvas, paint)

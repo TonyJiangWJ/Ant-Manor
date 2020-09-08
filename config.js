@@ -53,7 +53,7 @@ var default_config = {
   // 是否是AutoJS Pro  需要屏蔽部分功能，暂时无法实现：生命周期监听等 包括通话监听
   is_pro: is_pro,
   // 是否捡屎
-  pick_shit: true,
+  pick_shit: false,
   request_capture_permission: true,
   bang_offset: -90
 }
@@ -166,6 +166,8 @@ if (!isRunningMode) {
     ui.lockDescNoRoot.setVisibility(!_hasRootPermission ? View.VISIBLE : View.INVISIBLE)
     ui.bangOffsetInpt.text('' + config.bang_offset)
     ui.dismissDialogIfLockedChkBox.setChecked(config.dismiss_dialog_if_locked)
+
+    ui.pickShitChkBox.setChecked(config.pick_shit)
     setDeviceSizeText()
   }
 
@@ -227,6 +229,7 @@ if (!isRunningMode) {
                 </horizontal>
                 {/* 是否使用加速卡 */}
                 <checkbox id="useSpeedCardChkBox" text="是否使用加速卡" />
+                <checkbox id="pickShitChkBox" text="是否捡屎" />
                 <text text="喂食等待窗口时间是为了避免倒计时计算不准确而加入的冗余时间，不建议设置成0" textSize="8sp" />
                 <horizontal padding="10 0" gravity="center">
                   <text text="喂食等待窗口时间：" layout_weight="20" />
@@ -463,6 +466,10 @@ if (!isRunningMode) {
 
     ui.useSpeedCardChkBox.on('click', () => {
       config.useSpeedCard = ui.useSpeedCardChkBox.isChecked()
+    })
+
+    ui.pickShitChkBox.on('click', () => {
+      config.pick_shit = ui.pickShitChkBox.isChecked()
     })
 
     ui.alipayLockPasswordInpt.addTextChangedListener(
