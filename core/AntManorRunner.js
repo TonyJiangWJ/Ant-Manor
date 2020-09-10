@@ -11,7 +11,7 @@ let alipayUnlocker = singletonRequire('AlipayUnlocker')
 let { logInfo: _logInfo, errorInfo: _errorInfo, warnInfo: _warnInfo, debugInfo: _debugInfo, infoLog: _infoLog } = singletonRequire('LogUtils')
 let _FloatyInstance = singletonRequire('FloatyUtil')
 let FileUtils = singletonRequire('FileUtils')
-
+let BaiduOcrUtil = require('../lib/BaiduOcrUtil.js')
 
 const default_chick_config = {
   CHECK_APP_COLOR: '#f1381a',
@@ -36,6 +36,7 @@ const default_chick_config = {
   DISMISS_REGION: [450, 1845, 10, 10],
   FOOD_REGION: [850, 1655, 10, 10],
   SPEED_CHECK_REGION: [464, 1445, 10, 10],
+  COUNT_DOWN_REGION: [810, 1600, 160, 55],          // 倒计时区域
   FEED_POSITION: {
     x: 930,
     y: 1960
@@ -334,7 +335,8 @@ function AntManorRunner () {
         _commonFunctions.setSpeedFail()
       }
       sleep(1500)
-      let sleepTime = _commonFunctions.getSleepTimeAutoCount()
+      let ocrRestTime = this.recognizeCountdownByOcr()
+      let sleepTime = _commonFunctions.getSleepTimeByOcr(ocrRestTime)
       this.setFloatyInfo(null, sleepTime + '分钟后来检查状况')
       _commonFunctions.setUpAutoStart(sleepTime)
     } else {
@@ -391,7 +393,7 @@ function AntManorRunner () {
     img = images.grayscale(img)
     let point = images.findColor(img, pickShitColor, { region: pickRegion })
     if (point) {
-      this.setFloatyInfo({ x: point.x, y: point.x }, "有屎可以捡")
+      this.setFloatyInfo({ x: pickRegion[0], y: pickRegion[1] }, "有屎可以捡")
       click(point.x, point.y)
       debugInfo(['find point：{},{}', point.x, point.y])
       sleep(1000)
@@ -405,6 +407,32 @@ function AntManorRunner () {
     } else {
       this.setFloatyInfo({ x: pickRegion[0], y: pickRegion[1] }, "没有屎可以捡")
     }
+  }
+
+  this.recognizeCountdownByOcr = function () {
+    if (config.useOcr) {
+      let img = _commonFunctions.checkCaptureScreenPermission()
+      let region = chick_config.COUNT_DOWN_REGION
+      debugInfo(['region:{}', JSON.stringify(chick_config.COUNT_DOWN_REGION)])
+      img = images.clip(img, region[0], region[1], region[2], region[3])
+      img = images.interval(images.grayscale(img), '#FFFFFF', 50)
+      let base64Str = images.toBase64(img)
+      debugForDev(['image base64 [data:image/png;base64,{}]', base64Str])
+      let result = BaiduOcrUtil.recognizeGeneralText(base64Str)
+      let hourMinutes = /(\d+)小时(\d+)分/
+      let minuteSeconds = /(\d+)分(\d+)秒/
+      debugInfo(['识别倒计时时间文本为：{}', JSON.stringify(result)])
+      let restTime = -1
+      if (hourMinutes.test(result)) {
+        let regexResult = hourMinutes.exec(result)
+        restTime = parseInt(regexResult[1]) * 60 + parseInt(regexResult[2])
+      } else if (minuteSeconds.test(result)) {
+        restTime = parseInt(regexResult[1])
+      }
+      debugInfo('计算得到剩余时间：' + restTime + '分')
+      return restTime
+    }
+    return -1
   }
 
   this.setTimeoutExit = function () {
