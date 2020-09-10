@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-08-20 13:14:59
+ * @Last Modified time: 2020-09-10 17:05:53
  * @Description: 
  */
 'ui';
@@ -55,7 +55,12 @@ var default_config = {
   // 是否捡屎
   pick_shit: false,
   request_capture_permission: true,
-  bang_offset: -90
+  bang_offset: -90,
+  async_waiting_capture: true,
+  capture_waiting_time: 500,
+  useOcr: true,
+  apiKey: '0dGhhIf529lp1bB7vdH5vYFe',
+  secretKey: 'Pk2M9CKcwsx0075Cslso0lUfIp8D5Lut'
 }
 
 // 配置缓存的key值
@@ -168,6 +173,10 @@ if (!isRunningMode) {
     ui.dismissDialogIfLockedChkBox.setChecked(config.dismiss_dialog_if_locked)
 
     ui.pickShitChkBox.setChecked(config.pick_shit)
+    // 截图等待时间配置
+    ui.captureWaitingTimeInpt.text(config.capture_waiting_time + '')
+    ui.asyncWaitingCaptureChkBox.setChecked(config.async_waiting_capture)
+    ui.asyncWaitingCaptureContainer.setVisibility(config.async_waiting_capture ? View.VISIBLE : View.GONE)
     setDeviceSizeText()
   }
 
@@ -274,9 +283,9 @@ if (!isRunningMode) {
                   <text text="星星球目标分数：" layout_weight="20" />
                   <input id="starBallScoreInpt" inputType="number" textSize="14sp" layout_weight="80" />
                 </horizontal>
-                <text text="刘海屏或者挖空屏悬浮窗显示位置和实际目测位置不同，需要施加一个偏移量一般是负值：" textSize="12sp" />
+                <text text="刘海屏或者挖孔屏悬浮窗显示位置和实际目测位置不同，需要施加一个偏移量一般是负值：" textSize="12sp" />
                 <horizontal padding="10 0" gravity="center">
-                  <text text="挖空或水滴刘海偏移量：" layout_weight="20" />
+                  <text text="挖孔或水滴刘海偏移量：" layout_weight="20" />
                   <input id="bangOffsetInpt" inputType="number" textSize="14sp" layout_weight="80" />
                 </horizontal>
                 {/* 是否自动点击授权录屏权限 */}
@@ -290,6 +299,12 @@ if (!isRunningMode) {
                   <text text="延迟启动时间（秒）:" />
                   <input layout_weight="70" inputType="number" id="delayStartTimeInpt" layout_weight="70" />
                 </horizontal>
+                <text text="偶尔通过captureScreen获取截图需要等待很久，或者一直阻塞无法进行下一步操作，建议开启异步等待，然后设置截图等待时间(默认500ms,需自行调试找到合适自己设备的数值)。失败多次后脚本会自动重启，重新获取截图权限" textSize="10dp" />
+                  <checkbox id="asyncWaitingCaptureChkBox" text="是否异步等待截图" />
+                  <horizontal gravity="center" id="asyncWaitingCaptureContainer">
+                    <text text="获取截图等待时间（ms）:" />
+                    <input id="captureWaitingTimeInpt" inputType="number" layout_weight="60" />
+                  </horizontal>
               </vertical>
             </ScrollView>
           </frame>
@@ -505,6 +520,10 @@ if (!isRunningMode) {
       TextWatcherBuilder(text => { config.starBallScore = parseInt(text) })
     )
 
+    ui.captureWaitingTimeInpt.addTextChangedListener(
+      TextWatcherBuilder(text => { config.capture_waiting_time = parseInt(text) })
+    )
+
     ui.isAlipayLockedChkBox.on('click', () => {
       config.is_alipay_locked = ui.isAlipayLockedChkBox.isChecked()
       ui.alipayLockPasswordContainer.setVisibility(config.is_alipay_locked ? View.VISIBLE : View.GONE)
@@ -532,6 +551,11 @@ if (!isRunningMode) {
 
     ui.requestCapturePermissionChkBox.on('click', () => {
       config.request_capture_permission = ui.requestCapturePermissionChkBox.isChecked()
+    })
+
+    ui.asyncWaitingCaptureChkBox.on('click', () => {
+      config.async_waiting_capture = ui.asyncWaitingCaptureChkBox.isChecked()
+      ui.asyncWaitingCaptureContainer.setVisibility(config.async_waiting_capture ? View.VISIBLE : View.GONE)
     })
 
     ui.autoLockChkBox.on('click', () => {

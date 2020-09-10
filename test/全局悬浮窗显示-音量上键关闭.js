@@ -33,6 +33,7 @@ let config = {
   DISMISS_REGION: [450, 1845, 10, 10],              // 校验关闭按钮的区域
   FOOD_REGION: [850, 1655, 10, 10],                 // 校验食盆的区域，主要校验是否存在饲料
   SPEED_CHECK_REGION: [464, 1445, 10, 10],          // 校验是否成功使用加速卡的区域，小鸡右手拿饲料的位置
+  COUNT_DOWN_REGION: [810, 1600, 160, 55],          // 倒计时区域
   // 喂饲料按钮的位置
   FEED_POSITION: {
     x: 930,
@@ -244,6 +245,7 @@ window.canvas.on("draw", function (canvas) {
     drawRectAndText('星星球的判断区域', config.reco, '#000000', canvas, paint)
     drawRectAndText('判断屎的区域', config.SHIT_CHECK_REGION, config.PICK_SHIT_GRAY_COLOR, canvas, paint)
     drawRectAndText('判断收集屎的区域', config.COLLECT_SHIT_CHECK_REGION, config.COLLECT_SHIT_GRAY_COLOR, canvas, paint)
+    drawRectAndText('倒计时识别区域', config.COUNT_DOWN_REGION, '#00FF00', canvas, paint)
 
     paint.setARGB(255, 0, 0, 255)
     drawText('喂饲料按钮', config.FEED_POSITION, canvas, paint)
