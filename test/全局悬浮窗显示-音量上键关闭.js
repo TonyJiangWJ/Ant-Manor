@@ -1,3 +1,4 @@
+let { config: _config } = require('../config.js')(runtime, this)
 var window = floaty.rawWindow(
   <canvas id="canvas" layout_weight="1" />
 );
@@ -5,7 +6,7 @@ var window = floaty.rawWindow(
 window.setSize(1080, 2160);
 window.setTouchable(false)
 // 刘海高度偏移量，刘海屏以及挖空屏 悬浮窗无法正常显示，需要施加一个偏移量
-let bangOffset = -90
+let bangOffset = _config.bang_offset
 let config = {
 
   CHECK_APP_COLOR: '#f1381a',         // 校验蚂蚁庄园是否打开成功的颜色
