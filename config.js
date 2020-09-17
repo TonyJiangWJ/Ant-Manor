@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-09-10 17:05:53
+ * @Last Modified time: 2020-09-17 20:01:24
  * @Description: 
  */
 'ui';
@@ -55,7 +55,8 @@ var default_config = {
   // 是否捡屎
   pick_shit: false,
   request_capture_permission: true,
-  bang_offset: -90,
+  auto_set_bang_offset: true,
+  bang_offset: 0,
   async_waiting_capture: true,
   capture_waiting_time: 500,
   useOcr: true,
@@ -169,7 +170,7 @@ if (!isRunningMode) {
     ui.autoLockChkBox.setChecked(config.auto_lock)
     ui.lockPositionContainer.setVisibility(config.auto_lock && !_hasRootPermission ? View.VISIBLE : View.INVISIBLE)
     ui.lockDescNoRoot.setVisibility(!_hasRootPermission ? View.VISIBLE : View.INVISIBLE)
-    ui.bangOffsetInpt.text('' + config.bang_offset)
+    ui.bangOffsetText.text('' + config.bang_offset)
     ui.dismissDialogIfLockedChkBox.setChecked(config.dismiss_dialog_if_locked)
 
     ui.pickShitChkBox.setChecked(config.pick_shit)
@@ -283,11 +284,11 @@ if (!isRunningMode) {
                   <text text="星星球目标分数：" layout_weight="20" />
                   <input id="starBallScoreInpt" inputType="number" textSize="14sp" layout_weight="80" />
                 </horizontal>
-                <text text="刘海屏或者挖孔屏悬浮窗显示位置和实际目测位置不同，需要施加一个偏移量一般是负值：" textSize="12sp" />
-                <horizontal padding="10 0" gravity="center">
-                  <text text="挖孔或水滴刘海偏移量：" layout_weight="20" />
-                  <input id="bangOffsetInpt" inputType="number" textSize="14sp" layout_weight="80" />
-                </horizontal>
+                <text text="刘海屏或者挖孔屏悬浮窗显示位置和实际目测位置不同，需要施加一个偏移量一般是负值，脚本运行时会自动设置：" textSize="12sp" margin="10 5"/>
+                  <horizontal padding="10 10" gravity="center">
+                    <text text="当前自动设置的刘海偏移量为：" textSize="12sp" layout_weight="60" />
+                    <text id="bangOffsetText" textSize="12sp" layout_weight="40" />
+                  </horizontal>
                 {/* 是否自动点击授权录屏权限 */}
                 <checkbox id="requestCapturePermissionChkBox" text="是否需要自动授权截图权限" />
                 <horizontal w="*" h="1sp" bg="#cccccc" margin="5 0"></horizontal>
@@ -508,12 +509,6 @@ if (!isRunningMode) {
       TextWatcherBuilder(text => {
         let val = parseInt(text)
         config.recheckTime = val >= 0 ? val : 0
-      })
-    )
-    ui.bangOffsetInpt.addTextChangedListener(
-      TextWatcherBuilder(text => {
-        let val = parseInt(text)
-        config.bang_offset = val >= 0 ? val : 0
       })
     )
     ui.starBallScoreInpt.addTextChangedListener(

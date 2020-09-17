@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-05-07 10:43:32
+ * @Last Modified time: 2020-09-17 19:34:20
  * @Description: 
  */
 let { config } = require('./config.js')(runtime, this)
@@ -96,6 +96,8 @@ if (!FloatyInstance.init()) {
   runningQueueDispatcher.executeTargetScript(FileUtils.getRealMainScriptPath())
   exit()
 }
+// 自动设置刘海偏移量
+commonFunctions.autoSetUpBangOffset()
 /************************
  * 主程序
  ***********************/
