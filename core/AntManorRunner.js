@@ -131,7 +131,6 @@ function AntManorRunner () {
         region: region,
         threshold: threshold || config.color_offset || 4
       })
-      img.recycle()
     } while (!findColor && timeoutCount-- > 0)
     return findColor
   }
@@ -184,7 +183,6 @@ function AntManorRunner () {
       region: chick_config.OUT_REGION,
       threshold: config.color_offset
     })
-    img.recycle()
     if (findColor) {
       this.setFloatyInfo(findColor, '小鸡出去找吃的了')
       sleep(1000)
@@ -204,7 +202,6 @@ function AntManorRunner () {
           threshold: config.color_offset
         })
       }
-      img.recycle()
       if (findColor) {
         this.setFloatyInfo(findColor, '找到了我的小鸡')
         sleep(1000)
@@ -228,7 +225,6 @@ function AntManorRunner () {
       region: chick_config.LEFT_THIEF_REGION,
       threshold: config.color_offset
     })
-    img.recycle()
     if (findColor) {
       this.setFloatyInfo(findColor, '找到了左边的小透鸡')
       sleep(1000)
@@ -245,7 +241,6 @@ function AntManorRunner () {
           region: chick_config.LEFT_PUNCH_REGION,
           threshold: config.color_offset
         })
-        img.recycle()
       } while (!punch && count-- > 0)
 
       if (punch) {
@@ -272,7 +267,6 @@ function AntManorRunner () {
       region: chick_config.RIGHT_THIEF_REGION,
       threshold: config.color_offset
     })
-    img.recycle()
     if (findColor) {
       this.setFloatyInfo(findColor, '找到了右边的小透鸡')
       sleep(1000)
@@ -289,7 +283,6 @@ function AntManorRunner () {
           region: chick_config.RIGHT_PUNCH_REGION,
           threshold: config.color_offset
         })
-        img.recycle()
       } while (!punch && count-- > 0)
 
       if (punch) {
@@ -317,7 +310,6 @@ function AntManorRunner () {
         region: chick_config.FOOD_REGION,
         threshold: config.color_offset || 4
       })
-      img.recycle()
       if (findColor) {
         this.setFloatyInfo(findColor, '小鸡有饭吃哦')
       } else {
@@ -372,7 +364,6 @@ function AntManorRunner () {
         region: chick_config.SPEED_CHECK_REGION,
         threshold: config.color_offset || 4
       })
-      img.recycle()
     } while (!checkSpeedup && --checkCount > 0)
     if (checkSpeedup) {
       this.setFloatyInfo(checkSpeedup, "加速卡使用成功")
@@ -466,75 +457,9 @@ function AntManorRunner () {
     }
     sleep(2000)
     _commonFunctions.killCurrentApp()
+    resourceMonitor.releaseAll()
   }
 
-
-
-  //-------------------
-
-  this.getAutoJsPackage = function () {
-    let isPro = app.versionName.match(/[Pp]ro/)
-    return 'org.autojs.autojs' + (isPro ? 'pro' : '')
-  }
-
-  this.checkAccessibilityService = function (force) {
-    let packageName = this.getAutoJsPackage()
-    let requiredService = packageName + '/com.stardust.autojs.core.accessibility.AccessibilityService'
-    try {
-      let enabledServices = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
-      _debugInfo(['当前已启用无障碍功能的服务:{}', enabledServices])
-      var service = null
-      if (enabledServices.indexOf(requiredService) < 0) {
-        service = enabledServices + ':' + requiredService
-      } else if (force) {
-        // 如果强制开启
-        service = enabledServices
-      }
-      if (service) {
-        Settings.Secure.putString(context.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, service)
-        Settings.Secure.putString(context.getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, '1')
-        // infoLog('成功开启AutoJS的辅助服务', true)
-      }
-
-      return true
-    } catch (e) {
-      _warnInfo('\n请确保已给予 WRITE_SECURE_SETTINGS 权限\n\n授权代码已复制，请使用adb工具连接手机执行(重启不失效)\n\n', true)
-      let shellScript = 'adb shell pm grant ' + packageName + ' android.permission.WRITE_SECURE_SETTINGS'
-      _warnInfo('adb 脚本 已复制到剪切板：[' + shellScript + ']')
-      setClip(shellScript)
-      return false
-    }
-  }
-
-  /**
-  * eg. params '参数名：{} 参数内容：{}', name, value
-  *     result '参数名：name 参数内容：value'
-  * 格式化字符串，定位符{}
-  */
-  this.formatString = function () {
-    let originContent = []
-    for (let arg in arguments) {
-      originContent.push(arguments[arg])
-    }
-    if (originContent.length === 1) {
-      return originContent[0]
-    }
-    let marker = originContent[0]
-    let args = originContent.slice(1)
-    let regex = /(\{\})/g
-    let matchResult = marker.match(regex)
-    if (matchResult && args && matchResult.length > 0 && matchResult.length === args.length) {
-      args.forEach((item, idx) => {
-        marker = marker.replace('{}', item)
-      })
-      return marker
-    } else {
-      console.error('参数数量不匹配' + arguments)
-      return arguments
-    }
-  }
 }
-
-// console.show()
 
 module.exports = new AntManorRunner()

@@ -2,15 +2,14 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-09-17 19:34:20
+ * @Last Modified time: 2020-09-22 19:10:34
  * @Description: 
  */
 let { config } = require('./config.js')(runtime, this)
 let singletonRequire = require('./lib/SingletonRequirer.js')(runtime, this)
-
+let resourceMonitor = require('./lib/ResourceMonitor.js')(runtime, this)
 let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
-let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile } = singletonRequire('LogUtils')
-
+let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile, flushAllLogs } = singletonRequire('LogUtils')
 let commonFunctions = singletonRequire('CommonFunction')
 
 if (config.single_script) {
@@ -22,8 +21,30 @@ runningQueueDispatcher.addRunningTask()
 let FloatyInstance = singletonRequire('FloatyUtil')
 let automator = singletonRequire('Automator')
 let tryRequestScreenCapture = singletonRequire('TryRequestScreenCapture')
+let callStateListener = config.enable_call_state_control ? singletonRequire('CallStateListener') : { exitIfNotIdle: () => { } }
 let unlocker = require('./lib/Unlock.js')
 let manorRunner = require('./core/AntManorRunner.js')
+
+callStateListener.exitIfNotIdle()
+// 注册自动移除运行中任务
+commonFunctions.registerOnEngineRemoved(function () {
+  // 移除运行中任务
+  runningQueueDispatcher.removeRunningTask(true, true,
+    () => {
+      // 重置自动亮度
+      if (config.auto_set_brightness) {
+        device.setBrightnessMode(1)
+      }
+      events.removeAllListeners()
+      events.recycle()
+      // 保存是否需要重新锁屏
+      unlocker.saveNeedRelock()
+      flushAllLogs()
+      config.isRunning = false
+      console.clear()
+    }
+  )
+}, 'main')
 /***********************
  * 初始化
  ***********************/
@@ -123,8 +144,6 @@ if (config.auto_lock === true && unlocker.needRelock() === true) {
   debugInfo('重新锁定屏幕')
   automator.lockScreen()
 }
-events.removeAllListeners()
-events.recycle()
 FloatyInstance.close()
 runningQueueDispatcher.removeRunningTask(true)
 exit()

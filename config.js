@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-09-17 20:01:24
+ * @Last Modified time: 2020-09-22 20:20:34
  * @Description: 
  */
 'ui';
@@ -29,7 +29,12 @@ var default_config = {
   toast_debug_info: false,
   show_engine_id: false,
   develop_mode: false,
-  saveLogFile: true,
+  // 是否保存日志文件，如果设置为保存，则日志文件会按时间分片备份在logback/文件夹下
+  save_log_file: true,
+  // 异步写入日志文件
+  async_save_log_file: true,
+  back_size: '100',
+  enable_call_state_control: false,
   // 完成后通过手势kill支付宝应用，目前只支持MIUI全面屏手势 默认关闭
   killAppWithGesture: false,
   // 是否使用加速卡 默认为true
@@ -156,7 +161,11 @@ if (!isRunningMode) {
     ui.windowTimeInpt.text('' + config.windowTime)
     ui.recheckTimeInpt.text('' + config.recheckTime)
     ui.showDebugLogChkBox.setChecked(config.show_debug_log)
-    ui.saveLogFileChkBox.setChecked(config.saveLogFile)
+    ui.saveLogFileChkBox.setChecked(config.save_log_file)
+    ui.asyncSaveLogFileChkBox.setChecked(config.async_save_log_file)
+    ui.asyncSaveLogFileChkBox.setVisibility(config.save_log_file ? View.VISIBLE : View.GONE)
+    ui.fileSizeInpt.text(config.back_size + '')
+    ui.fileSizeContainer.setVisibility(config.save_log_file ? View.VISIBLE : View.GONE)
     ui.showEngineIdChkBox.setChecked(config.show_engine_id)
     ui.developModeChkBox.setChecked(config.develop_mode)
     ui.starBallScoreInpt.setText(config.starBallScore + '')
@@ -172,6 +181,7 @@ if (!isRunningMode) {
     ui.lockDescNoRoot.setVisibility(!_hasRootPermission ? View.VISIBLE : View.INVISIBLE)
     ui.bangOffsetText.text('' + config.bang_offset)
     ui.dismissDialogIfLockedChkBox.setChecked(config.dismiss_dialog_if_locked)
+    ui.enableCallStateControlChkBox.setChecked(config.enable_call_state_control)
 
     ui.pickShitChkBox.setChecked(config.pick_shit)
     // 截图等待时间配置
@@ -274,12 +284,20 @@ if (!isRunningMode) {
                 </horizontal>
                 {/* 是否锁屏启动关闭弹框提示 */}
                 <checkbox id="dismissDialogIfLockedChkBox" text="锁屏启动关闭弹框提示" />
+                <text text="通话状态监听需要授予AutoJS软件获取通话状态的权限" textSize="12sp" />
+                <checkbox id="enableCallStateControlChkBox" text="是否在通话时停止脚本" />
                 <horizontal w="*" h="1sp" bg="#cccccc" margin="5 0"></horizontal>
                 {/* 是否显示debug日志 */}
+                <checkbox id="developModeChkBox" text="是否启用开发模式" />
                 <checkbox id="showDebugLogChkBox" text="是否显示debug日志" />
                 <checkbox id="showEngineIdChkBox" text="是否在控制台中显示脚本引擎id" />
-                <checkbox id="developModeChkBox" text="是否启用开发模式" />
                 <checkbox id="saveLogFileChkBox" text="是否保存日志到文件" />
+                <checkbox id="asyncSaveLogFileChkBox" text="异步保存日志到文件" />
+                <horizontal padding="10 0" id="fileSizeContainer" gravity="center" layout_weight="75">
+                  <text text="文件滚动大小：" layout_weight="20" />
+                  <input id="fileSizeInpt" textSize="14sp" layout_weight="80" />
+                  <text text="kb" />
+                </horizontal>
                 <horizontal padding="10 0" gravity="center">
                   <text text="星星球目标分数：" layout_weight="20" />
                   <input id="starBallScoreInpt" inputType="number" textSize="14sp" layout_weight="80" />
@@ -537,11 +555,21 @@ if (!isRunningMode) {
     })
 
     ui.saveLogFileChkBox.on('click', () => {
-      config.saveLogFile = ui.saveLogFileChkBox.isChecked()
+      config.save_log_file = ui.saveLogFileChkBox.isChecked()
+      ui.fileSizeContainer.setVisibility(config.save_log_file ? View.VISIBLE : View.GONE)
+      ui.asyncSaveLogFileChkBox.setVisibility(config.save_log_file ? View.VISIBLE : View.GONE)
+    })
+
+    ui.asyncSaveLogFileChkBox.on('click', () => {
+      config.async_save_log_file = ui.asyncSaveLogFileChkBox.isChecked()
     })
 
     ui.dismissDialogIfLockedChkBox.on('click', () => {
       config.dismiss_dialog_if_locked = ui.dismissDialogIfLockedChkBox.isChecked()
+    })
+
+    ui.enableCallStateControlChkBox.on('click', () => {
+      config.enable_call_state_control = ui.enableCallStateControlChkBox.isChecked()
     })
 
     ui.requestCapturePermissionChkBox.on('click', () => {
@@ -608,6 +636,11 @@ if (!isRunningMode) {
     ui.singleScriptChkBox.on('click', () => {
       config.single_script = ui.singleScriptChkBox.isChecked()
     })
+
+
+    ui.fileSizeInpt.addTextChangedListener(
+      TextWatcherBuilder(text => { config.back_size = parseInt(text) })
+    )
 
     ui.delayStartTimeInpt.addTextChangedListener(
       TextWatcherBuilder(text => { config.delayStartTime = parseInt(text) })
