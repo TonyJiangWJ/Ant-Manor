@@ -2,12 +2,14 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 23:07:35
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-09-08 20:04:12
+ * @Last Modified time: 2020-09-23 13:37:45
  * @Description: 星星球自动游玩
  */
 importClass(java.util.concurrent.LinkedBlockingQueue)
 importClass(java.util.concurrent.ThreadPoolExecutor)
 importClass(java.util.concurrent.TimeUnit)
+importClass(java.util.concurrent.ThreadFactory)
+importClass(java.util.concurrent.Executors)
 
 let { config: _config } = require('./config.js')(runtime, this)
 let singletonRequire = require('./lib/SingletonRequirer.js')(runtime, this)
@@ -69,7 +71,21 @@ function Player () {
   this.threadPool = null
 
   this.initPool = function () {
-    this.threadPool = new ThreadPoolExecutor(4, 8, 60, TimeUnit.SECONDS, new LinkedBlockingQueue(1024))
+    let ENGINE_ID = engines.myEngine().id
+    this.threadPool = new ThreadPoolExecutor(4, 8, 60, TimeUnit.SECONDS, new LinkedBlockingQueue(1024), new ThreadFactory({
+      newThread: function (runnable) {
+        let thread = Executors.defaultThreadFactory().newThread(runnable)
+        thread.setName(ENGINE_ID + '-星星球-' + thread.getName())
+        return thread
+      }
+    }))
+    let self = this
+    commonFunctions.registerOnEngineRemoved(function () {
+      if (self.threadPool !== null) {
+        self.threadPool.shutdown()
+        console.verbose('关闭线程池：{}', self.threadPool.awaitTermination(5, TimeUnit.SECONDS))
+      }
+    })
   }
 
   this.initLock = function () {
