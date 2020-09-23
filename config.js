@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-09-22 20:20:34
+ * @Last Modified time: 2020-09-23 23:51:32
  * @Description: 
  */
 'ui';
@@ -66,7 +66,9 @@ var default_config = {
   capture_waiting_time: 500,
   useOcr: true,
   apiKey: '0dGhhIf529lp1bB7vdH5vYFe',
-  secretKey: 'Pk2M9CKcwsx0075Cslso0lUfIp8D5Lut'
+  secretKey: 'Pk2M9CKcwsx0075Cslso0lUfIp8D5Lut',
+  // 自动更新后需要强制执行的标记
+  updated_temp_flag_1325: true
 }
 
 // 配置缓存的key值
@@ -90,7 +92,6 @@ if (!storageConfig.contains('password')) {
     config[key] = storedConfigItem
   })
 }
-log('当前配置信息：' + JSON.stringify(config))
 if (!isRunningMode) {
   if (config.device_height === 0 || config.device_width === 0) {
     if (!currentEngine.endsWith('/config.js')) {
@@ -179,7 +180,12 @@ if (!isRunningMode) {
     ui.autoLockChkBox.setChecked(config.auto_lock)
     ui.lockPositionContainer.setVisibility(config.auto_lock && !_hasRootPermission ? View.VISIBLE : View.INVISIBLE)
     ui.lockDescNoRoot.setVisibility(!_hasRootPermission ? View.VISIBLE : View.INVISIBLE)
-    ui.bangOffsetText.text('' + config.bang_offset)
+
+    if (config.auto_set_bang_offset) {
+      ui.bangOffsetText.text('下次运行时重新检测')
+    } else {
+      ui.bangOffsetText.text('' + config.bang_offset)
+    }
     ui.dismissDialogIfLockedChkBox.setChecked(config.dismiss_dialog_if_locked)
     ui.enableCallStateControlChkBox.setChecked(config.enable_call_state_control)
 
@@ -303,10 +309,11 @@ if (!isRunningMode) {
                   <input id="starBallScoreInpt" inputType="number" textSize="14sp" layout_weight="80" />
                 </horizontal>
                 <text text="刘海屏或者挖孔屏悬浮窗显示位置和实际目测位置不同，需要施加一个偏移量一般是负值，脚本运行时会自动设置：" textSize="12sp" margin="10 5"/>
-                  <horizontal padding="10 10" gravity="center">
-                    <text text="当前自动设置的刘海偏移量为：" textSize="12sp" layout_weight="60" />
-                    <text id="bangOffsetText" textSize="12sp" layout_weight="40" />
-                  </horizontal>
+                <horizontal padding="10 10" gravity="center">
+                  <text text="当前自动设置的刘海偏移量为：" textSize="12sp" layout_weight="60" />
+                  <text id="bangOffsetText" textSize="12sp" layout_weight="40" />
+                </horizontal>
+                <button id="resetOffsetBtn">下次运行时重新检测</button>
                 {/* 是否自动点击授权录屏权限 */}
                 <checkbox id="requestCapturePermissionChkBox" text="是否需要自动授权截图权限" />
                 <horizontal w="*" h="1sp" bg="#cccccc" margin="5 0"></horizontal>
@@ -486,6 +493,10 @@ if (!isRunningMode) {
       inputDeviceSize().then(() => setDeviceSizeText())
     })
 
+    ui.resetOffsetBtn.on('click', () => {
+      config.auto_set_bang_offset = true
+      ui.bangOffsetText.text('下次运行时重新检测')
+    })
 
     ui.password.addTextChangedListener(
       TextWatcherBuilder(text => { config.password = text + '' })
