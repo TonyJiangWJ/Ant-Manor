@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 23:07:35
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-09-23 13:37:45
+ * @Last Modified time: 2020-09-27 14:14:39
  * @Description: 星星球自动游玩
  */
 importClass(java.util.concurrent.LinkedBlockingQueue)
@@ -75,7 +75,7 @@ function Player () {
     this.threadPool = new ThreadPoolExecutor(4, 8, 60, TimeUnit.SECONDS, new LinkedBlockingQueue(1024), new ThreadFactory({
       newThread: function (runnable) {
         let thread = Executors.defaultThreadFactory().newThread(runnable)
-        thread.setName(ENGINE_ID + '-星星球-' + thread.getName())
+        thread.setName(_config.thread_name_prefix + ENGINE_ID + '-星星球-' + thread.getName())
         return thread
       }
     }))

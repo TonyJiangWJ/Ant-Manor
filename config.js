@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-09-23 23:51:32
+ * @Last Modified time: 2020-09-27 14:15:19
  * @Description: 
  */
 'ui';
@@ -68,7 +68,8 @@ var default_config = {
   apiKey: '0dGhhIf529lp1bB7vdH5vYFe',
   secretKey: 'Pk2M9CKcwsx0075Cslso0lUfIp8D5Lut',
   // 自动更新后需要强制执行的标记
-  updated_temp_flag_1325: true
+  updated_temp_flag_1325: true,
+  thread_name_prefix: 'antmanor_'
 }
 
 // 配置缓存的key值

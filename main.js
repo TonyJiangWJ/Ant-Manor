@@ -143,6 +143,7 @@ if (config.develop_mode) {
 if (config.auto_lock === true && unlocker.needRelock() === true) {
   debugInfo('重新锁定屏幕')
   automator.lockScreen()
+  unlocker.saveNeedRelock(true)
 }
 FloatyInstance.close()
 runningQueueDispatcher.removeRunningTask(true)
