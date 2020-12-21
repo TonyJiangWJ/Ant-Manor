@@ -13,81 +13,6 @@ let _FloatyInstance = singletonRequire('FloatyUtil')
 let FileUtils = singletonRequire('FileUtils')
 let BaiduOcrUtil = require('../lib/BaiduOcrUtil.js')
 
-const default_chick_config = {
-  CHECK_APP_COLOR: '#f1381a',
-  CHECK_FRIENDS_COLOR: '#429beb',
-  THIEF_COLOR: '#000000',
-  PUNCH_COLOR: '#f35458',
-  OUT_COLOR: '#c37a3e',
-  OUT_IN_FRIENDS_COLOR: '#e9ca02',
-  DISMISS_COLOR: '#f9622f',
-  FOOD_COLOR: '#ffcf00',
-  SPEED_CHECK_COLOR: '#ffd000',
-
-  CHECK_APP_REGION: [310, 250, 20, 20],
-  CHECK_FRIENDS_REGION: [120, 490, 10, 10],
-  OUT_REGION: [530, 1300, 25, 25],
-  OUT_IN_FRIENDS_REGION_RIGHT: [800, 1305, 50, 50],
-  OUT_IN_FRIENDS_REGION_LEFT: [340, 1305, 50, 50],
-  LEFT_THIEF_REGION: [385, 1465, 50, 50],
-  LEFT_PUNCH_REGION: [500, 1305, 100, 100],
-  RIGHT_THIEF_REGION: [825, 1465, 50, 50],
-  RIGHT_PUNCH_REGION: [980, 1305, 100, 100],
-  DISMISS_REGION: [450, 1845, 10, 10],
-  FOOD_REGION: [850, 1655, 10, 10],
-  SPEED_CHECK_REGION: [464, 1445, 10, 10],
-  COUNT_DOWN_REGION: [810, 1600, 160, 55],          // 倒计时区域
-  FEED_POSITION: {
-    x: 930,
-    y: 1960
-  },
-  TOOL_POSITION: {
-    x: 960,
-    y: 645
-  },
-  SPEED_CARD_POSITION: {
-    x: 190,
-    y: 1450
-  },
-  CONFIRM_POSITON: {
-    x: 720,
-    y: 1320
-  },
-  // 捡屎
-  SHIT_CHECK_REGION: [435, 1925, 40, 40],
-  COLLECT_SHIT_CHECK_REGION: [220, 2000, 80, 40],
-  PICK_SHIT_GRAY_COLOR: '#A6A6A6',
-  COLLECT_SHIT_GRAY_COLOR: '#838383'
-}
-
-let custom_config = files.exists(FileUtils.getCurrentWorkPath() + '/extends/CustomConfig.js') ? require('../extends/CustomConfig.js') : default_chick_config
-let offset = typeof custom_config.OFFSET === 'number' ? custom_config.OFFSET : 0
-let chick_config = {}
-Object.keys(custom_config).forEach(key => {
-  let val = custom_config[key]
-  if (typeof val === 'undefined') {
-    return
-  }
-  if (typeof val === 'string') {
-    chick_config[key] = val
-  } else if (Object.prototype.toString.call(val) === '[object Array]') {
-    let newArrayConfig = [
-      parseInt(val[0]),
-      parseInt(val[1] + offset),
-      parseInt(val[2]),
-      parseInt(val[3] + offset)
-    ]
-    chick_config[key] = newArrayConfig
-  } else if (val.x) {
-    chick_config[key] = {
-      x: parseInt(val.x),
-      y: parseInt(val.y + offset)
-    }
-  } else {
-    chick_config[key] = val
-  }
-})
-console.verbose('转换后配置：' + JSON.stringify(chick_config))
 function getRegionCenter (region) {
   _debugInfo(['转换region位置:{}', JSON.stringify(region)])
   return {
@@ -143,20 +68,20 @@ function AntManorRunner () {
   }
 
   this.waitForOwn = function () {
-    let findColor = this.waitFor(chick_config.CHECK_APP_COLOR, chick_config.CHECK_APP_REGION)
+    let findColor = this.waitFor(config.CHECK_APP_COLOR, config.CHECK_APP_REGION)
     if (findColor) {
       this.setFloatyInfo(null, '进入个人鸡鸡页面成功')
       return true
     } else {
       this.setFloatyTextColor('#ff0000')
-      this.setFloatyInfo(getRegionCenter(chick_config.CHECK_APP_REGION), '进入个人鸡鸡页面失败，检测超时')
+      this.setFloatyInfo(getRegionCenter(config.CHECK_APP_REGION), '进入个人鸡鸡页面失败，检测超时')
       this.killAndRestart()
     }
   }
 
 
   this.waitForFriends = function () {
-    let findColor = this.waitFor(chick_config.CHECK_FRIENDS_COLOR, chick_config.CHECK_FRIENDS_REGION)
+    let findColor = this.waitFor(config.CHECK_FRIENDS_COLOR, config.CHECK_FRIENDS_REGION)
     if (findColor) {
       this.setFloatyInfo(null, '进入好友鸡鸡页面成功')
       return true
@@ -168,7 +93,7 @@ function AntManorRunner () {
   }
 
   this.waitForDismiss = function () {
-    let findColor = this.waitFor(chick_config.DISMISS_COLOR, chick_config.DISMISS_REGION)
+    let findColor = this.waitFor(config.DISMISS_COLOR, config.DISMISS_REGION)
     if (findColor) {
       this.setFloatyInfo(findColor, '找到了关闭按钮')
       click(findColor.x, findColor.y)
@@ -179,8 +104,8 @@ function AntManorRunner () {
 
   this.checkIsOut = function () {
     let img = _commonFunctions.checkCaptureScreenPermission()
-    let findColor = images.findColor(img, chick_config.OUT_COLOR, {
-      region: chick_config.OUT_REGION,
+    let findColor = images.findColor(img, config.OUT_COLOR, {
+      region: config.OUT_REGION,
       threshold: config.color_offset
     })
     if (findColor) {
@@ -192,13 +117,13 @@ function AntManorRunner () {
       this.waitForFriends()
       sleep(1000)
       img = _commonFunctions.checkCaptureScreenPermission()
-      findColor = images.findColor(img, chick_config.OUT_IN_FRIENDS_COLOR, {
-        region: chick_config.OUT_IN_FRIENDS_REGION_LEFT,
+      findColor = images.findColor(img, config.OUT_IN_FRIENDS_COLOR, {
+        region: config.OUT_IN_FRIENDS_REGION_LEFT,
         threshold: config.color_offset
       })
       if (!findColor) {
-        findColor = images.findColor(img, chick_config.OUT_IN_FRIENDS_COLOR, {
-          region: chick_config.OUT_IN_FRIENDS_REGION_RIGHT,
+        findColor = images.findColor(img, config.OUT_IN_FRIENDS_COLOR, {
+          region: config.OUT_IN_FRIENDS_REGION_RIGHT,
           threshold: config.color_offset
         })
       }
@@ -212,7 +137,7 @@ function AntManorRunner () {
         this.waitForOwn()
       } else {
         this.setFloatyTextColor('#ff0000')
-        this.setFloatyInfo(getRegionCenter(chick_config.OUT_IN_FRIENDS_REGION_LEFT), '没有找到小鸡，奇了怪了！')
+        this.setFloatyInfo(getRegionCenter(config.OUT_IN_FRIENDS_REGION_LEFT), '没有找到小鸡，奇了怪了！')
         return false
       }
     }
@@ -221,8 +146,8 @@ function AntManorRunner () {
   this.checkThiefLeft = function () {
     sleep(500)
     let img = _commonFunctions.checkCaptureScreenPermission()
-    let findColor = images.findColor(img, chick_config.THIEF_COLOR, {
-      region: chick_config.LEFT_THIEF_REGION,
+    let findColor = images.findColor(img, config.THIEF_COLOR, {
+      region: config.LEFT_THIEF_REGION,
       threshold: config.color_offset
     })
     if (findColor) {
@@ -237,14 +162,14 @@ function AntManorRunner () {
         click(findColor.x, findColor.y)
         sleep(1500)
         img = _commonFunctions.checkCaptureScreenPermission()
-        punch = images.findColor(img, chick_config.PUNCH_COLOR, {
-          region: chick_config.LEFT_PUNCH_REGION,
+        punch = images.findColor(img, config.PUNCH_COLOR, {
+          region: config.LEFT_PUNCH_REGION,
           threshold: config.color_offset
         })
       } while (!punch && count-- > 0)
 
       if (punch) {
-        this.setFloatyTextColor(chick_config.PUNCH_COLOR)
+        this.setFloatyTextColor(config.PUNCH_COLOR)
         this.setFloatyInfo(punch, '找到了左边的小拳拳')
         sleep(2000)
         this.setFloatyInfo(null, '点击揍小鸡')
@@ -256,15 +181,15 @@ function AntManorRunner () {
         return true
       }
     } else {
-      this.setFloatyInfo(getRegionCenter(chick_config.LEFT_THIEF_REGION), '左边没野鸡')
+      this.setFloatyInfo(getRegionCenter(config.LEFT_THIEF_REGION), '左边没野鸡')
     }
   }
 
   this.checkThiefRight = function () {
     sleep(500)
     let img = _commonFunctions.checkCaptureScreenPermission()
-    let findColor = images.findColor(img, chick_config.THIEF_COLOR, {
-      region: chick_config.RIGHT_THIEF_REGION,
+    let findColor = images.findColor(img, config.THIEF_COLOR, {
+      region: config.RIGHT_THIEF_REGION,
       threshold: config.color_offset
     })
     if (findColor) {
@@ -279,14 +204,14 @@ function AntManorRunner () {
         click(findColor.x, findColor.y)
         sleep(1500)
         img = _commonFunctions.checkCaptureScreenPermission()
-        punch = images.findColor(img, chick_config.PUNCH_COLOR, {
-          region: chick_config.RIGHT_PUNCH_REGION,
+        punch = images.findColor(img, config.PUNCH_COLOR, {
+          region: config.RIGHT_PUNCH_REGION,
           threshold: config.color_offset
         })
       } while (!punch && count-- > 0)
 
       if (punch) {
-        this.setFloatyTextColor(chick_config.PUNCH_COLOR)
+        this.setFloatyTextColor(config.PUNCH_COLOR)
         this.setFloatyInfo(punch, '找到了右边的小拳拳')
         sleep(2000)
         this.setFloatyInfo(null, '点击揍小鸡')
@@ -298,7 +223,7 @@ function AntManorRunner () {
         return true
       }
     } else {
-      this.setFloatyInfo(getRegionCenter(chick_config.RIGHT_THIEF_REGION), '右边没野鸡')
+      this.setFloatyInfo(getRegionCenter(config.RIGHT_THIEF_REGION), '右边没野鸡')
     }
   }
 
@@ -306,16 +231,16 @@ function AntManorRunner () {
     sleep(500)
     let img = _commonFunctions.checkCaptureScreenPermission()
     if (img) {
-      let findColor = images.findColor(img, chick_config.FOOD_COLOR, {
-        region: chick_config.FOOD_REGION,
+      let findColor = images.findColor(img, config.FOOD_COLOR, {
+        region: config.FOOD_REGION,
         threshold: config.color_offset || 4
       })
       if (findColor) {
         this.setFloatyInfo(findColor, '小鸡有饭吃哦')
       } else {
         this.setFloatyTextColor('#ff0000')
-        this.setFloatyInfo({ x: chick_config.FOOD_REGION[0], y: chick_config.FOOD_REGION[1] }, '小鸡没饭吃呢')
-        click(chick_config.FEED_POSITION.x, chick_config.FEED_POSITION.y)
+        this.setFloatyInfo({ x: config.FOOD_REGION[0], y: config.FOOD_REGION[1] }, '小鸡没饭吃呢')
+        click(config.FEED_POSITION.x, config.FEED_POSITION.y)
         _commonFunctions.updateSleepTime(20, true)
         if (config.useSpeedCard) {
           this.useSpeedCard()
@@ -342,11 +267,11 @@ function AntManorRunner () {
    */
   this.useSpeedCard = function () {
     sleep(1000)
-    click(chick_config.TOOL_POSITION.x, chick_config.TOOL_POSITION.y)
+    click(config.TOOL_POSITION.x, config.TOOL_POSITION.y)
     sleep(1000)
-    click(chick_config.SPEED_CARD_POSITION.x, chick_config.SPEED_CARD_POSITION.y)
+    click(config.SPEED_CARD_POSITION.x, config.SPEED_CARD_POSITION.y)
     sleep(1000)
-    click(chick_config.CONFIRM_POSITON.x, chick_config.CONFIRM_POSITON.y)
+    click(config.CONFIRM_POSITON.x, config.CONFIRM_POSITON.y)
     this.waitForOwn()
   }
 
@@ -360,8 +285,8 @@ function AntManorRunner () {
       // 延迟一秒半
       sleep(1500)
       img = _commonFunctions.checkCaptureScreenPermission()
-      checkSpeedup = images.findColor(img, chick_config.SPEED_CHECK_COLOR, {
-        region: chick_config.SPEED_CHECK_REGION,
+      checkSpeedup = images.findColor(img, config.SPEED_CHECK_COLOR, {
+        region: config.SPEED_CHECK_REGION,
         threshold: config.color_offset || 4
       })
     } while (!checkSpeedup && --checkCount > 0)
@@ -370,17 +295,17 @@ function AntManorRunner () {
       return true
     } else {
       this.setFloatyTextColor('#ff0000')
-      this.setFloatyInfo({ x: chick_config.SPEED_CHECK_REGION[0], y: chick_config.SPEED_CHECK_REGION[1] }, "加速卡使用失败")
+      this.setFloatyInfo({ x: config.SPEED_CHECK_REGION[0], y: config.SPEED_CHECK_REGION[1] }, "加速卡使用失败")
       return false
     }
   }
 
   this.checkAndPickShit = function () {
     let img = _commonFunctions.checkCaptureScreenPermission()
-    let pickRegion = chick_config.SHIT_CHECK_REGION || [435, 1925, 40, 40]
-    let collectRegion = chick_config.COLLECT_SHIT_CHECK_REGION || [220, 2000, 80, 40]
-    let pickShitColor = chick_config.PICK_SHIT_GRAY_COLOR || '#A6A6A6'
-    let collectShitColor = chick_config.COLLECT_SHIT_GRAY_COLOR || '#838383'
+    let pickRegion = config.SHIT_CHECK_REGION || [435, 1925, 40, 40]
+    let collectRegion = config.COLLECT_SHIT_CHECK_REGION || [220, 2000, 80, 40]
+    let pickShitColor = config.PICK_SHIT_GRAY_COLOR || '#A6A6A6'
+    let collectShitColor = config.COLLECT_SHIT_GRAY_COLOR || '#838383'
     img = images.grayscale(img)
     let point = images.findColor(img, pickShitColor, { region: pickRegion })
     if (point) {
@@ -403,8 +328,8 @@ function AntManorRunner () {
   this.recognizeCountdownByOcr = function () {
     if (config.useOcr) {
       let img = _commonFunctions.checkCaptureScreenPermission()
-      let region = chick_config.COUNT_DOWN_REGION
-      debugInfo(['region:{}', JSON.stringify(chick_config.COUNT_DOWN_REGION)])
+      let region = config.COUNT_DOWN_REGION
+      debugInfo(['region:{}', JSON.stringify(config.COUNT_DOWN_REGION)])
       img = images.clip(img, region[0], region[1], region[2], region[3])
       img = images.interval(images.grayscale(img), '#FFFFFF', 50)
       let base64Str = images.toBase64(img)
