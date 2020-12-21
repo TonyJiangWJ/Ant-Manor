@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2020-11-29 13:16:53
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-12-21 21:43:50
+ * @Last Modified time: 2020-12-21 22:16:56
  * @Description: 组件代码，传统方式，方便在手机上进行修改
  */
 
@@ -294,9 +294,6 @@ Vue.component('advance-configs', function (resolve, reject) {
         newSkipRunningAppName: '',
         configs: {
           single_script: false,
-          useCustomScrollDown: true,
-          scrollDownSpeed: null,
-          bottomHeight: null,
           skip_running_packages: [{ packageName: 'com.tony.test', appName: 'test' }, { packageName: 'com.tony.test2', appName: 'test2' }]
         },
         validations: {
@@ -367,7 +364,7 @@ Vue.component('advance-configs', function (resolve, reject) {
       $app.registerFunction('reloadAdvanceConfigs', this.loadConfigs)
       // this.loadConfigs()
     },
-    template: '<div>\
+    template: '<div style="min-height:700px;">\
       <van-cell-group>\
         <van-row>\
           <van-col :span="22" :offset="1">\
@@ -383,7 +380,7 @@ Vue.component('advance-configs', function (resolve, reject) {
         <van-button style="margin-left: 0.4rem" plain hairline type="primary" size="mini" @click="addSkipPackage">增加</van-button>\
       </van-divider>\
       <van-cell-group>\
-        <div style="max-height:10rem;overflow:scroll;padding:1rem;background:#f1f1f1;">\
+        <div style="max-height:25rem;overflow:scroll;padding:1rem;background:#f1f1f1;">\
         <van-swipe-cell v-for="(skip,idx) in configs.skip_running_packages" :key="skip.packageName" stop-propagation>\
           <van-cell :title="skip.appName" :label="skip.packageName" />\
           <template #right>\

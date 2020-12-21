@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-12-21 21:41:37
+ * @Last Modified time: 2020-12-21 22:13:02
  * @Description: 
  */
 let currentEngine = engines.myEngine().getSource() + ''
@@ -68,7 +68,7 @@ var default_config = {
   updated_temp_flag_1325: true,
   converted_custom_configs: false,
   thread_name_prefix: 'antmanor_',
-  
+  skip_running_packages: [],
   // 区域信息配置
   CHECK_APP_COLOR: '#f1381a',         // 校验蚂蚁庄园是否打开成功的颜色
   CHECK_FRIENDS_COLOR: '#429beb',     // 校验是否成功进入好友首页的颜色
