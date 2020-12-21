@@ -32,9 +32,7 @@ commonFunctions.registerOnEngineRemoved(function () {
   runningQueueDispatcher.removeRunningTask(true, true,
     () => {
       // 重置自动亮度
-      if (config.auto_set_brightness) {
-        device.setBrightnessMode(1)
-      }
+      config.resetBrightness && config.resetBrightness()
       events.removeAllListeners()
       events.recycle()
       // 保存是否需要重新锁屏
