@@ -12,16 +12,21 @@ if (runningSize > 1) {
   })
 }
 let { config } = require('../config.js')(runtime, this)
+let singletonRequire = require('../lib/SingletonRequirer.js')(runtime, this)
+let commonFunctions = singletonRequire('CommonFunction')
 var window = floaty.rawWindow(
   <canvas id="canvas" layout_weight="1" />
 );
 let img_path = files.cwd() + "/蚂蚁庄园截图.jpg"
 let img_obj = images.read(img_path)
 let showBackImg = true
+let captureNewImg = false
+// 自动设置刘海偏移量
+commonFunctions.autoSetUpBangOffset()
 if (!img_obj) {
   toastLog('图像资源不存在，不设置背景:' + img_path)
 }
-window.setSize(1080, 2160);
+window.setSize(config.device_width || 1080, config.device_height || 2340)
 window.setTouchable(false)
 // 刘海高度偏移量，刘海屏以及挖空屏 悬浮窗无法正常显示，需要施加一个偏移量
 let bangOffset = config.bang_offset
@@ -104,7 +109,7 @@ function exitAndClean () {
 let converted = false
 // 两分钟后自动关闭
 let targetEndTime = new Date().getTime() + 120000
-
+let forCaptureTimestamp = null
 window.canvas.on("draw", function (canvas) {
   try {
     // 清空内容
@@ -113,6 +118,15 @@ window.canvas.on("draw", function (canvas) {
     var height = canvas.getHeight()
     if (!converted) {
       toastLog('画布大小：' + width + ', ' + height)
+    }
+    if (captureNewImg) {
+      if (forCaptureTimestamp === null) {
+        forCaptureTimestamp = new Date().getTime() + 1000
+      } else if (forCaptureTimestamp < new Date().getTime()) {
+        img_obj = captureScreen()
+        captureNewImg = false
+      }
+      return
     }
     // let canvas = new com.stardust.autojs.core.graphics.ScriptCanvas(width, height)
     let Typeface = android.graphics.Typeface
@@ -123,6 +137,7 @@ window.canvas.on("draw", function (canvas) {
     paint.setAntiAlias(true)
     paint.setStrokeJoin(Paint.Join.ROUND)
     paint.setDither(true)
+    paint.setTextSize(20)
     if (img_obj) {
       if (showBackImg) {
         paint.setAlpha(50)
@@ -130,7 +145,8 @@ window.canvas.on("draw", function (canvas) {
         paint.setAlpha(255)
       }
       paint.setARGB(255, 255, 0, 0)
-      drawText('按下音量下键切换是否显示背景，音量上键关闭', { x: 100, y: 180 }, canvas, paint)
+      drawText('单击音量下键切换是否显示背景，单击音量上键关闭', { x: 100, y: 180 }, canvas, paint)
+      drawText('双击音量下键截图当前页面作为背景', { x: 100, y: 205 }, canvas, paint)
     } else {
       paint.setARGB(255, 255, 0, 0)
       paint.setTextSize(25)
@@ -164,7 +180,7 @@ window.canvas.on("draw", function (canvas) {
     let countdown = (targetEndTime - new Date().getTime()) / 1000
     paint.setTextSize(25)
     paint.setARGB(255, 255, 0, 0)
-    drawText('关闭倒计时：' + countdown.toFixed(0) + 's', { x: 100, y: 150 }, canvas, paint)
+    drawText('刘海偏移量：' + bangOffset + ' 关闭倒计时：' + countdown.toFixed(0) + 's', { x: 100, y: 150 }, canvas, paint)
     drawCoordinateAxis(canvas, paint)
     converted = true
 
@@ -174,6 +190,8 @@ window.canvas.on("draw", function (canvas) {
   }
 });
 
+let timeout = null
+let timeoutFuncId = null
 threads.start(function () {
   toastLog('按音量上键关闭')
   events.removeAllKeyDownListeners('volume_down')
@@ -182,7 +200,16 @@ threads.start(function () {
     if (keyCode === 24) {
       exitAndClean()
     } else if (keyCode === 25) {
-      showBackImg = !showBackImg
+      if (timeout != null && timeout > new Date().getTime()) {
+        captureNewImg = true
+        forCaptureTimestamp = null
+        clearTimeout(timeoutFuncId)
+      } else {
+        timeout = new Date().getTime() + 1000
+        timeoutFuncId = setTimeout(function () {
+          showBackImg = !showBackImg
+        }, 1100)
+      }
     }
   })
 })
