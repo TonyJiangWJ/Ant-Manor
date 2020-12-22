@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-12-21 22:13:02
+ * @Last Modified time: 2020-12-22 19:48:59
  * @Description: 
  */
 let currentEngine = engines.myEngine().getSource() + ''
@@ -68,6 +68,9 @@ var default_config = {
   updated_temp_flag_1325: true,
   converted_custom_configs: false,
   thread_name_prefix: 'antmanor_',
+  check_device_posture: false,
+  check_distance: false,
+  posture_threshold_z: 6,
   skip_running_packages: [],
   // 区域信息配置
   CHECK_APP_COLOR: '#f1381a',         // 校验蚂蚁庄园是否打开成功的颜色
@@ -118,7 +121,7 @@ var default_config = {
   // 捡屎
   SHIT_CHECK_REGION: [435, 1925, 40, 40],
   COLLECT_SHIT_CHECK_REGION: [220, 2000, 80, 40],
-  PICK_SHIT_GRAY_COLOR: '#A6A6A6',
+  PICK_SHIT_GRAY_COLOR: '#888888',
   COLLECT_SHIT_GRAY_COLOR: '#838383'
 }
 let custom_config = files.exists(FileUtils.getCurrentWorkPath() + '/extends/CustomConfig.js') ? require('./extends/CustomConfig.js') : null

@@ -2,10 +2,10 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-09-22 19:10:34
+ * @Last Modified time: 2020-12-22 22:35:15
  * @Description: 
  */
-let { config } = require('./config.js')(runtime, this)
+let { config, storage_name } = require('./config.js')(runtime, this)
 let singletonRequire = require('./lib/SingletonRequirer.js')(runtime, this)
 let resourceMonitor = require('./lib/ResourceMonitor.js')(runtime, this)
 let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
@@ -21,7 +21,7 @@ runningQueueDispatcher.addRunningTask()
 let FloatyInstance = singletonRequire('FloatyUtil')
 let automator = singletonRequire('Automator')
 let tryRequestScreenCapture = singletonRequire('TryRequestScreenCapture')
-let callStateListener = config.enable_call_state_control ? singletonRequire('CallStateListener') : { exitIfNotIdle: () => { } }
+let callStateListener = !config.is_pro && config.enable_call_state_control ? singletonRequire('CallStateListener') : { exitIfNotIdle: () => { } }
 let unlocker = require('./lib/Unlock.js')
 let manorRunner = require('./core/AntManorRunner.js')
 
@@ -89,24 +89,9 @@ try {
   exit()
 }
 logInfo('解锁成功')
-let screenPermission = false
-let actionSuccess = commonFunctions.waitFor(function () {
-  if (config.request_capture_permission) {
-    screenPermission = tryRequestScreenCapture()
-  } else {
-    screenPermission = requestScreenCapture(false)
-  }
-}, 15000)
 
-if (!actionSuccess || !screenPermission) {
-  errorInfo('请求截图失败, 设置6秒后重启')
-  runningQueueDispatcher.removeRunningTask()
-  sleep(6000)
-  runningQueueDispatcher.executeTargetScript(FileUtils.getRealMainScriptPath())
-  exit()
-} else {
-  logInfo('请求截屏权限成功')
-}
+commonFunctions.requestScreenCaptureOrRestart()
+commonFunctions.ensureDeviceSizeValid()
 // 初始化悬浮窗
 if (!FloatyInstance.init()) {
   runningQueueDispatcher.removeRunningTask()

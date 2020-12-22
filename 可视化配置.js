@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2020-11-29 11:28:15
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-12-21 20:46:56
+ * @Last Modified time: 2020-12-22 22:35:24
  * @Description: 
  */
 "ui";
@@ -33,7 +33,13 @@ let AesUtil = require('./lib/AesUtil.js')
 let { config, default_config, storage_name } = require('./config.js')(runtime, this)
 let commonFunctions = singletonRequire('CommonFunction')
 config.hasRootPermission = files.exists("/sbin/su") || files.exists("/system/xbin/su") || files.exists("/system/bin/su")
-
+if (config.device_width < 10 || config.device_height < 10) {
+  if (commonFunctions.requestScreenCaptureOrRestart(true)) {
+    commonFunctions.ensureDeviceSizeValid()
+  } else {
+    toastLog('获取截图权限失败，且设备分辨率信息不正确，可能无法正常运行脚本')
+  }
+}
 let local_config_path = files.cwd() + '/local_config.cfg'
 let runtime_store_path = files.cwd() + '/runtime_store.cfg'
 let aesKey = device.getAndroidId()
