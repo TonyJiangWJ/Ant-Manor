@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2020-11-29 13:16:53
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-12-21 22:11:04
+ * @Last Modified time: 2020-12-22 22:33:56
  * @Description: 组件代码，传统方式，方便在手机上进行修改
  */
 
@@ -13,7 +13,8 @@ let mixin_methods = {
       device: {
         width: 1080,
         height: 2340
-      }
+      },
+      is_pro: false
     }
   },
   methods: {
@@ -49,8 +50,7 @@ let mixin_common = {
   mixins: [mixin_methods],
   data: function () {
     return {
-      switchSize: '1.24rem',
-      tipTextSize: '0.7rem'
+      switchSize: '1.24rem'
     }
   },
   methods: {
@@ -62,6 +62,7 @@ let mixin_common = {
         })
         this.device.width = config.device_width
         this.device.height = config.device_height
+        this.is_pro = config.is_pro
       })
     },
     doSaveConfigs: function (deleteFields) {
@@ -409,7 +410,7 @@ Vue.component('region-input-field', function (resolve, reject) {
               return this.value[0] + ',' + this.value[1] + ',' + this.value[2] + ',' + this.value[3]
             }
           } else {
-            return v
+            return this.value
           }
           return ''
         })(),
@@ -655,5 +656,78 @@ Vue.component('installed-package-selector', function (resolve, reject) {
         <van-cell v-if="!onLoading" v-for="package in filteredPackages" :key="package.packageName" :title="package.appName" :label="package.packageName" @click="selectPackage(package)"></van-cell>\
       </van-popup>\
     </div>'
+  })
+})
+
+/**
+ * NumberField
+ * 将值转换为数字类型，vant默认的是字符串类型
+ */
+Vue.component('number-field', resolve => {
+  resolve({
+    mixins: [mixin_methods],
+    props: ['value', 'label', 'labelWidth', 'errorMessage', 'placeholder'],
+    model: {
+      prop: 'value',
+      event: 'change'
+    },
+    data: function () {
+      return {
+        innerValue: (() => {
+          if (this.isNotEmpty(this.value)) {
+            if (typeof v === 'string') {
+              this.$emit('change', parseFloat(this.value))
+            }
+            return parseFloat(this.value)
+          } else {
+            return null
+          }
+        })()
+      }
+    },
+    watch: {
+      innerValue: function (v) {
+        if (this.isNotEmpty(v)) {
+          this.$emit('change', parseFloat(v))
+        } else {
+          this.$emit('change', '')
+        }
+      },
+      value: function (v) {
+        if (this.isNotEmpty(v)) {
+          this.innerValue = parseFloat(v)
+          if (typeof v === 'string') {
+            this.$emit('change', this.innerValue)
+          }
+        } else {
+          this.innerValue = ''
+        }
+      }
+    },
+    template: '<van-field\
+        v-model="innerValue" :label="label" :label-width="labelWidth" type="number" :placeholder="placeholder" input-align="right">\
+        <template #right-icon><slot name="right-icon"></slot></template>\
+      </van-field>'
+  })
+})
+
+/**
+ * TipBlock
+ * 用于展示说明信息
+ */
+Vue.component('tip-block', resolve => {
+  resolve({
+    mixins: [mixin_methods],
+    props: {
+      tipFontSize: {
+        type: String,
+        default: '0.7rem'
+      }
+    },
+    template: '<van-row>\
+      <van-col :span="22" :offset="1">\
+        <span :style="\'color: gray;font-size: \' + tipFontSize"><slot></slot></span>\
+      </van-col>\
+    </van-row>'
   })
 })
