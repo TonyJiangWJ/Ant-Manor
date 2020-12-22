@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2020-11-29 13:17:06
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-12-21 21:54:27
+ * @Last Modified time: 2020-12-22 22:34:03
  * @Description: 
 -->
 <!DOCTYPE html>
@@ -38,7 +38,8 @@
         <advance-configs />
       </van-tab>
     </van-tabs>
-    <van-dialog v-model="showMenuDialog" v-cloak title="菜单" :show-confirm-button="false" :close-on-click-overlay="true" :get-container="getDialogContainer">
+    <van-dialog v-model="showMenuDialog" v-cloak title="菜单" :show-confirm-button="false" :close-on-click-overlay="true"
+      :get-container="getDialogContainer">
       <van-divider :style="{ margin: '0' }"></van-divider>
       <van-row type="flex" justify="center" class="van-cell">
         <van-col @click="resetDefaultConfigs">重置所有配置为默认值
@@ -102,6 +103,12 @@
     let location = window.location.href
     appendScripts(location.substring(0, location.indexOf('/vue_configs/index.html')))
   }
+  /**
+   * 禁用长按菜单，复制等 
+   **/
+  window.addEventListener('contextmenu', function (e) {
+    e.preventDefault()
+  })
 </script>
 
 </html>
