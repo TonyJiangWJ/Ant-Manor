@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-12-22 19:48:59
+ * @Last Modified time: 2020-12-23 22:29:55
  * @Description: 
  */
 let currentEngine = engines.myEngine().getSource() + ''
@@ -71,6 +71,8 @@ var default_config = {
   check_device_posture: false,
   check_distance: false,
   posture_threshold_z: 6,
+  // 锁屏启动时自动设置最低亮度
+  auto_set_brightness: false,
   skip_running_packages: [],
   // 区域信息配置
   CHECK_APP_COLOR: '#f1381a',         // 校验蚂蚁庄园是否打开成功的颜色
