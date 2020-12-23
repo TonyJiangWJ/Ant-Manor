@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2020-11-29 13:16:53
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-12-22 22:33:56
+ * @Last Modified time: 2020-12-23 22:29:23
  * @Description: 组件代码，传统方式，方便在手机上进行修改
  */
 
@@ -49,9 +49,7 @@ let mixin_methods = {
 let mixin_common = {
   mixins: [mixin_methods],
   data: function () {
-    return {
-      switchSize: '1.24rem'
-    }
+    return {}
   },
   methods: {
     loadConfigs: function () {
@@ -729,5 +727,45 @@ Vue.component('tip-block', resolve => {
         <span :style="\'color: gray;font-size: \' + tipFontSize"><slot></slot></span>\
       </van-col>\
     </van-row>'
+  })
+})
+
+/**
+ * SwitchCell
+ * 封装是switch按钮
+ */
+Vue.component('switch-cell', resolve => {
+  resolve({
+    mixins: [mixin_methods],
+    props: {
+      switchSize: {
+        type: String,
+        default: '1.24rem'
+      },
+      value: Boolean,
+      title: String,
+      label: String,
+      titleStyle: String
+    },
+    model: {
+      prop: 'value',
+      event: 'change'
+    },
+    data: function () {
+      return {
+        innerValue: this.value
+      }
+    },
+    watch: {
+      innerValue: function (v) {
+        this.$emit('change', v)
+      },
+      value: function (v) {
+        this.innerValue = v
+      }
+    },
+    template: '<van-cell center :title="title" :label="label" :title-style="titleStyle">\
+      <van-switch v-model="innerValue" :size="switchSize" />\
+    </van-cell>'
   })
 })

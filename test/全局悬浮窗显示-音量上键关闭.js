@@ -21,6 +21,7 @@ let img_path = files.cwd() + "/蚂蚁庄园截图.jpg"
 let img_obj = images.read(img_path)
 let showBackImg = true
 let captureNewImg = false
+commonFunctions.requestScreenCaptureOrRestart(false)
 // 自动设置刘海偏移量
 commonFunctions.autoSetUpBangOffset()
 if (!img_obj) {
