@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2020-11-29 13:16:53
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-12-23 22:29:23
+ * @Last Modified time: 2020-12-23 23:01:10
  * @Description: 组件代码，传统方式，方便在手机上进行修改
  */
 
@@ -291,7 +291,7 @@ Vue.component('swipe-color-input-field', function (resolve, reject) {
 Vue.component('region-slider', function (resolve, reject) {
   resolve({
     mixins: [mixin_methods],
-    props: ['device_height', 'device_width', 'max_height', 'max_width', 'value'],
+    props: ['device_height', 'device_width', 'max_height', 'max_width', 'value', 'positionOnly'],
     model: {
       prop: 'value',
       event: 'region-change'
@@ -306,18 +306,26 @@ Vue.component('region-slider', function (resolve, reject) {
     },
     methods: {
       resolveDetailInfo: function () {
-        if (/^(\d+)\s*,(\d+)\s*,(\d+)\s*,(\d+)\s*$/.test(this.value)) {
-          let match = /^(\d+)\s*,(\d+)\s*,(\d+)\s*,(\d+)\s*$/.exec(this.value)
-          this.x = parseInt(match[1])
-          this.y = parseInt(match[2])
-          this.width = parseInt(match[3])
-          this.height = parseInt(match[4])
+        if (this.positionOnly) {
+          if (/^(\d+)\s*,(\d+)\s*$/.test(this.value)) {
+            let match = /^(\d+)\s*,(\d+)\s*$/.exec(this.value)
+            this.x = parseInt(match[1])
+            this.y = parseInt(match[2])
+          }
+        } else {
+          if (/^(\d+)\s*,(\d+)\s*,(\d+)\s*,(\d+)\s*$/.test(this.value)) {
+            let match = /^(\d+)\s*,(\d+)\s*,(\d+)\s*,(\d+)\s*$/.exec(this.value)
+            this.x = parseInt(match[1])
+            this.y = parseInt(match[2])
+            this.width = parseInt(match[3])
+            this.height = parseInt(match[4])
+          }
         }
       }
     },
     computed: {
       regionText: function () {
-        return this.x + ',' + this.y + ',' + this.width + ',' + this.height
+        return this.x + ',' + this.y + (this.positionOnly ? '' : (',' + this.width + ',' + this.height))
       }
     },
     watch: {
@@ -333,7 +341,7 @@ Vue.component('region-slider', function (resolve, reject) {
     },
     template: '<div style="padding: 1rem 2rem;">\
       <van-row style="margin: 0.5rem 0">\
-        <van-col><span class="simple-span">区域数据: {{x}},{{y}},{{width}},{{height}}</span></van-col>\
+        <van-col><span class="simple-span">区域数据: {{regionText}}</span></van-col>\
       </van-row>\
       <van-row style="margin: 1.5rem 0 2rem 0">\
         <van-col :span="24">\
@@ -353,7 +361,7 @@ Vue.component('region-slider', function (resolve, reject) {
           </van-slider>\
         </van-col>\
       </van-row>\
-      <van-row style="margin: 2rem 0">\
+      <van-row style="margin: 2rem 0" v-if="!positionOnly">\
         <van-col :span="24">\
           <van-slider v-model="width" :min="0" :max="max_width || device_width || device.width" >\
             <template #button>\
@@ -362,7 +370,7 @@ Vue.component('region-slider', function (resolve, reject) {
           </van-slider>\
         </van-col>\
       </van-row>\
-      <van-row style="margin: 2rem 0">\
+      <van-row style="margin: 2rem 0" v-if="!positionOnly">\
         <van-col :span="24">\
           <van-slider v-model="height" :min="0" :max="max_height || device_height || device.height" >\
             <template #button>\
@@ -482,8 +490,13 @@ Vue.component('position-input-field', (resolve) => {
         default: '输入坐标位置x,y'
       },
     },
+    model: {
+      prop: 'value',
+      event: 'change'
+    },
     data: function () {
       return {
+        showRegionSlider: false,
         innerValue: (() => {
           if (this.stringValue) {
             return this.value
@@ -534,11 +547,19 @@ Vue.component('position-input-field', (resolve) => {
         return ''
       }
     },
-    template: '<van-field \
-      :label="label" input-align="right" :error-message="positionErrorMessage" error-message-align="right" :label-width="labelWidth">\
-      <input slot="input" v-model="innerValue" type="text" :placeholder="placeholder" class="van-field__control van-field__control--right" \
-      :style="innerValue" />\
-    </van-field>'
+    template: '<div>\
+      <van-swipe-cell stop-propagation>\
+        <van-field :error-message="positionErrorMessage" error-message-align="right" v-model="innerValue" :label="label"\
+         :label-width="labelWidth" type="text" placeholder="placeholder" input-align="right" />\
+        <template #right>\
+          <van-button square type="primary" text="滑动输入" @click="showRegionSlider=true" />\
+        </template>\
+      </van-swipe-cell>\
+      <van-popup v-model="showRegionSlider" position="bottom" :style="{ height: \'30%\' }" :get-container="getContainer">\
+        <region-slider :device_width="deviceWidth" :device_height="deviceHeight"\
+        :position-only="true" v-model="innerValue"/>\
+      </van-popup>\
+      </div>'
   })
 })
 
