@@ -369,8 +369,8 @@ function AntManorRunner () {
     let punchedLeft = this.checkThiefLeft()
     let punchedRight = this.checkThiefRight()
     if (punchedLeft || punchedRight) {
-      // 揍过�直接设置300
-      _commonFunctions.updateSleepTime(300)
+      // 揍过鸡
+      _commonFunctions.setPunched()
     }
 
     sleep(1000)
