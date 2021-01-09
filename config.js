@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-12-23 22:29:55
+ * @Last Modified time: 2021-01-09 14:24:27
  * @Description: 
  */
 let currentEngine = engines.myEngine().getSource() + ''
@@ -49,6 +49,7 @@ var default_config = {
   // 单脚本模式 是否只运行一个脚本 不会同时使用其他的 开启单脚本模式 会取消任务队列的功能。
   // 比如同时使用其他脚本 则保持默认 false 否则设置为true 无视其他运行中的脚本
   single_script: false,
+  auto_restart_when_crashed: true,
   // 延迟启动时延 5秒 悬浮窗中进行的倒计时时间
   delayStartTime: 5,
   // 是否是AutoJS Pro  需要屏蔽部分功能，暂时无法实现：生命周期监听等 包括通话监听
@@ -68,6 +69,7 @@ var default_config = {
   updated_temp_flag_1325: true,
   converted_custom_configs: false,
   thread_name_prefix: 'antmanor_',
+  package_name: 'com.eg.android.AlipayGphone',
   check_device_posture: false,
   check_distance: false,
   posture_threshold_z: 6,

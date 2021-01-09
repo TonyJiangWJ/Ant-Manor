@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-12-22 22:35:15
+ * @Last Modified time: 2021-01-09 14:02:52
  * @Description: 
  */
 let { config, storage_name } = require('./config.js')(runtime, this)
@@ -20,7 +20,6 @@ logInfo('======加入任务队列，并关闭重复运行的脚本=======')
 runningQueueDispatcher.addRunningTask()
 let FloatyInstance = singletonRequire('FloatyUtil')
 let automator = singletonRequire('Automator')
-let tryRequestScreenCapture = singletonRequire('TryRequestScreenCapture')
 let callStateListener = !config.is_pro && config.enable_call_state_control ? singletonRequire('CallStateListener') : { exitIfNotIdle: () => { } }
 let unlocker = require('./lib/Unlock.js')
 let manorRunner = require('./core/AntManorRunner.js')
@@ -28,18 +27,20 @@ let manorRunner = require('./core/AntManorRunner.js')
 callStateListener.exitIfNotIdle()
 // 注册自动移除运行中任务
 commonFunctions.registerOnEngineRemoved(function () {
+  // 重置自动亮度
+  config.resetBrightness && config.resetBrightness()
+  events.removeAllListeners()
+  events.recycle()
+  flushAllLogs()
+  // 针对免费版内存主动释放，Pro版不需要
+  !config.is_pro && console.clear()
   // 移除运行中任务
   runningQueueDispatcher.removeRunningTask(true, true,
+    // 执行一些必须在当前脚本加入过队列后才能执行的代码
     () => {
-      // 重置自动亮度
-      config.resetBrightness && config.resetBrightness()
-      events.removeAllListeners()
-      events.recycle()
       // 保存是否需要重新锁屏
       unlocker.saveNeedRelock()
-      flushAllLogs()
       config.isRunning = false
-      console.clear()
     }
   )
 }, 'main')
@@ -105,16 +106,16 @@ commonFunctions.autoSetUpBangOffset()
 /************************
  * 主程序
  ***********************/
-function mainExec() {
+function mainExec () {
   commonFunctions.showDialogAndWait(true)
   commonFunctions.listenDelayStart()
   manorRunner.start()
-} 
+}
 
 if (config.develop_mode) {
   mainExec()
 } else {
- 
+
   try {
     mainExec()
   } catch (e) {
