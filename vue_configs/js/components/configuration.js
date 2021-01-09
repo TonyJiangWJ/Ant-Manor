@@ -222,6 +222,7 @@ Vue.component('advance-configs', function (resolve, reject) {
         newSkipRunningAppName: '',
         configs: {
           single_script: false,
+          auto_restart_when_crashed: false,
           skip_running_packages: [{ packageName: 'com.tony.test', appName: 'test' }, { packageName: 'com.tony.test2', appName: 'test2' }]
         },
         validations: {
@@ -296,6 +297,9 @@ Vue.component('advance-configs', function (resolve, reject) {
       <van-cell-group>\
         <tip-block>当需要使用多个脚本时不要勾选（如同时使用我写的蚂蚁森林脚本），避免抢占前台</tip-block>\
         <switch-cell title="是否单脚本运行" v-model="configs.single_script" />\
+        <tip-block>AutoJS有时候会莫名其妙的崩溃，但是授权了自启动权限之后又会自动启动。开启该选项之后会创建一个广播事件的定时任务，\
+          当脚本执行过程中AutoJS崩溃自启，将重新开始执行脚本。如果脚本执行完毕，则不会触发执行</tip-block>\
+        <switch-cell title="AutoJS崩溃自启后重启脚本" v-model="configs.auto_restart_when_crashed" />\
       </van-cell-group>\
       <van-divider content-position="left">\
         前台应用白名单设置\
