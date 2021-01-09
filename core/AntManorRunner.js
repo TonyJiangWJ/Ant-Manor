@@ -32,15 +32,15 @@ function AntManorRunner () {
   }
 
   this.launchApp = function () {
-    app.launchPackage('com.eg.android.AlipayGphone')
-    if (config.is_alipay_locked) {
-      alipayUnlocker.unlockAlipay()
-    }
     app.startActivity({
       action: 'VIEW',
       data: 'alipays://platformapi/startapp?appId=66666674',
       packageName: 'com.eg.android.AlipayGphone'
     })
+    if (config.is_alipay_locked) {
+      sleep(1000)
+      alipayUnlocker.unlockAlipay()
+    }
     sleep(1000)
     this.waitForOwn()
   }
@@ -341,14 +341,26 @@ function AntManorRunner () {
       let restTime = -1
       if (hourMinutes.test(result)) {
         let regexResult = hourMinutes.exec(result)
-        restTime = parseInt(regexResult[1]) * 60 + parseInt(regexResult[2])
+        restTime = this.resolveOverflowNumber(regexResult[1]) * 60 + this.resolveOverflowNumber(regexResult[2])
       } else if (minuteSeconds.test(result)) {
-        restTime = parseInt(regexResult[1])
+        restTime = this.resolveOverflowNumber(regexResult[1])
       }
       debugInfo('计算得到剩余时间：' + restTime + '分')
       return restTime
     }
     return -1
+  }
+
+  /**
+   * 可能存在识别结果分成两列 导致3小时55分变成 3小时55 + 5分 
+   * 最终结果变成 3小时555分，此方法截取过长的 把555变回55
+   * @param {string} number 
+   */
+  this.resolveOverflowNumber = function (number) {
+    if (number.length > 2) {
+      number = number.substring(0, 2)
+    }
+    return parseInt(number)
   }
 
   this.setTimeoutExit = function () {
@@ -381,7 +393,7 @@ function AntManorRunner () {
       this.checkAndPickShit()
     }
     sleep(2000)
-    _commonFunctions.killCurrentApp()
+    _commonFunctions.minimize()
     resourceMonitor.releaseAll()
   }
 
