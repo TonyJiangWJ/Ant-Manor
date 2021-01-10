@@ -49,13 +49,11 @@ commonFunctions.registerOnEngineRemoved(function () {
  ***********************/
 logInfo('======校验无障碍功能======')
 // 检查手机是否开启无障碍服务
-if (!commonFunctions.checkAccessibilityService()) {
-  try {
-    auto.waitFor()
-  } catch (e) {
-    warnInfo('auto.waitFor()不可用')
-    auto()
-  }
+// 当无障碍经常莫名消失时  可以传递true 强制开启无障碍
+// if (!commonFunctions.checkAccessibilityService(true)) {
+if (!commonFunctions.ensureAccessibilityEnabled()) {
+  errorInfo('获取无障碍权限失败')
+  exit()
 }
 
 logInfo('---前置校验完成;启动系统--->>>>')
