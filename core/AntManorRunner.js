@@ -1,6 +1,3 @@
-importClass(android.content.Context)
-importClass(android.provider.Settings)
-
 
 let { config } = require('../config.js')(runtime, this)
 let singletonRequire = require('../lib/SingletonRequirer.js')(runtime, this)
@@ -10,7 +7,6 @@ let _commonFunctions = singletonRequire('CommonFunction')
 let alipayUnlocker = singletonRequire('AlipayUnlocker')
 let { logInfo: _logInfo, errorInfo: _errorInfo, warnInfo: _warnInfo, debugInfo: _debugInfo, infoLog: _infoLog } = singletonRequire('LogUtils')
 let _FloatyInstance = singletonRequire('FloatyUtil')
-let FileUtils = singletonRequire('FileUtils')
 let BaiduOcrUtil = require('../lib/BaiduOcrUtil.js')
 
 function getRegionCenter (region) {
@@ -336,14 +332,14 @@ function AntManorRunner () {
       debugForDev(['image base64 [data:image/png;base64,{}]', base64Str])
       let result = BaiduOcrUtil.recognizeGeneralText(base64Str)
       let hourMinutes = /(\d+)小时(\d+)分/
-      let minuteSeconds = /(\d+)分(\d+)秒/
+      let minuteSeconds = /(\d+)分((\d+)秒)?/
       debugInfo(['识别倒计时时间文本为：{}', JSON.stringify(result)])
       let restTime = -1
       if (hourMinutes.test(result)) {
         let regexResult = hourMinutes.exec(result)
         restTime = this.resolveOverflowNumber(regexResult[1]) * 60 + this.resolveOverflowNumber(regexResult[2])
       } else if (minuteSeconds.test(result)) {
-        restTime = this.resolveOverflowNumber(regexResult[1])
+        restTime = this.resolveOverflowNumber(minuteSeconds.exec(result)[1])
       }
       debugInfo('计算得到剩余时间：' + restTime + '分')
       return restTime
