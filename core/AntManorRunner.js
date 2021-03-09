@@ -59,6 +59,12 @@ function AntManorRunner () {
   this.killAndRestart = function () {
     _commonFunctions.killCurrentApp()
     _commonFunctions.setUpAutoStart(1)
+    if (config.auto_lock === true && unlocker.needRelock() === true) {
+      sleep(1000)
+      debugInfo('重新锁定屏幕')
+      automator.lockScreen()
+      unlocker.saveNeedRelock(true)
+    }
     _runningQueueDispatcher.removeRunningTask()
     exit()
   }

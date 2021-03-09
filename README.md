@@ -3,8 +3,7 @@
 ## 其他脚本
 
 - [蚂蚁森林脚本传送门](https://github.com/TonyJiangWJ/Ant-Forest)
-- [领京豆脚本传送门](https://github.com/TonyJiangWJ/JingDongBeans)
-- [支付宝会员积分传送门](https://github.com/TonyJiangWJ/Alipay-Credits)
+- [聚合签到-签到薅羊毛](https://github.com/TonyJiangWJ/Unify-Sign)
 - 拆分出来了基础项目，用于快速开发AutoJS脚本[AutoScriptBase](https://github.com/TonyJiangWJ/AutoScriptBase)
 
 ## 基于AutoJS实现的自动喂养脚本
@@ -23,19 +22,19 @@
 - 下载安装 [AutoJs 4.1.1 alpha2](http://47.110.40.234/autojs/autojs-4.1.1-alpha2.apk) 之后把整个脚本项目放进 **"/sdcard/脚本/"** 文件夹下面。打开软件后下拉刷新，然后运行项目或者 main 即可。
 - 给与软件必要权限 `后台弹出界面`、`显示悬浮窗`、`自启动`，并将软件保持后台运行
 - 定时启动脚本，点击 `main.js` 的菜单，选择 `更多` `定时任务` 即可配置定时启动
-- 不同设备分辨率不同需要自行修改相应配置，在 `extends` 下新建文件 `CustomConfig.js` ，内容参考 `CustomConfig-demo.js` 具体参考文件内的注释说明。demo配置中默认支持分辨率为2160*1080
-- 查看具体配置信息可以截图一张自己蚂蚁庄园的图片，放在test目录下，命名为 `蚂蚁庄园截图.jpg` 然后运行 `小鸡界面配置可视化.js` 生成的图片中文字可能看不清，但是可以参考 `CustomConfig-demo.js` 中的注释
-- 或者直接运行 `test/全局悬浮窗显示-音量上键关闭.js` 来查看具体位置，修改 `CustomConfig.js` 之后会实时显示变化，方便微调
-  ![具体配置区域-示例](./test/蚂蚁庄园区域示例.jpg)
+- **由于每个人的机型不同，默认配置无法正常使用，请务必自己重新配置一遍**
+- 运行 `可视化配置.js` 切换到校验区域配置，调整相应配置项 可以实时查看区域信息，也可以截图蚂蚁庄园图片（命名为蚂蚁庄园截图.jpg替换到test目录下即可）作为背景图方便实时调整，或者隐藏背景图到蚂蚁庄园首页查看具体位置信息。颜色值基本不需要修改
+- [通过ADB授权脚本自动获取无障碍权限](https://github.com/TonyJiangWJ/AutoScriptBase/blob/master/resources/doc/ADB%E6%8E%88%E6%9D%83%E8%84%9A%E6%9C%AC%E8%87%AA%E5%8A%A8%E5%BC%80%E5%90%AF%E6%97%A0%E9%9A%9C%E7%A2%8D%E6%9D%83%E9%99%90.md)
+
+### 识别区域配置参考
+
+- ![配置界面](https://user-images.githubusercontent.com/11325805/110083614-e5121c80-7dc9-11eb-817d-183cea0f6404.jpg)
+- ![捡屎配置](https://user-images.githubusercontent.com/11325805/110083641-eb07fd80-7dc9-11eb-8e79-86f81dcdcd51.jpg)
 
 ## 配置
 
 - 配置导出导入功能，点击右上角菜单即可导出当前配置到local_config.cfg中，默认已加密加密密码为通过以下方法获取`device.getAndriodId()` 如果需要在免费版和付费版AutoJS之间同步 需要自行获取该值并按提示输入密码
 - 运行时数据导出导入功能同上所述
-
-## 自定义配置
-
-- 运行 `可视化配置.js` 切换到校验区域配置，调整相应配置项 可以实时查看区域信息，也可以截图蚂蚁庄园图片（命名为蚂蚁庄园截图.jpg替换到test目录下即可）作为背景图方便实时调整，或者隐藏背景图到蚂蚁庄园首页查看具体位置信息。颜色值基本不需要修改
 
 ## 添加解锁设备
 
