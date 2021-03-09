@@ -76,6 +76,8 @@ var default_config = {
   // 锁屏启动时自动设置最低亮度
   auto_set_brightness: false,
   skip_running_packages: [],
+  warn_skipped_ignore_package: false,
+  warn_skipped_too_much: false,
   // 区域信息配置
   CHECK_APP_COLOR: '#f1381a',         // 校验蚂蚁庄园是否打开成功的颜色
   CHECK_FRIENDS_COLOR: '#429beb',     // 校验是否成功进入好友首页的颜色

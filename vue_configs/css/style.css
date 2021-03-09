@@ -1,5 +1,5 @@
 [v-cloak] {
-    display: none;
+  display: none;
 }
 .custom-slide-button {
   min-width: 26px;
@@ -16,6 +16,12 @@
   font-weight: normal;
   font-size: 14px;
   line-height: 16px;
+}
+.wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 }
 /* 禁用长按菜单 复制等 */
 * {
