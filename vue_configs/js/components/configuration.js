@@ -53,6 +53,8 @@ Vue.component('sample-configs', function (resolve, reject) {
           // 倒计时结束 等待的窗口时间
           windowTime: 5,
           recheckTime: 5,
+          feed_cycle_time: 300,
+          speeded_feed_cycle_time: 240
         },
         device: {
           pos_x: 0,
@@ -167,6 +169,14 @@ Vue.component('sample-configs', function (resolve, reject) {
         </number-field>\
         <tip-block>循环检测等待时间是驱赶野鸡的轮询间隔，不建议设置太低</tip-block>\
         <number-field v-model="configs.recheckTime" label="循环检测等待时间" label-width="10em" placeholder="请输入循环检测等待时间" >\
+          <template #right-icon><span>分</span></template>\
+        </number-field>\
+        <tip-block>以下两项是用于配置一次喂食后饲料持续时间的配置，默认是300和240分；如果需要请别的小鸡做客吃饭需要将对应时间改为实际时长；当前脚本无法自动判断是否有邀请的小鸡，\
+          需要自己配置区域颜色等配置（且只针对一种模式，所以如果小鸡经常被叫回去的话还是不要邀请了）</tip-block>\
+        <number-field v-model="configs.feed_cycle_time" label="饲料食用周期时长" label-width="10em" placeholder="请输入饲料食用周期时长" >\
+          <template #right-icon><span>分</span></template>\
+        </number-field>\
+        <number-field v-model="configs.speeded_feed_cycle_time" label="使用加速卡后的食用时长" label-width="10em" placeholder="请输入使用加速卡后的食用时长" >\
           <template #right-icon><span>分</span></template>\
         </number-field>\
         <number-field v-model="configs.starBallScore" label="星星球目标分数" label-width="10em" placeholder="请输入星星球目标分数" />\

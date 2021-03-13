@@ -248,7 +248,7 @@ function AntManorRunner () {
           this.useSpeedCard()
         }
       }
-      if (config.useSpeedCard && this.checkSpeedSuccess()) {
+      if (this.checkSpeedSuccess()) {
         _commonFunctions.setSpeeded()
       } else {
         _commonFunctions.setSpeedFail()
@@ -279,10 +279,11 @@ function AntManorRunner () {
 
   this.checkSpeedSuccess = function () {
     sleep(1000)
+    let useSpeedCard = config.useSpeedCard
     let img = null
     let checkSpeedup = false
     // 校验三次
-    let checkCount = 3
+    let checkCount = useSpeedCard ? 3 : 1
     do {
       // 延迟一秒半
       sleep(1500)
@@ -293,11 +294,11 @@ function AntManorRunner () {
       })
     } while (!checkSpeedup && --checkCount > 0)
     if (checkSpeedup) {
-      this.setFloatyInfo(checkSpeedup, "加速卡使用成功")
+      this.setFloatyInfo(checkSpeedup, useSpeedCard ? "加速卡使用成功" : "检测到已使用加速卡")
       return true
     } else {
       this.setFloatyTextColor('#ff0000')
-      this.setFloatyInfo({ x: config.SPEED_CHECK_REGION[0], y: config.SPEED_CHECK_REGION[1] }, "加速卡使用失败")
+      this.setFloatyInfo({ x: config.SPEED_CHECK_REGION[0], y: config.SPEED_CHECK_REGION[1] }, useSpeedCard ? "加速卡使用失败" : "未使用加速卡")
       return false
     }
   }
