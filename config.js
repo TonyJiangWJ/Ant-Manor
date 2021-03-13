@@ -78,6 +78,8 @@ var default_config = {
   skip_running_packages: [],
   warn_skipped_ignore_package: false,
   warn_skipped_too_much: false,
+  feed_cycle_time: 300,
+  speeded_feed_cycle_time: 240,
   // 区域信息配置
   CHECK_APP_COLOR: '#f1381a',         // 校验蚂蚁庄园是否打开成功的颜色
   CHECK_FRIENDS_COLOR: '#429beb',     // 校验是否成功进入好友首页的颜色
