@@ -28,8 +28,8 @@
 
 ### 识别区域配置参考
 
-- ![配置界面](https://user-images.githubusercontent.com/11325805/110083614-e5121c80-7dc9-11eb-817d-183cea0f6404.jpg)
-- ![捡屎配置](https://user-images.githubusercontent.com/11325805/110083641-eb07fd80-7dc9-11eb-8e79-86f81dcdcd51.jpg)
+- ![配置界面](https://user-images.githubusercontent.com/11325805/114294987-db6c8a80-9ad4-11eb-9a7d-b12e28d53f45.png)
+- ![捡屎配置](https://user-images.githubusercontent.com/11325805/114295015-09ea6580-9ad5-11eb-9705-1674e214fa8f.png)
 
 ## 配置
 
