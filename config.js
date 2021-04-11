@@ -7,7 +7,7 @@
  */
 let currentEngine = engines.myEngine().getSource() + ''
 let isRunningMode = currentEngine.endsWith('/config.js') && typeof module === 'undefined'
-let is_pro = Object.prototype.toString.call(com.stardust.autojs.core.timing.TimedTask.Companion).match(/Java(Class|Object)/)
+let is_pro = !!Object.prototype.toString.call(com.stardust.autojs.core.timing.TimedTask.Companion).match(/Java(Class|Object)/)
 let singletonRequire = require('./lib/SingletonRequirer.js')(runtime, this)
 let FileUtils = singletonRequire('FileUtils')
 // 执行配置
@@ -73,43 +73,48 @@ var default_config = {
   check_device_posture: false,
   check_distance: false,
   posture_threshold_z: 6,
+  // 电量保护，低于该值延迟60分钟执行脚本
+  battery_keep_threshold: 20,
   // 锁屏启动时自动设置最低亮度
   auto_set_brightness: false,
   skip_running_packages: [],
   warn_skipped_ignore_package: false,
   warn_skipped_too_much: false,
+  auto_check_update: false,
+  // github release url 用于检测更新状态
+  github_latest_url: 'https://api.github.com/repos/TonyJiangWJ/Ant-Manor/releases/latest',
   feed_cycle_time: 300,
   speeded_feed_cycle_time: 240,
   // 区域信息配置
   CHECK_APP_COLOR: '#f1381a',         // 校验蚂蚁庄园是否打开成功的颜色
-  CHECK_FRIENDS_COLOR: '#429beb',     // 校验是否成功进入好友首页的颜色
-  THIEF_COLOR: '#000000',             // 校验小偷鸡眼罩的颜色 黑色
+  CHECK_FRIENDS_COLOR: '#fad082',     // 校验是否成功进入好友首页的颜色
+  THIEF_COLOR: '#524c68',             // 校验小偷鸡眼罩的颜色 黑色
   PUNCH_COLOR: '#f35458',             // 校验拳头的颜色
   OUT_COLOR: '#c37a3e',               // 校验小鸡是否出门，牌子的颜色
   OUT_IN_FRIENDS_COLOR: '#e9ca02',    // 校验自家小鸡外出所在的颜色，ID的颜色 黄色
   DISMISS_COLOR: '#f9622f',           // 校验关闭按钮的颜色
-  FOOD_COLOR: '#ffcf00',              // 校验正在进食盆里饲料的颜色
-  SPEED_CHECK_COLOR: '#ffd000',       // 校验是否成功使用加速卡，小鸡右手上饲料的颜色
+  FOOD_COLOR: '#ffda33',              // 校验正在进食盆里饲料的颜色
+  SPEED_CHECK_COLOR: '#f9d558',       // 校验是否成功使用加速卡，小鸡右手上饲料的颜色
   reco: [200, 1100, 750, 600],        // 星星球的判断区域
 
   OFFSET: 0,  // 默认配置为支持2160*1080分辨率，其他异形屏一般可以尝试仅仅修改该偏移量, 如果不行就修改具体区域的配置吧
-  CHECK_APP_REGION: [310, 300, 20, 20],             // 校验是否成功打开蚂蚁庄园的区域，左上角❤️的区域
-  CHECK_FRIENDS_REGION: [120, 500, 10, 10],         // 校验是否在好友首页的区域  左上角 发消息蓝色的区域
-  OUT_REGION: [530, 1450, 25, 25],                  // 校验小鸡是否出门，牌子的区域
+  CHECK_APP_REGION: [352, 300, 20, 20],             // 校验是否成功打开蚂蚁庄园的区域，左上角❤️的区域
+  CHECK_FRIENDS_REGION: [120, 472, 10, 10],         // 校验是否在好友首页的区域  左上角 发消息蓝色的区域
+  OUT_REGION: [517, 1450, 25, 25],                  // 校验小鸡是否出门，牌子的区域
   OUT_IN_FRIENDS_REGION_RIGHT: [800, 1405, 50, 50], // 校验小鸡在好友家，左边的区域
-  OUT_IN_FRIENDS_REGION_LEFT: [340, 1405, 50, 50],  // 校验小鸡在好友家，右边的区域
-  LEFT_THIEF_REGION: [385, 1550, 50, 50],           // 校验来自家偷吃的小鸡，左边的区域
-  LEFT_PUNCH_REGION: [500, 1375, 100, 100],         // 校验左边拳头的区域
-  RIGHT_THIEF_REGION: [825, 1550, 50, 50],          // 校验来自家偷吃的小鸡，右边的区域
-  RIGHT_PUNCH_REGION: [980, 1375, 100, 100],        // 校验右边拳头的区域
+  OUT_IN_FRIENDS_REGION_LEFT: [360, 1302, 50, 50],  // 校验小鸡在好友家，右边的区域
+  LEFT_THIEF_REGION: [385, 1475, 50, 50],           // 校验来自家偷吃的小鸡，左边的区域
+  LEFT_PUNCH_REGION: [500, 1300, 100, 100],         // 校验左边拳头的区域
+  RIGHT_THIEF_REGION: [832, 1475, 50, 50],          // 校验来自家偷吃的小鸡，右边的区域
+  RIGHT_PUNCH_REGION: [980, 1300, 100, 100],        // 校验右边拳头的区域
   DISMISS_REGION: [450, 2000, 50, 100],              // 校验关闭按钮的区域
-  FOOD_REGION: [600, 1575, 10, 10],                 // 校验食盆的区域，主要校验是否存在饲料
-  SPEED_CHECK_REGION: [500, 1575, 10, 10],          // 校验是否成功使用加速卡的区域，小鸡右手拿饲料的位置
-  COUNT_DOWN_REGION: [810, 1600, 160, 55],          // 倒计时区域
+  FOOD_REGION: [845, 1630, 10, 10],                 // 校验食盆的区域，主要校验是否存在饲料
+  SPEED_CHECK_REGION: [480, 1420, 32, 43],          // 校验是否成功使用加速卡的区域，小鸡右手拿饲料的位置
+  COUNT_DOWN_REGION: [780, 1540, 160, 60],          // 倒计时区域
   // 喂饲料按钮的位置
   FEED_POSITION: {
     x: 930,
-    y: 2100
+    y: 2110
   },
   // 道具包按钮的位置
   TOOL_POSITION: {
@@ -127,10 +132,10 @@ var default_config = {
     y: 1420
   },
   // 捡屎
-  SHIT_CHECK_REGION: [435, 1925, 40, 40],
-  COLLECT_SHIT_CHECK_REGION: [220, 2000, 80, 40],
-  PICK_SHIT_GRAY_COLOR: '#888888',
-  COLLECT_SHIT_GRAY_COLOR: '#838383'
+  SHIT_CHECK_REGION: [660, 1875, 30, 20],
+  COLLECT_SHIT_CHECK_REGION: [220, 1210, 80, 40],
+  PICK_SHIT_GRAY_COLOR: '#9a9a9a',
+  COLLECT_SHIT_GRAY_COLOR: '#535353'
 }
 let custom_config = files.exists(FileUtils.getCurrentWorkPath() + '/extends/CustomConfig.js') ? require('./extends/CustomConfig.js') : null
 // 配置缓存的key值

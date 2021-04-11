@@ -27,8 +27,10 @@ commonFunctions.autoSetUpBangOffset()
 if (!img_obj) {
   toastLog('图像资源不存在，不设置背景:' + img_path)
 }
-window.setSize(config.device_width || 1080, config.device_height || 2340)
-window.setTouchable(false)
+ui.run(function () {
+  window.setSize(config.device_width || 1080, config.device_height || 2340)
+  window.setTouchable(false)
+})
 // 刘海高度偏移量，刘海屏以及挖空屏 悬浮窗无法正常显示，需要施加一个偏移量
 let bangOffset = config.bang_offset
 

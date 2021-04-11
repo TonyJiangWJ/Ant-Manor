@@ -232,6 +232,8 @@ function AntManorRunner () {
   this.checkAndFeed = function () {
     sleep(500)
     let img = _commonFunctions.checkCaptureScreenPermission()
+    // 记录是否执行了喂食操作
+    let feed = false
     if (img) {
       let findColor = images.findColor(img, config.FOOD_COLOR, {
         region: config.FOOD_REGION,
@@ -243,7 +245,7 @@ function AntManorRunner () {
         this.setFloatyTextColor('#ff0000')
         this.setFloatyInfo({ x: config.FOOD_REGION[0], y: config.FOOD_REGION[1] }, '小鸡没饭吃呢')
         click(config.FEED_POSITION.x, config.FEED_POSITION.y)
-        _commonFunctions.updateSleepTime(20, true)
+        feed = true
         if (config.useSpeedCard) {
           this.useSpeedCard()
         }
@@ -255,6 +257,10 @@ function AntManorRunner () {
       }
       sleep(1500)
       let ocrRestTime = this.recognizeCountdownByOcr()
+      if (feed) {
+        // 刚刚喂食，且成功识别OCR，将当前时间设置为执行倒计时
+        _commonFunctions.updateSleepTime(20, true, ocrRestTime)
+      }
       let sleepTime = _commonFunctions.getSleepTimeByOcr(ocrRestTime)
       this.setFloatyInfo(null, sleepTime + '分钟后来检查状况')
       _commonFunctions.setUpAutoStart(sleepTime)
@@ -338,7 +344,7 @@ function AntManorRunner () {
       let base64Str = images.toBase64(img)
       debugForDev(['image base64 [data:image/png;base64,{}]', base64Str])
       let result = BaiduOcrUtil.recognizeGeneralText(base64Str)
-      let hourMinutes = /(\d+)小时(\d+)分/
+      let hourMinutes = /(\d+)小时((\d+)分)?/
       let minuteSeconds = /(\d+)分((\d+)秒)?/
       debugInfo(['识别倒计时时间文本为：{}', JSON.stringify(result)])
       let restTime = -1
