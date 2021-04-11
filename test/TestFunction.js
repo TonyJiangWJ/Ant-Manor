@@ -5,7 +5,7 @@
  * @Last Modified time: 2019-11-30 23:52:22
  * @Description: 
  */
-let singletonRequire = require('../SingletonRequirer.js')(runtime, this)
+let singletonRequire = require('../lib/SingletonRequirer.js')(runtime, this)
 let {
   debugInfo, debugForDev, logInfo, infoLog, warnInfo, errorInfo
 } = singletonRequire('LogUtils')
@@ -21,4 +21,6 @@ function checkRuntimeStatus() {
 }
 
 // checkRuntimeStatus()
-commonFunctions.updateSleepTime(5, true)
+let sleepStorage = commonFunctions.getTodaysRuntimeStorage('sleepTime')
+sleepStorage.runningCycleTime = -1
+commonFunctions.updateRuntimeStorage('sleepTime', sleepStorage)

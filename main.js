@@ -11,7 +11,7 @@ let resourceMonitor = require('./lib/ResourceMonitor.js')(runtime, this)
 let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
 let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile, flushAllLogs } = singletonRequire('LogUtils')
 let commonFunctions = singletonRequire('CommonFunction')
-
+commonFunctions.delayIfBatteryLow()
 if (config.single_script) {
   logInfo('======单脚本运行直接清空任务队列=======')
   runningQueueDispatcher.clearAll()
@@ -33,7 +33,7 @@ commonFunctions.registerOnEngineRemoved(function () {
   events.recycle()
   flushAllLogs()
   // 针对免费版内存主动释放，Pro版不需要
-  !config.is_pro && console.clear()
+  commonFunctions.reduceConsoleLogs()
   // 移除运行中任务
   runningQueueDispatcher.removeRunningTask(true, true,
     // 执行一些必须在当前脚本加入过队列后才能执行的代码

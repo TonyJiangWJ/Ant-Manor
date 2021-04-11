@@ -25,6 +25,7 @@ Vue.component('sample-configs', function (resolve, reject) {
           save_log_file: false,
           back_size: '',
           async_save_log_file: false,
+          console_log_maximum_size: 1500,
           delayStartTime: 5,
           request_capture_permission: true,
           capture_permission_button: 'START NOW|立即开始|允许',
@@ -34,6 +35,7 @@ Vue.component('sample-configs', function (resolve, reject) {
           check_device_posture: false,
           check_distance: false,
           posture_threshold_z: 6,
+          battery_keep_threshold: 20,
           auto_lock: false,
           hasRootPermission: false,
           lock_x: 150,
@@ -46,6 +48,8 @@ Vue.component('sample-configs', function (resolve, reject) {
           develop_mode: false,
           develop_saving_mode: false,
           enable_visual_helper: false,
+          auto_check_update: true,
+          is_pro: false,
           // 是否使用加速卡 默认为true
           useSpeedCard: true,
           pick_shit: true,
@@ -144,6 +148,8 @@ Vue.component('sample-configs', function (resolve, reject) {
           <number-field v-model="configs.lock_x" label="横坐标位置" placeholder="请输入横坐标位置" />\
           <number-field v-model="configs.lock_y" label="纵坐标位置" placeholder="请输入纵坐标位置" />\
         </template>\
+        <tip-block>设置脚本运行的最低电量(充电时不受限制)，防止早晨低电量持续运行导致自动关机，发生意外情况，比如闹钟歇菜导致上班迟到等情况。如不需要设置为0即可</tip-block>\
+        <number-field v-model="configs.battery_keep_threshold" label="脚本可运行的最低电量" label-width="12em" placeholder="请输入最低电量" />\
       </van-cell-group>\
       <van-divider content-position="left">悬浮窗配置</van-divider>\
       <van-cell-group>\
@@ -206,6 +212,7 @@ Vue.component('sample-configs', function (resolve, reject) {
         </number-field>\
         <switch-cell title="是否异步保存日志到文件" v-model="configs.async_save_log_file" />\
       </van-cell-group>\
+      <switch-cell title="是否自动检测更新" v-model="configs.auto_check_update" />\
       <van-divider content-position="left">开发模式配置</van-divider>\
       <van-cell-group>\
         <switch-cell title="是否启用开发模式" v-model="configs.develop_mode" />\
