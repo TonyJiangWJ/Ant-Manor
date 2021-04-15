@@ -246,6 +246,8 @@ function AntManorRunner () {
         this.setFloatyInfo({ x: config.FOOD_REGION[0], y: config.FOOD_REGION[1] }, '小鸡没饭吃呢')
         click(config.FEED_POSITION.x, config.FEED_POSITION.y)
         feed = true
+        // 避免加速卡使用失败导致时间计算不正确的问题
+        _commonFunctions.updateSleepTime(20, true)
         if (config.useSpeedCard) {
           this.useSpeedCard()
         }
@@ -259,7 +261,13 @@ function AntManorRunner () {
       let ocrRestTime = this.recognizeCountdownByOcr()
       if (feed) {
         // 刚刚喂食，且成功识别OCR，将当前时间设置为执行倒计时
-        _commonFunctions.updateSleepTime(20, true, ocrRestTime)
+        _commonFunctions.updateSleepTime(20, false, ocrRestTime)
+      } else if (ocrRestTime > -1) {
+        // 大概情况就是上一次执行喂食后加速卡用完了 导致OCR识别失败 以上机制懒得修改了 先这么适配
+        let feedPassedTime = _commonFunctions.getFeedPassedTime()
+        if (feedPassedTime < 20 && _commonFunctions.getSleepStorage().runningCycleTime < 0) {
+          _commonFunctions.updateSleepTime(20 - feedPassedTime, false, ocrRestTime + feedPassedTime)
+        }
       }
       let sleepTime = _commonFunctions.getSleepTimeByOcr(ocrRestTime)
       this.setFloatyInfo(null, sleepTime + '分钟后来检查状况')
