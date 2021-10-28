@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2020-11-29 13:17:06
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-12-23 23:04:37
+ * @Last Modified time: 2020-12-29 23:44:48
  * @Description: 
 -->
 <!DOCTYPE html>
@@ -23,24 +23,23 @@
 <body>
   <noscript><strong>We're sorry but this doesn't work properly without JavaScript enabled. Please enable
       it to continue.</strong></noscript>
-  <div id=app class="root-container" v-cloak :style="'min-height:' + clientHeight + 'px'">
+  <div id=app class="root-container" v-cloak style="min-height:755px;background: #ffffff;">
     <van-tabs v-model="activeTab" sticky swipeable>
       <van-tab title="基础设置">
         <sample-configs />
       </van-tab>
-      <van-tab title="校色区域配置">
-        <color-region-configs />
+      <van-tab title="进阶设置">
+        <advance-configs />
       </van-tab>
       <van-tab>
         <template #title>
-          进阶设置
+          控件文本设置
           <van-icon name="more-o" @click="clickedMenu" class="menu-reference" />
         </template>
-        <advance-configs />
+        <widget-configs />
       </van-tab>
     </van-tabs>
-    <van-dialog v-model="showMenuDialog" v-cloak title="菜单" :show-confirm-button="false" :close-on-click-overlay="true"
-      :get-container="getDialogContainer">
+    <van-dialog v-model="showMenuDialog" v-cloak title="菜单" :show-confirm-button="false" :close-on-click-overlay="true" :get-container="getDialogContainer">
       <van-divider :style="{ margin: '0' }"></van-divider>
       <van-row type="flex" justify="center" class="van-cell">
         <van-col @click="resetDefaultConfigs">重置所有配置为默认值
@@ -61,20 +60,29 @@
         </van-col>
       </van-row>
       <van-divider :style="{ margin: '0' }"></van-divider>
-      <van-row type="flex" justify="center" class="van-cell" style="margin-bottom: 2rem;">
+      <van-row type="flex" justify="center" class="van-cell" >
         <van-col @click="restoreRuntimeStorage">从备份文件中导入运行时数据
+        </van-col>
+      </van-row>
+      <van-divider :style="{ margin: '0' }"></van-divider>
+      <van-row type="flex" justify="center" class="van-cell" style="margin-bottom: 2rem;">
+        <van-col @click="doUpdate">更新脚本
         </van-col>
       </van-row>
     </van-dialog>
   </div>
 </body>
 <script type="text/javascript">
+
   /**
    * 禁用长按菜单，复制等 
    **/
   window.addEventListener('contextmenu', function (e) {
     e.preventDefault()
   })
+  window.addEventListener('resize', function(e) {
+    console.log('页面高度:' + document.body.clientHeight)
+  }, false);
 </script>
 
 <script src="./js/components/common.js"></script>

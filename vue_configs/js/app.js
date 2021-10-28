@@ -50,6 +50,9 @@ let app = new Vue({
     restoreRuntimeStorage: function () {
       $app.invoke('restoreRuntimeStorage')
     },
+    doUpdate: function () {
+      $app.invoke('downloadUpdate')
+    },
     getDialogContainer: function () {
       return document.querySelector('html')
     }
@@ -65,3 +68,15 @@ let app = new Vue({
     // document.getElementById('app').style.minHeight = this.clientHeight + 'px'
   }
 })
+
+// 直接浏览器调试时，mock js bridge方法
+if (typeof $app === 'undefined') {
+  window.$app = {
+    invoke: (bridgeName, data, callback) => {},
+    receiveMessage: params => {},
+    registerFunction: (functionName, func) => {}
+  }
+  window.$nativeApi = {
+    request: (bridgeName, data) => {}
+  }
+}

@@ -5,3 +5,5 @@ extends/ExternalUnlockDevice.js
 LockScreen.js
 *.log
 *.ign.js
+.lhignore
+.lh/
