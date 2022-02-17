@@ -7,6 +7,7 @@ let _commonFunctions = singletonRequire('CommonFunction')
 let alipayUnlocker = singletonRequire('AlipayUnlocker')
 let { logInfo: _logInfo, errorInfo: _errorInfo, warnInfo: _warnInfo, debugInfo: _debugInfo, infoLog: _infoLog } = singletonRequire('LogUtils')
 let _FloatyInstance = singletonRequire('FloatyUtil')
+let fodderCollector = require('./FodderCollector.js')
 let BaiduOcrUtil = require('../lib/BaiduOcrUtil.js')
 let contentDefine = {
   soft: {
@@ -14,7 +15,8 @@ let contentDefine = {
     friend_home: '进入好友鸡鸡页面',
   },
   hard: {
-
+    personal_home: '进入个人小鸡页面',
+    friend_home: '进入好友小鸡页面',
   }
 }
 const CONTENT = contentDefine[config.content_type || 'hard']
@@ -279,6 +281,9 @@ function AntManorRunner () {
       if (feed) {
         // 刚刚喂食，且成功识别OCR，将当前时间设置为执行倒计时
         _commonFunctions.updateSleepTime(20, false, ocrRestTime)
+        // 喂鸡后领取饲料
+        fodderCollector.exec()
+        this.waitForOwn(true)
       } else if (ocrRestTime > -1) {
         // 大概情况就是上一次执行喂食后加速卡用完了 导致OCR识别失败 以上机制懒得修改了 先这么适配
         let feedPassedTime = _commonFunctions.getFeedPassedTime()
@@ -380,9 +385,9 @@ function AntManorRunner () {
       let restTime = -1
       if (hourMinutes.test(result)) {
         let regexResult = hourMinutes.exec(result)
-        restTime = this.resolveOverflowNumber(regexResult[1]) * 60 + this.resolveOverflowNumber(regexResult[2])
+        restTime = this.resolveOverflowNumber(regexResult[1]) * 60 + (regexResult[2] ? this.resolveOverflowNumber(regexResult[2]) : 0)
       } else if (minuteSeconds.test(result)) {
-        restTime = this.resolveOverflowNumber(minuteSeconds.exec(result)[1])
+        restTime = this.resolveOverflowNumber(minuteSeconds.exec(result)[1]) + 1
       }
       debugInfo('计算得到剩余时间：' + restTime + '分')
       return restTime

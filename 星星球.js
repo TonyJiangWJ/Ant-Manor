@@ -102,7 +102,7 @@ function Player () {
       events.onceKeyDown('volume_up', function (event) {
         runningQueueDispatcher.removeRunningTask()
         log('准备关闭线程')
-        _this.destoryPool()
+        _this.destroyPool()
         resourceMonitor.releaseAll()
         engines.myEngine().forceStop()
         exit()
@@ -268,12 +268,12 @@ function Player () {
     this.initFloaty()
     this.setTimeoutExit()
     this.playing(targetScore || config.targetScore)
-    this.destoryPool()
+    this.destroyPool()
     runningQueueDispatcher.removeRunningTask()
     exit()
   }
 
-  this.destoryPool = function () {
+  this.destroyPool = function () {
     this.threadPool.shutdownNow()
     this.threadPool = null
     this.floatyWindow = null

@@ -8,8 +8,7 @@
 let currentEngine = engines.myEngine().getSource() + ''
 let isRunningMode = currentEngine.endsWith('/config.js') && typeof module === 'undefined'
 let is_pro = !!Object.prototype.toString.call(com.stardust.autojs.core.timing.TimedTask.Companion).match(/Java(Class|Object)/)
-let singletonRequire = require('./lib/SingletonRequirer.js')(runtime, this)
-let FileUtils = singletonRequire('FileUtils')
+
 // 执行配置
 var default_config = {
   timeout_existing: 6000,
@@ -81,6 +80,8 @@ var default_config = {
   warn_skipped_ignore_package: false,
   warn_skipped_too_much: false,
   auto_check_update: false,
+  not_lingering_float_window: true,
+  github_url: 'https://github.com/TonyJiangWJ/Ant-Manor',
   // github release url 用于检测更新状态
   github_latest_url: 'https://api.github.com/repos/TonyJiangWJ/Ant-Manor/releases/latest',
   feed_cycle_time: 300,
@@ -135,13 +136,21 @@ var default_config = {
   SHIT_CHECK_REGION: [660, 1875, 30, 20],
   COLLECT_SHIT_CHECK_REGION: [220, 1210, 80, 40],
   PICK_SHIT_GRAY_COLOR: '#9a9a9a',
-  COLLECT_SHIT_GRAY_COLOR: '#535353'
+  COLLECT_SHIT_GRAY_COLOR: '#535353',
+  // 找图缓存
+  // template_img_for_collect: '',
+  // template_img_for_close_collect: ''
+  // 标记是否清除webview缓存
+  clear_webview_cache: false,
 }
-let custom_config = files.exists(FileUtils.getCurrentWorkPath() + '/extends/CustomConfig.js') ? require('./extends/CustomConfig.js') : null
+
 // 配置缓存的key值
 let CONFIG_STORAGE_NAME = 'chick_config_version'
 let PROJECT_NAME = '蚂蚁庄园'
 var storageConfig = storages.create(CONFIG_STORAGE_NAME)
+let securityFields = ['password', 'alipay_lock_password']
+let AesUtil = require('./lib/AesUtil.js')
+let aesKey = device.getAndroidId()
 var config = {}
 if (!storageConfig.contains('password')) {
   toastLog('使用默认配置')
@@ -152,32 +161,61 @@ if (!storageConfig.contains('password')) {
   config = default_config
 } else {
   Object.keys(default_config).forEach(key => {
-    let storedConfigItem = storageConfig.get(key)
-    if (storedConfigItem === undefined) {
-      storedConfigItem = default_config[key]
-    }
-    config[key] = storedConfigItem
-  })
-  if (custom_config !== null) {
-    Object.keys(custom_config).forEach(key => {
-      let value = custom_config[key]
-      if (typeof value !== 'undefined') {
-        default_config[key] = value
+    let storedVal = storageConfig.get(key)
+    if (typeof storedVal !== 'undefined') {
+      if (securityFields.indexOf(key) > -1) {
+        storedVal = AesUtil.decrypt(storedVal, aesKey) || storedVal
       }
-    })
-    if (!config.converted_custom_configs) {
-      Object.keys(custom_config).forEach(key => {
-        let value = custom_config[key]
-        if (typeof value !== 'undefined') {
-          config[key] = value
-        }
-      })
-      config.converted_custom_configs = true
-      storageConfig.put('converted_custom_configs', true)
+      config[key] = storedVal
+    } else {
+      config[key] = default_config[key]
     }
-  }
-  
+  })
 }
+// 覆写配置信息
+config.overwrite = (key, value) => {
+  let storage_name = CONFIG_STORAGE_NAME
+  let config_key = key
+  if (key.indexOf('.') > -1) {
+    let keyPair = key.split('.')
+    storage_name = CONFIG_STORAGE_NAME + '_' + keyPair[0]
+    key = keyPair[1]
+    config_key = keyPair[0] + '_config'
+    if (!config.hasOwnProperty(config_key) || !config[config_key].hasOwnProperty(key)) {
+      return
+    }
+    config[config_key][key] = value
+  } else {
+    if (!config.hasOwnProperty(config_key)) {
+      return
+    }
+    config[config_key] = value
+  }
+  console.verbose('覆写配置', storage_name, key)
+  storages.create(storage_name).put(key, value)
+}
+
+// 扩展配置
+let workpath = getCurrentWorkPath()
+let configDataPath = workpath + '/config_data/'
+// 蚂蚁新村识图配置
+let default_viliage_config = {
+  checking_mail_box: files.read(configDataPath + 'viliage/checking_mail_box.data'),
+  empty_booth: files.read(configDataPath + 'viliage/empty_booth.data'),
+  my_booth: files.read(configDataPath + 'viliage/my_booth.data'),
+  booth_position_left: [193, 1659, 436, 376],
+  booth_position_right: [629, 1527, 386, 282],
+}
+default_config.viliage_config = default_viliage_config
+config.viliage_config = convertDefaultData(default_viliage_config, CONFIG_STORAGE_NAME + '_viliage')
+// 领饲料配置
+let default_fodder_config = {
+  fodder_btn: files.read(configDataPath + 'fodder/fodder_btn.data'),
+  close_interval: files.read(configDataPath + 'fodder/close_interval.data'),
+}
+default_config.fodder_config = default_fodder_config
+config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_NAME + '_fodder')
+
 if (!isRunningMode) {
   module.exports = function (__runtime__, scope) {
     if (typeof scope.config_instance === 'undefined') {
@@ -185,6 +223,7 @@ if (!isRunningMode) {
         config: config,
         default_config: default_config,
         storage_name: CONFIG_STORAGE_NAME,
+        securityFields: securityFields,
         project_name: PROJECT_NAME
       }
       events.broadcast.on(CONFIG_STORAGE_NAME + 'config_changed', function (params) {
@@ -204,4 +243,33 @@ if (!isRunningMode) {
   setTimeout(function () {
     engines.execScriptFile(files.cwd() + "/可视化配置.js", { path: files.cwd() })
   }, 30)
+}
+
+function convertDefaultData(default_config, config_storage_name) {
+  let config_storage = storages.create(config_storage_name)
+  let configData = {}
+  Object.keys(default_config).forEach(key => {
+    let storageValue = config_storage.get(key, default_config[key])
+    if (storageValue == '') {
+      storageValue = default_config[key]
+    }
+    configData[key] = storageValue
+  })
+  return configData
+}
+
+function getCurrentWorkPath() {
+  let currentPath = files.cwd()
+  if (files.exists(currentPath + '/main.js')) {
+    return currentPath
+  }
+  let paths = currentPath.split('/')
+
+  do {
+    paths = paths.slice(0, paths.length - 1)
+    currentPath = paths.reduce((a, b) => a += '/' + b)
+  } while (!files.exists(currentPath + '/main.js') && paths.length > 0)
+  if (paths.length > 0) {
+    return currentPath
+  }
 }
