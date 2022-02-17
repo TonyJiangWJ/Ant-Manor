@@ -1,4 +1,5 @@
 let { config } = require('../config.js')(runtime, this)
+config.async_save_log_file = false
 let singletonRequire = require('../lib/SingletonRequirer.js')(runtime, this)
 let commonFunctions = singletonRequire('CommonFunction')
 let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
