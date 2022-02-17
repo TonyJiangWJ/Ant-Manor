@@ -7,10 +7,21 @@ let _commonFunctions = singletonRequire('CommonFunction')
 let alipayUnlocker = singletonRequire('AlipayUnlocker')
 let { logInfo: _logInfo, errorInfo: _errorInfo, warnInfo: _warnInfo, debugInfo: _debugInfo, infoLog: _infoLog } = singletonRequire('LogUtils')
 let _FloatyInstance = singletonRequire('FloatyUtil')
+let fodderCollector = require('./FodderCollector.js')
 let BaiduOcrUtil = require('../lib/BaiduOcrUtil.js')
-
+let contentDefine = {
+  soft: {
+    personal_home: '进入个人鸡鸡页面',
+    friend_home: '进入好友鸡鸡页面',
+  },
+  hard: {
+    personal_home: '进入个人小鸡页面',
+    friend_home: '进入好友小鸡页面',
+  }
+}
+const CONTENT = contentDefine[config.content_type || 'hard']
 function getRegionCenter (region) {
-  _debugInfo(['转换region位置:{}', JSON.stringify(region)])
+  debugInfo(['转换region位置:{}', JSON.stringify(region)])
   return {
     x: region[0] + parseInt(region[2] / 2),
     y: region[1] + parseInt(region[3] / 2)
@@ -23,7 +34,7 @@ function AntManorRunner () {
   }
 
   this.setFloatyInfo = function (position, text) {
-    _debugInfo(['设置悬浮窗位置: {} 内容: {}', JSON.stringify(position), text])
+    debugInfo(['设置悬浮窗位置: {} 内容: {}', JSON.stringify(position), text])
     _FloatyInstance.setFloatyInfo(position, text)
   }
 
@@ -69,16 +80,24 @@ function AntManorRunner () {
     exit()
   }
 
-  this.waitForOwn = function () {
+  /**
+   * 
+   * @param {boolean} keepAlive 是否保持运行 而不是退出
+   * @returns 
+   */
+  this.waitForOwn = function (keepAlive) {
     let findColor = this.waitFor(config.CHECK_APP_COLOR, config.CHECK_APP_REGION)
     if (findColor) {
-      this.setFloatyInfo(null, '进入个人鸡鸡页面成功')
+      this.setFloatyInfo(null, CONTENT.personal_home + '成功')
       return true
     } else {
       this.setFloatyTextColor('#ff0000')
-      this.setFloatyInfo(getRegionCenter(config.CHECK_APP_REGION), '进入个人鸡鸡页面失败，检测超时')
-      this.killAndRestart()
+      this.setFloatyInfo(getRegionCenter(config.CHECK_APP_REGION), CONTENT.personal_home + '失败，检测超时 ' + (keepAlive ? '等待脚本执行后续判断' : ''))
+      if (!keepAlive) {
+        this.killAndRestart()
+      }
     }
+    return false
   }
 
 
@@ -262,6 +281,9 @@ function AntManorRunner () {
       if (feed) {
         // 刚刚喂食，且成功识别OCR，将当前时间设置为执行倒计时
         _commonFunctions.updateSleepTime(20, false, ocrRestTime)
+        // 喂鸡后领取饲料
+        fodderCollector.exec()
+        this.waitForOwn(true)
       } else if (ocrRestTime > -1) {
         // 大概情况就是上一次执行喂食后加速卡用完了 导致OCR识别失败 以上机制懒得修改了 先这么适配
         let feedPassedTime = _commonFunctions.getFeedPassedTime()
@@ -288,7 +310,12 @@ function AntManorRunner () {
     click(config.SPEED_CARD_POSITION.x, config.SPEED_CARD_POSITION.y)
     sleep(1000)
     click(config.CONFIRM_POSITON.x, config.CONFIRM_POSITON.y)
-    this.waitForOwn()
+    if (!this.waitForOwn(true)) {
+      debugInfo('可能加速卡用完了，使用失败，直接返回 再次检测')
+      automator.back()
+      sleep(1000)
+      this.waitForOwn()
+    }
   }
 
   this.checkSpeedSuccess = function () {
@@ -358,9 +385,9 @@ function AntManorRunner () {
       let restTime = -1
       if (hourMinutes.test(result)) {
         let regexResult = hourMinutes.exec(result)
-        restTime = this.resolveOverflowNumber(regexResult[1]) * 60 + this.resolveOverflowNumber(regexResult[2])
+        restTime = this.resolveOverflowNumber(regexResult[1]) * 60 + (regexResult[2] ? this.resolveOverflowNumber(regexResult[2]) : 0)
       } else if (minuteSeconds.test(result)) {
-        restTime = this.resolveOverflowNumber(minuteSeconds.exec(result)[1])
+        restTime = this.resolveOverflowNumber(minuteSeconds.exec(result)[1]) + 1
       }
       debugInfo('计算得到剩余时间：' + restTime + '分')
       return restTime

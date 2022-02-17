@@ -16,8 +16,10 @@ if (config.single_script) {
   logInfo('======单脚本运行直接清空任务队列=======')
   runningQueueDispatcher.clearAll()
 }
+config.not_lingering_float_window = true
 logInfo('======加入任务队列，并关闭重复运行的脚本=======')
 runningQueueDispatcher.addRunningTask()
+commonFunctions.killDuplicateScript()
 let FloatyInstance = singletonRequire('FloatyUtil')
 let automator = singletonRequire('Automator')
 let callStateListener = !config.is_pro && config.enable_call_state_control ? singletonRequire('CallStateListener') : { exitIfNotIdle: () => { } }
@@ -29,8 +31,6 @@ callStateListener.exitIfNotIdle()
 commonFunctions.registerOnEngineRemoved(function () {
   // 重置自动亮度
   config.resetBrightness && config.resetBrightness()
-  events.removeAllListeners()
-  events.recycle()
   flushAllLogs()
   // 针对免费版内存主动释放，Pro版不需要
   commonFunctions.reduceConsoleLogs()
@@ -89,8 +89,14 @@ try {
 }
 logInfo('解锁成功')
 
-commonFunctions.requestScreenCaptureOrRestart()
-commonFunctions.ensureDeviceSizeValid()
+
+let executeArguments = engines.myEngine().execArgv
+debugInfo(['启动参数：{}', JSON.stringify(executeArguments)])
+// 定时启动的任务, 将截图权限滞后请求
+if (!executeArguments.intent || executeArguments.executeByDispatcher) {
+  commonFunctions.requestScreenCaptureOrRestart()
+  commonFunctions.ensureDeviceSizeValid()
+}
 // 初始化悬浮窗
 if (!FloatyInstance.init()) {
   runningQueueDispatcher.removeRunningTask()
