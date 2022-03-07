@@ -38,7 +38,7 @@
     <number-field v-model="configs.feed_cycle_time" label="饲料食用周期时长" label-width="10em" placeholder="请输入饲料食用周期时长" >
       <template #right-icon><span>分</span></template>
     </number-field>
-    <number-field v-model="configs.speeded_feed_cycle_time" label="使用加速卡后的食用时长" label-width="10em" placeholder="请输入使用加速卡后的食用时长" >
+    <number-field v-model="configs.speeded_feed_cycle_time" label="使用加速卡后的食用时长" label-width="12em" placeholder="请输入使用加速卡后的食用时长" >
       <template #right-icon><span>分</span></template>
     </number-field>
     <number-field v-model="configs.starBallScore" label="星星球目标分数" label-width="10em" placeholder="请输入星星球目标分数" />
