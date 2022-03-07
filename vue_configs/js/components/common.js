@@ -139,6 +139,8 @@ let mixin_common = {
           let { [key]: validation } = this.validations
           if (this.isNotEmpty(value) && !validation.validate(value)) {
             errors[key] = validation.message(value)
+          } else if (!this.isNotEmpty(value) && validation.required) {
+            errors[key] = '此项必填'
           } else {
             errors[key] = ''
           }
@@ -886,9 +888,9 @@ Vue.component('base64-image-viewer', resolve => {
     template: `
     <div>
       <van-swipe-cell stop-propagation>
-        <div style="display:flex; height: 3rem;align-items: center; padding-left:1rem;">
+        <div class="base64-viewer">
           <label>{{title}}:</label>
-          <img :src="base64Data" style="max-height:2.5rem;margin-left: auto; margin-right: 1rem;"/>
+          <img :src="base64Data" class="base64-img"/>
         </div>
         <template #right>
           <van-button square type="primary" text="修改Base64" @click="showBase64Inputer=true" />

@@ -205,6 +205,8 @@ let default_viliage_config = {
   my_booth: files.read(configDataPath + 'viliage/my_booth.data'),
   booth_position_left: [193, 1659, 436, 376],
   booth_position_right: [629, 1527, 386, 282],
+  booth_black_list: [],
+  interval_time: 120,
 }
 default_config.viliage_config = default_viliage_config
 config.viliage_config = convertDefaultData(default_viliage_config, CONFIG_STORAGE_NAME + '_viliage')
