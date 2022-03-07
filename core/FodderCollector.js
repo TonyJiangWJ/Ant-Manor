@@ -61,6 +61,14 @@ function Collector () {
         }
         sleep(500)
       })
+      let full = widgetUtils.widgetGetOne('饲料袋已满', 1000)
+      if (full) {
+        logUtils.warnInfo(['饲料袋已满'], true)
+        automator.back()
+        sleep(1000)
+        automator.back()
+        return
+      }
       if (!allVisiableToUser) {
         logUtils.logInfo(['滑动下一页查找目标'], true)
         let startY = config.device_height - config.device_height * 0.15
