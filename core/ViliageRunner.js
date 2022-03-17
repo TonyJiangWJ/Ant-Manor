@@ -23,6 +23,9 @@ function VillageRunner () {
       // 自动点击自己的能量豆
       automator.click(610, 940)
       sleep(500)
+      // 加速产豆
+      speedAward()
+      sleep(500)
       checkAnyEmptyBooth()
       checkMyBooth()
       // 设置2小时后启动
@@ -43,6 +46,9 @@ function VillageRunner () {
     waitForLoading()
   }
 
+  /**
+   * 等待摆摊界面或者好友界面打开完成 寻找邮箱
+   */
   function waitForLoading () {
     let screen = commonFunctions.captureScreen()
     let findPoint = openCvUtil.findByGrayBase64(screen, viliageConfig.checking_mail_box)
@@ -55,6 +61,7 @@ function VillageRunner () {
     }
     if (!!findPoint) {
       FloatyInstance.setFloatyInfo({ x: findPoint.centerX(), y: findPoint.centerY() }, '打开蚂蚁新村成功')
+      sleep(1000)
     } else {
       errorInfo('打开蚂蚁新村失败', true)
     }
@@ -273,6 +280,7 @@ function VillageRunner () {
    * @returns 是否完成摆摊 是的话继续去下一个好友村庄检测
    */
   function setupToEmptyBooth () {
+    FloatyInstance.setFloatyPosition(0, 0)
     let screen = commonFunctions.captureScreen()
     let point = openCvUtil.findByGrayBase64(screen, viliageConfig.empty_booth)
     if (point) {
@@ -307,6 +315,40 @@ function VillageRunner () {
       return !full && setupButton.length > 1
     } else {
       return false
+    }
+  }
+
+  /**
+   * 加速产豆
+   */
+  function speedAward() {
+    if (commonFunctions.checkSpeedUpCollected()) {
+      debugInfo('今日已经完成加速，不继续查找加速产豆 答题等请手动执行')
+      return
+    }
+    let screen = commonFunctions.captureScreen()
+    let point = openCvUtil.findByGrayBase64(screen, viliageConfig.speed_award)
+    if (point) {
+      FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '加速产豆')
+      sleep(1000)
+      automator.click(point.centerX(), point.centerY())
+      sleep(1000)
+      let canCollect = widgetUtils.widgetGetAll('领取', 3000)
+      if (canCollect && canCollect.length > 0) {
+        canCollect.forEach(collect => {
+          collect.click()
+          sleep(500)
+        })
+        sleep(1000)
+      } else {
+        debugInfo('已经没有可领取的加速产豆了 设置今日不再执行')
+        commonFunctions.setSpeedUpCollected()
+      }
+      automator.click(config.device_width / 2, config.device_height * 0.1)
+      sleep(1000)
+    } else {
+      FloatyInstance.setFloatyText('未找到加速产豆')
+      sleep(1000)
     }
   }
 }

@@ -79,6 +79,7 @@ const ViliageConfig = {
         checking_mail_box: '',
         empty_booth: '',
         my_booth: '',
+        speed_award: '',
         booth_position_left: [193, 1659, 436, 376],
         booth_position_right: [629, 1527, 386, 282],
         interval_time: 120,
@@ -118,6 +119,7 @@ const ViliageConfig = {
     <base64-image-viewer title="校验是否进入新村界面" v-model="configs.checking_mail_box"/>
     <base64-image-viewer title="校验空摊位" v-model="configs.empty_booth"/>
     <base64-image-viewer title="我的小摊" v-model="configs.my_booth"/>
+    <base64-image-viewer title="加速产豆" v-model="configs.speed_award"/>
     <region-input-field :array-value="true" v-model="configs.booth_position_left" label="校验左侧摊位OCR" label-width="12em" />
     <region-input-field :array-value="true" v-model="configs.booth_position_right" label="校验右侧摊位OCR" label-width="12em" />
     <tip-block style="margin: 0.5rem">因为每天一个好友只能邀请一次，当好友数较少时建议增加间隔时间，建议最小值：max[120, 1440/(好友数/2)] 最大值6小时(360) 最大值在配置中不做限制</tip-block>
