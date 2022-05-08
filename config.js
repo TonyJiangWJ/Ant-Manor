@@ -204,6 +204,7 @@ let default_viliage_config = {
   empty_booth: files.read(configDataPath + 'viliage/empty_booth.data'),
   my_booth: files.read(configDataPath + 'viliage/my_booth.data'),
   speed_award: files.read(configDataPath + 'viliage/speed_award.data'),
+  do_setup_booth: files.read(configDataPath + 'viliage/do_setup_booth.data'),
   booth_position_left: [193, 1659, 436, 376],
   booth_position_right: [629, 1527, 386, 282],
   booth_black_list: [],

@@ -16,6 +16,8 @@ let viliageConfig = config.viliage_config
 viliageConfig.booth_position_left = viliageConfig.booth_position_left || [193, 1659, 436, 376]
 viliageConfig.booth_position_right = viliageConfig.booth_position_right || [629, 1527, 386, 282]
 function VillageRunner () {
+  // 当前一摆摊的摊位
+  let currentBoothSetted = 0
   this.exec = function () {
     try {
       openMyViliage()
@@ -268,7 +270,7 @@ function VillageRunner () {
         if (setupToEmptyBooth()) {
           checkFriendsVillage()
         } else {
-          logInfo('摆摊完毕', true)
+          logInfo(['摆摊完毕, 摆摊数量：{}', currentBoothSetted], true)
         }
       }
     }
@@ -288,10 +290,17 @@ function VillageRunner () {
       sleep(1000)
       automator.click(point.centerX(), point.centerY())
       widgetUtils.widgetWaiting('我的摊位', null, 3000)
-      sleep(500)
+      sleep(1500)
       return doSetupBooth()
     } else {
       logInfo('无空位', true)
+      logInfo(['当前已摆摊数量为：{}', currentBoothSetted])
+      if (currentBoothSetted < 4) {
+        logInfo(['已摆摊数量小于4 需要重新回到上级进行判断'])
+        automator.back()
+        sleep(1000)
+        checkFriendsVillage()
+      }
       return false
     }
   }
@@ -303,17 +312,35 @@ function VillageRunner () {
    */
   function doSetupBooth () {
     let setupButton = widgetUtils.widgetGetAll('去摆摊')
+    let setupped = widgetUtils.widgetGetAll('收摊', 1000)
+    if (setupped) {
+      currentBoothSetted = setupped.length
+    }
+    logInfo('当前已摆摊数量：' + currentBoothSetted)
     if (setupButton && setupButton.length > 0) {
-      let full = false
-      if (setupButton.length <= 2) {
-        let setupped = widgetUtils.widgetGetAll('收摊')
-        full = setupped && setupped.length >= 3
-      }
+      let full = currentBoothSetted >= 3
       setupButton[0].click()
       sleep(1000)
+      // 当前摆摊后数量增加1
+      currentBoothSetted += 1
       automator.back()
       return !full && setupButton.length > 1
     } else {
+      if (currentBoothSetted < 4) {
+        warnInfo(['未找到去摆摊按钮 且已摆摊数量为：{} 尝试图片识别摆摊按钮', currentBoothSetted])
+        let screen = commonFunctions.captureScreen()
+        let point = openCvUtil.findByGrayBase64(screen, viliageConfig.do_setup_booth)
+        if (point) {
+          automator.click(point.centerX(), point.centerY())
+          sleep(1000)
+          // 当前摆摊后数量增加1
+          currentBoothSetted += 1
+          automator.back()
+          return true
+        } else {
+          warnInfo('未能通过图片识别找到去摆摊')
+        }
+      }
       return false
     }
   }
