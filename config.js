@@ -84,6 +84,7 @@ var default_config = {
   github_url: 'https://github.com/TonyJiangWJ/Ant-Manor',
   // github release url 用于检测更新状态
   github_latest_url: 'https://api.github.com/repos/TonyJiangWJ/Ant-Manor/releases/latest',
+  history_tag_url: 'https://api.github.com/repos/TonyJiangWJ/Ant-Manor/tags',
   feed_cycle_time: 300,
   speeded_feed_cycle_time: 240,
   // 区域信息配置

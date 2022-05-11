@@ -14,6 +14,7 @@ if (runningSize > 1) {
 let { config } = require('../config.js')(runtime, this)
 let singletonRequire = require('../lib/SingletonRequirer.js')(runtime, this)
 let commonFunctions = singletonRequire('CommonFunction')
+let processShare = singletonRequire('ProcessShare')
 var window = floaty.rawWindow(
   <canvas id="canvas" layout_weight="1" />
 );
@@ -33,7 +34,20 @@ ui.run(function () {
 })
 // 刘海高度偏移量，刘海屏以及挖空屏 悬浮窗无法正常显示，需要施加一个偏移量
 let bangOffset = config.bang_offset
-
+console.log('订阅文件消息：.region_config_share')
+processShare
+  // 设置缓冲区大小为4kB
+  .setBufferSize(4 * 1024)
+  .setInterval(10)
+  .loop().subscribe(function (newConfig) {
+    console.log('收到了配置变更消息：' + newConfig)
+    newConfig = JSON.parse(newConfig)
+    Object.keys(newConfig).forEach(key => {
+      if (config.hasOwnProperty(key)) {
+        config[key] = newConfig[key]
+      }
+    })
+  }, null, '.region_config_share')
 
 function convertArrayToRect (a) {
   // origin array left top width height

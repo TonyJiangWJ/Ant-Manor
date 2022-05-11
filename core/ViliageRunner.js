@@ -9,7 +9,6 @@ let openCvUtil = require('../lib/OpenCvUtil.js')
 let FloatyInstance = singletonRequire('FloatyUtil')
 let paddleOcr = singletonRequire('PaddleOcrUtil')
 FloatyInstance.enableLog()
-commonFunctions.requestScreenCaptureOrRestart()
 
 let viliageConfig = config.viliage_config
 // 摆摊摊位框选 带文字
@@ -45,6 +44,7 @@ function VillageRunner () {
       data: 'alipays://platformapi/startapp?appId=68687809',
       packageName: 'com.eg.android.AlipayGphone'
     })
+    sleep(1000)
     waitForLoading()
   }
 
@@ -241,8 +241,14 @@ function VillageRunner () {
    */
   function checkFriendsVillage () {
     widgetUtils.widgetWaiting('去好友家摆摊', null, 3000)
+    FloatyInstance.setFloatyText('查找空位')
     sleep(1000)
-    let allEmptyBooth = widgetUtils.widgetGetAll('有空位')
+    let start = new Date().getTime()
+    let root = className('android.view.View').depth(15).indexInParent(6).scrollable(true).findOne()
+    debugInfo(['get root cost: {}ms', new Date() - start])
+    let allEmptyBooth = widgetUtils.subWidgetGetAll(root, '有空位', 8000, null, matcher => {
+      return matcher.depth(17)
+    })
     if (allEmptyBooth && allEmptyBooth.length > 0) {
       sortedBooth = allEmptyBooth.map(booth => {
         let target = booth
@@ -273,6 +279,13 @@ function VillageRunner () {
           logInfo(['摆摊完毕, 摆摊数量：{}', currentBoothSetted], true)
         }
       }
+    } else {
+      FloatyInstance.setFloatyText('未找到空位, 五分钟后再试')
+      sleep(1000)
+      commonFunctions.minimize()
+      commonFunctions.setUpAutoStart(5)
+      exit()
+      
     }
   }
 
