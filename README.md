@@ -72,3 +72,14 @@ module.exports = function () {
   click(parseInt(_config.lock_x), parseInt(_config.lock_y))
 }
 ```
+
+## 请开发者喝咖啡
+
+- 欢迎使用支付宝或微信请我喝杯咖啡
+  - 一元喝速溶、5元喝胶囊、12买全家、33星巴克感激不尽
+  
+  ![alipay_qrcode](./resources/alipay_qrcode.png)  ![wechat_qrcode](./resources/wechat_qrcode.png)
+
+- 支付宝扫码领红包，你拿红包我也有份。
+
+- ![扫码领红包](./resources/扫码领红包.png)
