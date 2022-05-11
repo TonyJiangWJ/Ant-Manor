@@ -68,6 +68,15 @@
       $app.invoke('openGrayDetector', {})
     },
   },
+  watch: {
+    configs: {
+      handler: function (newVal, oldVal) {
+        $app.invoke('colorRegionConfigChanged', newVal)
+      },
+      deep: true,
+      immediate: true
+    }
+  },
   template: `<div>
     <van-divider content-position="left">
       校验区域配置

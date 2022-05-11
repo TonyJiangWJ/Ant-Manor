@@ -20,6 +20,8 @@ const router = new VueRouter({
     { path: '/about/develop', component: DevelopConfig, meta: { index: 2, title: '开发模式' } },
     { path: '/viliage/viliageConfig', component: ViliageConfig, meta: { index: 1 } },
     { path: '/fodder/fodderConfig', component: FodderConfig, meta: { index: 1 } },
+    { path: '/QA', component: QuestionAnswer, meta: { index: 1, title: '常见问题' } },
+    { path: '/readme', component: Readme, meta: { index: 1, title: '脚本说明README' } },
   ]
 })
 
