@@ -45,6 +45,16 @@ function Collector () {
     }
   }
 
+  this.answerQuestion = function () {
+    let toAnswer = widgetUtils.widgetGetOne('去答题')
+    if (toAnswer) {
+      automator.clickCenter(toAnswer)
+      sleep(1000)
+      automator.widgetWaiting('题目来源.*')
+      // TODO 随机答题
+    }
+  }
+
   this.collectAllIfExists = function () {
     let allCollect = widgetUtils.widgetGetAll('领取')
     if (allCollect && allCollect.length > 0) {
@@ -61,7 +71,7 @@ function Collector () {
         }
         sleep(500)
       })
-      let full = widgetUtils.widgetGetOne('饲料袋已满', 1000)
+      let full = widgetUtils.widgetGetOne('饲料袋已满.*|知道了', 1000)
       if (full) {
         logUtils.warnInfo(['饲料袋已满'], true)
         automator.back()
@@ -73,7 +83,7 @@ function Collector () {
         logUtils.logInfo(['滑动下一页查找目标'], true)
         let startY = config.device_height - config.device_height * 0.15
         let endY = startY - config.device_height * 0.3
-        automator.gesture(400, this.generateGesture(config.device_width / 2, startY, config.device_width / 2, endY))
+        automator.gestureDown(startY, endY)
       }
       sleep(500)
       this.collectAllIfExists()
@@ -103,19 +113,6 @@ function Collector () {
         screen.recycle()
       }
     }
-  }
-
-  this.generateGesture = function (startX, startY, endX, endY) {
-    let xDst = endX - startX
-    xDst = xDst > 10 ? xDst : 10
-    let yDst = endY - startY
-    let gap = Math.floor(yDst / xDst)
-    let points = []
-    for (var i = 0; i < xDst; i++) {
-      points.push([startX + i, startY + gap * i])
-    }
-    logUtils.debugInfo(['滑动位置：{}', JSON.stringify(points)])
-    return points
   }
 }
 
