@@ -24,10 +24,6 @@ let Index = {
           link: '/fodder/fodderConfig'
         },
         {
-          title: '悬浮窗设置',
-          link: '/basic/floaty'
-        },
-        {
           title: '日志设置',
           link: '/basic/log'
         },
