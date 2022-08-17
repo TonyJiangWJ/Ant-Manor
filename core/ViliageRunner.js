@@ -22,7 +22,7 @@ function VillageRunner () {
       openMyViliage()
       sleep(1000)
       // 自动点击自己的能量豆
-      automator.click(610, 940)
+      automator.click(viliageConfig.viliage_reward_click_x, viliageConfig.viliage_reward_click_y)
       sleep(500)
       // 加速产豆
       speedAward()
@@ -112,13 +112,13 @@ function VillageRunner () {
     }
     let recognizeText = paddleOcr.recognize(screen, region)
     debugInfo(['识别文本：{}', recognizeText])
-    let regex = /.*(已停产|[2-6]时(\d+)分钟)/
+    let regex = /.*(已停产|剩余经营.*)/
     if (regex.test(recognizeText)) {
       FloatyInstance.setFloatyInfo({ x: region[0], y: region[1] }, '摊位超时：' + recognizeText)
       sleep(1000)
       var r = new org.opencv.core.Rect(region[0], region[1], region[2], region[3])
       automator.click(r.x + r.width / 2, r.y + r.height / 2)
-      let checking = widgetUtils.widgetWaiting(/收取\d+.*并请走.*/, null, 3000)
+      let checking = widgetUtils.widgetWaiting(/.*并请走.*/, null, 3000)
       if (checking) {
         sleep(1000)
         let driveOut = widgetUtils.widgetGetOne('请走TA', 3000)
@@ -149,15 +149,49 @@ function VillageRunner () {
     FloatyInstance.setFloatyInfo({ x: matchResult.centerX(), y: matchResult.centerY() }, '邀请好友')
     sleep(1000)
     automator.click(matchResult.centerX(), matchResult.centerY())
-    widgetUtils.widgetWaiting('邀请好友来摆摊', null, 3000)
-    let inviteButton = widgetUtils.widgetGetOne('直接邀请摆摊')
-    if (inviteButton) {
-      inviteButton.click()
+    widgetUtils.widgetWaiting('邀请.*摆摊', null, 3000)
+    let avatarList = widgetUtils.widgetGetAll('avatar')
+    if (avatarList && avatarList.length > 0) {
+      let invited = false
+      avatarList.forEach(avatar => {
+        if (invited) {
+          return
+        }
+        let index = avatar.indexInParent()
+        let nameWidget = avatar.parent().child(index + 1)
+        let name = nameWidget.desc() || nameWidget.text()
+        let inviteBtnContainer = avatar.parent().child(index + 3)
+        if (inviteBtnContainer.childCount() > 0) {
+          let inviteBtn = inviteBtnContainer.child(0)
+          let inviteText = inviteBtn.text() || inviteBtn.desc()
+          if (inviteText !== '直接邀请摆摊') {
+            debugInfo(['好友：{} 不能邀请：{}', name, inviteText])
+            return
+          }
+          if (typeof viliageConfig != 'undefined' && viliageConfig.booth_black_list && viliageConfig.booth_black_list.length > 0) {
+            if (viliageConfig.booth_black_list.indexOf(name) > -1) {
+              debugInfo(['{} 在黑名单中 跳过邀请', name])
+              return
+            }
+          }
+          debugInfo(['邀请好友「{}」', name])
+        } else {
+          inviteBtnContainer = avatar.parent().child(index + 2)
+          if (inviteBtnContainer.childCount() > 0) {
+            let inviteBtn = inviteBtnContainer.child(0)
+            inviteText = inviteBtn.text() || inviteBtn.desc()
+            debugInfo(['好友[{}]不能邀请：{}', name, inviteText])
+          }
+          return
+        }
+        inviteBtnContainer.click()
+        sleep(500)
+        invited = true
+      })
     } else {
       warnInfo('无可邀请好友', true)
       automator.back()
     }
-    logInfo('邀请完成', true)
   }
 
   /**
@@ -174,7 +208,8 @@ function VillageRunner () {
       sleep(500)
       automator.click(point.centerX(), point.centerY())
       sleep(500)
-      widgetUtils.widgetWaiting('我的摊位', null, 3000)
+      widgetUtils.widgetWaiting('随机摆摊', null, 3000)
+      sleep(500)
       recycleBoothIfNeeded()
       sleep(500)
       setupBooth()
@@ -188,7 +223,7 @@ function VillageRunner () {
    */
   function recycleBoothIfNeeded () {
     FloatyInstance.setFloatyText('查找超过2小时或已停产的摊位')
-    let over2 = /[2-6]时(\d+)分钟/
+    let over2 = /[2-6]时(\d+)分/
     let stopped = /已停产/
     let checkResult = widgetUtils.alternativeWidget(over2, stopped, null, true)
     if (checkResult.value == 0) {
@@ -200,12 +235,7 @@ function VillageRunner () {
     } else if (checkResult.value == 2) {
       logInfo('找到了已停产的摊位')
     }
-    let target = checkResult.target
-    if (target) {
-      let container = target.parent()
-      let collector = runtime.selector().textContains('收摊').findOneOf(container)
-      doRecycleBooth(collector)
-    }
+    doRecycleBooth(widgetUtils.widgetGetOne('全部收摊'))
   }
 
   function doRecycleBooth (collector) {
@@ -218,7 +248,6 @@ function VillageRunner () {
     if (confirm) {
       confirm.click()
       sleep(1000)
-      recycleBoothIfNeeded()
     }
   }
 
@@ -226,12 +255,11 @@ function VillageRunner () {
    * 闲置摊位摆放
    */
   function setupBooth () {
-    FloatyInstance.setFloatyText('查找去摆摊')
-    let setupButton = widgetUtils.widgetGetOne('去摆摊')
-    if (setupButton) {
-      setupButton.click()
-      sleep(500)
-      checkFriendsVillage()
+    FloatyInstance.setFloatyText('查找随机摆摊')
+    let randomSetup = widgetUtils.widgetGetOne('随机摆摊')
+    if (randomSetup) {
+      sleep(1000)
+      randomSetup.click()
     }
   }
 
@@ -321,41 +349,29 @@ function VillageRunner () {
   /**
    * 点击我的小摊去摆摊
    * 
-   * @returns 是否有去摆摊按钮 有则继续摆摊
+   * @returns 是否继续摆摊
    */
   function doSetupBooth () {
-    let setupButton = widgetUtils.widgetGetAll('去摆摊')
     let setupped = widgetUtils.widgetGetAll('收摊', 1000)
     if (setupped) {
       currentBoothSetted = setupped.length
     }
     logInfo('当前已摆摊数量：' + currentBoothSetted)
-    if (setupButton && setupButton.length > 0) {
-      let full = currentBoothSetted >= 3
-      setupButton[0].click()
-      sleep(1000)
-      // 当前摆摊后数量增加1
+    let full = currentBoothSetted >= 3
+    let screen = commonFunctions.captureScreen()
+    let findText = paddleOcr.recognizeWithBounds(screen, [config.device_width / 2, config.device_height / 2], '去摆摊')
+    if (findText && findText.length > 0) {
+      let point = findText[0].bounds
+      FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '去摆摊')
+      sleep(500)
+      automator.click(point.centerX(), point.centerY())
       currentBoothSetted += 1
+      sleep(500)
       automator.back()
-      return !full && setupButton.length > 1
-    } else {
-      if (currentBoothSetted < 4) {
-        warnInfo(['未找到去摆摊按钮 且已摆摊数量为：{} 尝试图片识别摆摊按钮', currentBoothSetted])
-        let screen = commonFunctions.captureScreen()
-        let point = openCvUtil.findByGrayBase64(screen, viliageConfig.do_setup_booth)
-        if (point) {
-          automator.click(point.centerX(), point.centerY())
-          sleep(1000)
-          // 当前摆摊后数量增加1
-          currentBoothSetted += 1
-          automator.back()
-          return true
-        } else {
-          warnInfo('未能通过图片识别找到去摆摊')
-        }
-      }
-      return false
+      return !full
     }
+    warnInfo('未能通过OCR识别找到去摆摊')
+    return false
   }
 
   /**
