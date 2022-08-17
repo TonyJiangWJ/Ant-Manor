@@ -47,7 +47,7 @@
   <div style="margin-top: 1rem;">
     <div>
       <van-divider content-position="left">
-        摆摊黑名单设置 不去他家摆摊
+        摆摊黑名单设置 不邀请他来摆摊
         <van-button style="margin-left: 0.4rem" plain hairline type="primary" size="mini" @click="addBlack">增加</van-button>
       </van-divider>
       <van-cell-group>
@@ -80,11 +80,13 @@ const ViliageConfig = {
         empty_booth: '',
         my_booth: '',
         speed_award: '',
-        do_setup_booth: '',
         booth_position_left: [193, 1659, 436, 376],
         booth_position_right: [629, 1527, 386, 282],
         interval_time: 120,
+        viliage_reward_click_x: 550,
+        viliage_reward_click_y: 1180,
       },
+      timedUnit: '',
       validations: {
         interval_time: {
           required: true,
@@ -113,14 +115,31 @@ const ViliageConfig = {
     openGrayDetector: function () {
       $app.invoke('openGrayDetector', {})
     },
+    executeViliage: function () {
+      this.doSaveConfigs()
+      $app.invoke('executeTargetScript', '/unit/蚂蚁新村自动摆摊.js')
+    }
+  },
+  filters: {
+    displayTime: value => {
+      if (value && value.length > 0) {
+        return `[${value}]`
+      }
+      return ''
+    }
+  },
+  mounted () {
+    $nativeApi.request('queryTargetTimedTaskInfo', { path: '/unit/蚂蚁新村自动摆摊.js' }).then(r => this.timedUnit = r)
   },
   template: `
   <div>
     <tip-block style="margin: 0.5rem">区域输入框左滑可以通过滑块输入数值，也可以通过取色工具获取目标区域信息：<van-button style="margin-left: 0.4rem" plain hairline type="primary" size="mini" @click="openGrayDetector">打开取色工具</van-button></tip-block>
+    <tip-block><van-button plain hairline type="primary" size="mini" style="margin-right: 0.3rem;" @click="executeViliage">执行</van-button>unit/蚂蚁新村自动摆摊.js{{timedUnit|displayTime}}</tip-block>
     <base64-image-viewer title="校验是否进入新村界面" v-model="configs.checking_mail_box"/>
+    <number-field v-model="configs.viliage_reward_click_x" label-width="10rem" label="收取金币横坐标位置" placeholder="请输入横坐标位置" />
+    <number-field v-model="configs.viliage_reward_click_y" label-width="10rem" label="收取金币纵坐标位置" placeholder="请输入纵坐标位置" />
     <base64-image-viewer title="校验空摊位" v-model="configs.empty_booth"/>
-    <base64-image-viewer title="我的小摊" v-model="configs.my_booth"/>
-    <base64-image-viewer title="去摆摊" v-model="configs.do_setup_booth"/>
+    <base64-image-viewer title="摆摊赚币" v-model="configs.my_booth"/>
     <base64-image-viewer title="加速产豆" v-model="configs.speed_award"/>
     <region-input-field :array-value="true" v-model="configs.booth_position_left" label="校验左侧摊位OCR" label-width="12em" />
     <region-input-field :array-value="true" v-model="configs.booth_position_right" label="校验右侧摊位OCR" label-width="12em" />

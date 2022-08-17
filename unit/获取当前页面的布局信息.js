@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2020-04-29 14:44:49
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-10-19 17:52:05
+ * @Last Modified time: 2022-08-16 17:17:57
  * @Description: 
  */
 let { config } = require('../config.js')(runtime, global)
@@ -80,10 +80,12 @@ floatyInstance.close()
 if (uiObjectInfoList) {
   let timeCost = new Date().getTime() - start
   let total = uiObjectInfoList.length
+  let fullWidgetInfoList = uiObjectInfoList.map(v => v.toString(true)).join('\n')
   let logInfoList = uiObjectInfoList.filter(v => v && v.hasUsableInfo()).map(v => v.toString())
   // let content = removeMinPrefix(logInfoList).join('\n')
   let content = logInfoList.join('\n')
-  logUtils.infoLog('\n' + content)
+  logUtils.infoLog('简化信息：\n' + content)
+  logUtils.infoLog('完整信息：\n' + fullWidgetInfoList)
   logUtils.logInfo('布局层次结果已经保存到logs/info.log')
   dialogs.build({
     title: '布局分析结果',
@@ -110,7 +112,7 @@ function iterateAll (root, depth, index) {
   index = index || 0
   depth = depth || 0
   let uiObjectInfo = new UiObjectInfo(root, depth, index)
-  logUtils.logInfo(uiObjectInfo.toString())
+  logUtils.logInfo(uiObjectInfo.toString(true))
   if (root.getChildCount() > 0) {
     return [uiObjectInfo].concat(root.children().map((child, index) => iterateAll(child, depth + 1, index)))
   } else {
@@ -125,9 +127,10 @@ function UiObjectInfo (uiObject, depth, index) {
   this.boundsInfo = uiObject.bounds()
   this.depth = depth
   this.index = index
+  this.clickable = uiObject.clickable()
 
 
-  this.toString = function () {
+  this.toString = function (verbose) {
     return commonFunctions.formatString(
       // ----[depth:index] id:[] [text/desc]content:[] bounds:[]
       '{}[{}:{}]{}{}{}',
@@ -138,11 +141,12 @@ function UiObjectInfo (uiObject, depth, index) {
           '[{}]content:[{}]',
           (this.isDesc ? 'desc' : 'text'), this.content
         ),
-      this.hasUsableInfo() ? commonFunctions.formatString(
+      verbose || this.hasUsableInfo() ? commonFunctions.formatString(
         'bounds:[{}, {}, {}, {}]',
         this.boundsInfo.left, this.boundsInfo.top,
         this.boundsInfo.width(), this.boundsInfo.height()
-      ) : ''
+      ) : '',
+      verbose ? 'clickable: ' + this.clickable : ''
     )
   }
 

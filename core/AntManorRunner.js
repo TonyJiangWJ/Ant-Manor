@@ -9,6 +9,7 @@ let { logInfo: _logInfo, errorInfo: _errorInfo, warnInfo: _warnInfo, debugInfo: 
 let _FloatyInstance = singletonRequire('FloatyUtil')
 let fodderCollector = require('./FodderCollector.js')
 let BaiduOcrUtil = require('../lib/BaiduOcrUtil.js')
+let paddleOcr = singletonRequire('PaddleOcrUtil')
 let contentDefine = {
   soft: {
     personal_home: '进入个人鸡鸡页面',
@@ -376,12 +377,26 @@ function AntManorRunner () {
       debugInfo(['region:{}', JSON.stringify(config.COUNT_DOWN_REGION)])
       img = images.clip(img, region[0], region[1], region[2], region[3])
       img = images.interval(images.grayscale(img), '#FFFFFF', 50)
-      let base64Str = images.toBase64(img)
-      debugForDev(['image base64 [data:image/png;base64,{}]', base64Str])
-      let result = BaiduOcrUtil.recognizeGeneralText(base64Str)
+      let result = ''
+      if (config.usePaddle && paddleOcr.enabled) {
+        // 对图片进行二次放大 否则可能识别不准
+        img = images.resize(img, [parseInt(img.width * 2), parseInt(img.height * 2)])
+        // 对图片进行二次转换避免闪退 目前无法知道为什么
+        img = images.fromBase64(images.toBase64(images.resize(img, [parseInt(img.width * 2), parseInt(img.height * 2)])))
+        result = paddleOcr.recognize(img)
+        if (result) {
+          result = result.replace(/\n/g, '').replace(/\s/g, '')
+        }
+        debugInfo(['使用paddleOcr识别倒计时时间文本: {}', result])
+        debugInfo(['图片数据：[data:image/png;base64,{}]', images.toBase64(img)])
+      } else {
+        let base64Str = images.toBase64(img)
+        debugForDev(['image base64 [data:image/png;base64,{}]', base64Str])
+        result = BaiduOcrUtil.recognizeGeneralText(base64Str)
+        debugInfo(['使用百度API识别倒计时时间文本为：{}', JSON.stringify(result)])
+      }
       let hourMinutes = /(\d+)小时((\d+)分)?/
       let minuteSeconds = /(\d+)分((\d+)秒)?/
-      debugInfo(['识别倒计时时间文本为：{}', JSON.stringify(result)])
       let restTime = -1
       if (hourMinutes.test(result)) {
         let regexResult = hourMinutes.exec(result)

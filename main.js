@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2021-01-09 14:02:52
+ * @Last Modified time: 2022-07-14 09:13:11
  * @Description: 
  */
 let { config, storage_name } = require('./config.js')(runtime, this)
@@ -55,7 +55,7 @@ if (!commonFunctions.ensureAccessibilityEnabled()) {
   errorInfo('获取无障碍权限失败')
   exit()
 }
-
+commonFunctions.markExtendSuccess()
 logInfo('---前置校验完成;启动系统--->>>>')
 // 打印运行环境信息
 if (files.exists('version.json')) {

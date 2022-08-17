@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2021-01-09 14:24:27
+ * @Last Modified time: 2022-08-15 17:31:21
  * @Description: 
  */
 let currentEngine = engines.myEngine().getSource() + ''
@@ -45,6 +45,8 @@ var default_config = {
   lock_y: 970,
   // 锁屏启动关闭提示框
   dismiss_dialog_if_locked: true,
+  // 佛系模式
+  buddha_like_mode: false,
   // 单脚本模式 是否只运行一个脚本 不会同时使用其他的 开启单脚本模式 会取消任务队列的功能。
   // 比如同时使用其他脚本 则保持默认 false 否则设置为true 无视其他运行中的脚本
   single_script: false,
@@ -62,6 +64,7 @@ var default_config = {
   async_waiting_capture: true,
   capture_waiting_time: 500,
   useOcr: true,
+  usePaddle: true,
   apiKey: '0dGhhIf529lp1bB7vdH5vYFe',
   secretKey: 'Pk2M9CKcwsx0075Cslso0lUfIp8D5Lut',
   // 自动更新后需要强制执行的标记
@@ -209,6 +212,8 @@ let default_viliage_config = {
   booth_position_left: [193, 1659, 436, 376],
   booth_position_right: [629, 1527, 386, 282],
   booth_black_list: [],
+  viliage_reward_click_x: 550,
+  viliage_reward_click_y: 1180,
   interval_time: 120,
 }
 default_config.viliage_config = default_viliage_config
