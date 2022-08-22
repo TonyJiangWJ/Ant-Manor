@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2022-08-15 17:31:21
+ * @Last Modified time: 2022-08-18 14:10:53
  * @Description: 
  */
 let currentEngine = engines.myEngine().getSource() + ''
@@ -26,6 +26,8 @@ var default_config = {
   develop_mode: false,
   // 是否保存日志文件，如果设置为保存，则日志文件会按时间分片备份在logback/文件夹下
   save_log_file: true,
+  // 日志保留天数
+  log_saved_days: 3,
   // 异步写入日志文件
   async_save_log_file: true,
   back_size: '100',
@@ -222,6 +224,7 @@ config.viliage_config = convertDefaultData(default_viliage_config, CONFIG_STORAG
 let default_fodder_config = {
   fodder_btn: files.read(configDataPath + 'fodder/fodder_btn.data'),
   close_interval: files.read(configDataPath + 'fodder/close_interval.data'),
+  feed_package_full: '饲料袋.*满.*|知道了',
 }
 default_config.fodder_config = default_fodder_config
 config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_NAME + '_fodder')
