@@ -200,7 +200,7 @@ const Readme = {
     markdownContent: function () {
       let content = Base64.decode(this.base64Content)
       // console.log(content)
-      content = content.replace(/\(\.([^\)]+)\)/g, '(https://github.com/TonyJiangWJ/Ant-Manor/raw/master/$1)')
+      content = content.replace(/\(\.([^\)]+)\)/g, '(https://github.com/TonyJiangWJ/Ant-Manor/raw/master$1)')
       // console.log(content)
       return content
     }

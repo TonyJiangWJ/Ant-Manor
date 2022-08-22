@@ -56,7 +56,7 @@ function Collector () {
   }
 
   this.collectAllIfExists = function () {
-    let allCollect = widgetUtils.widgetGetAll('领取')
+    let allCollect = widgetUtils.widgetGetAll('^领取$')
     if (allCollect && allCollect.length > 0) {
       logUtils.logInfo(['找到了领取按钮：{}', allCollect.length])
       let allVisiableToUser = true
@@ -71,7 +71,7 @@ function Collector () {
         }
         sleep(500)
       })
-      let full = widgetUtils.widgetGetOne('饲料袋已满.*|知道了', 1000)
+      let full = widgetUtils.widgetGetOne(config.fodder_config.feed_package_full || '饲料袋.*满.*|知道了', 1000)
       if (full) {
         logUtils.warnInfo(['饲料袋已满'], true)
         automator.back()
