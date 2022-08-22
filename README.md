@@ -85,4 +85,4 @@ module.exports = function () {
 
 - 支付宝扫码领红包，你拿红包我也有份。
 
-- ![扫码领红包](./resources/扫码领红包.png)
+- ![扫码领红包](./resources/hongbao_qrcode.png)
