@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 23:07:35
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2020-09-27 14:14:39
+ * @Last Modified time: 2022-09-13 10:01:36
  * @Description: 星星球自动游玩
  */
 importClass(java.util.concurrent.LinkedBlockingQueue)
@@ -151,8 +151,9 @@ function Player () {
         _this.floatyWindow.content.setTextColor(android.graphics.Color.parseColor(colorStr))
       })
       this.floatyLock.unlock()
+    } else {
+      console.error('颜色配置无效:' + colorStr)
     }
-    console.error('颜色配置无效:' + colorStr)
   }
 
   this.setFloatyInfo = function (point, text) {

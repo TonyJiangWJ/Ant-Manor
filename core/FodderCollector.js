@@ -6,6 +6,7 @@ let widgetUtils = singletonRequire('WidgetUtils')
 let OpenCvUtil = require('../lib/OpenCvUtil.js')
 let automator = singletonRequire('Automator')
 let logUtils = singletonRequire('LogUtils')
+let paddleOcrUtil = singletonRequire('PaddleOcrUtil')
 
 function Collector () {
 
@@ -60,9 +61,10 @@ function Collector () {
     if (allCollect && allCollect.length > 0) {
       logUtils.logInfo(['找到了领取按钮：{}', allCollect.length])
       let allVisiableToUser = true
+      let screen = commonFunctions.checkCaptureScreenPermission()
       allCollect.forEach(collect => {
         logUtils.debugInfo(['可点击收集位置：{} {},{}', collect.visibleToUser(), collect.bounds().centerX(), collect.bounds().centerY()])
-        if (collect.visibleToUser()) {
+        if (collect.visibleToUser() && checkOcrText(/领取/, collect, screen)) {
           sleep(200)
           logUtils.debugInfo(['点击领取：'])
           automator.clickCenter(collect)
@@ -117,3 +119,21 @@ function Collector () {
 }
 
 module.exports = new Collector()
+
+
+
+function checkOcrText(regex, target, screen) {
+  if (!paddleOcrUtil.enabled) {
+    return true
+  }
+  let bounds = target.bounds()
+  screen = screen || commonFunctions.checkCaptureScreenPermission()
+  if (screen) {
+    let text = paddleOcrUtil.recognize(screen, [bounds.left, bounds.top, bounds.width(), bounds.height()])
+    if (text) {
+      text = text.replace(/\n/g, '')
+      return new RegExp(regex).test(regex)
+    }
+  }
+  return false
+}

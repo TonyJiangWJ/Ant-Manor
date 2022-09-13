@@ -381,8 +381,6 @@ function AntManorRunner () {
       if (config.usePaddle && paddleOcr.enabled) {
         // 对图片进行二次放大 否则可能识别不准
         img = images.resize(img, [parseInt(img.width * 2), parseInt(img.height * 2)])
-        // 对图片进行二次转换避免闪退 目前无法知道为什么
-        img = images.fromBase64(images.toBase64(images.resize(img, [parseInt(img.width * 2), parseInt(img.height * 2)])))
         result = paddleOcr.recognize(img)
         if (result) {
           result = result.replace(/\n/g, '').replace(/\s/g, '')
