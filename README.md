@@ -29,11 +29,17 @@
 - **蚂蚁新村自动摆摊使用说明**：运行 `可视化配置.js` ，进入 `蚂蚁新村配置` 修改需要识别的图片和OCR识别区域，默认图片可能并不适合所以分辨率的手机，请务必进行修改。
 - 修改完成后，运行一遍 `unit/蚂蚁新村自动摆摊.js`，后续将根据执行间隔自动设置定时任务无限循环。
 - 蚂蚁新村自动摆摊功能强依赖于封装的PaddleOCR 因此只有安装了[AutoJs Modify](https://github.com/TonyJiangWJ/Auto.js/releases/download/v4.1.1/AutoJS.Modify.latest.apk)才能正常使用
+- 取色工具请运行 `unit/灰度取色.js` 点击 `裁切小图` 可以框选区域或截取小图
 
 ### 识别区域配置参考
 
 - ![配置界面](https://user-images.githubusercontent.com/11325805/114294987-db6c8a80-9ad4-11eb-9a7d-b12e28d53f45.png)
 - ![捡屎配置](https://user-images.githubusercontent.com/11325805/114295015-09ea6580-9ad5-11eb-9705-1674e214fa8f.png)
+
+### 蚂蚁新村配置说明
+
+- 驱赶好友摊位的OCR识别区域需要按如下配置，框选后区域数据在最下面的 `位置` 点击即可复制，此时也可以测试OCR是否可用。区域中心点需要覆盖摊位，因为点击位置取的是中心点。
+- ![OCR识别](https://user-images.githubusercontent.com/11325805/189831229-f5c9bc99-0599-4cc9-b798-d7da2119e799.jpg)
 
 ## 配置
 
