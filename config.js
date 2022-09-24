@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2022-08-18 14:10:53
+ * @Last Modified time: 2022-09-24 19:26:08
  * @Description: 
  */
 let currentEngine = engines.myEngine().getSource() + ''
@@ -49,6 +49,8 @@ var default_config = {
   dismiss_dialog_if_locked: true,
   // 佛系模式
   buddha_like_mode: false,
+  // 多设备可信登录
+  multi_device_login: false,
   // 单脚本模式 是否只运行一个脚本 不会同时使用其他的 开启单脚本模式 会取消任务队列的功能。
   // 比如同时使用其他脚本 则保持默认 false 否则设置为true 无视其他运行中的脚本
   single_script: false,
@@ -65,8 +67,8 @@ var default_config = {
   bang_offset: 0,
   async_waiting_capture: true,
   capture_waiting_time: 500,
-  useOcr: true,
-  usePaddle: true,
+  // 本地ocr优先级
+  local_ocr_priority: 'auto',
   apiKey: '0dGhhIf529lp1bB7vdH5vYFe',
   secretKey: 'Pk2M9CKcwsx0075Cslso0lUfIp8D5Lut',
   // 自动更新后需要强制执行的标记

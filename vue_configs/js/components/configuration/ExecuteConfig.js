@@ -7,6 +7,11 @@
   mixins: [mixin_common],
   data () {
     return {
+      ocrPriorityOptions: [
+        { text: '自动', value: 'auto' },
+        { text: 'mlkit优先', value: 'mlkit' },
+        { text: 'paddle优先', value: 'paddle' },
+      ],
       configs: {
         // 是否使用加速卡 默认为true
         useSpeedCard: true,
@@ -17,15 +22,22 @@
         recheckTime: 5,
         feed_cycle_time: 300,
         speeded_feed_cycle_time: 240,
-        usePaddle: true,
+        // 本地ocr优先级
+        local_ocr_priority: 'auto',
       }
     }
   },
   template: `<div>
     <switch-cell title="是否使用加速卡" v-model="configs.useSpeedCard" />
     <switch-cell title="是否捡屎" v-model="configs.pick_shit" />
-    <tip-block>本地OCR需要指定的修改版AutoJS才可以使用，不支持或者关闭后将自动使用百度文本识别API进行识别</tip-block>
-    <switch-cell title="是否使用本地ocr" v-model="configs.usePaddle" />
+    <tip-block>当前OCR的机制是 如果已安装mlkitOcr插件则自动使用mlkit，未安装则尝试PaddleOCR（需要修改版AutoJS支持），AutoJS不支持则使用百度在线OCR，百度OCR有次数限制仅获取倒计时使用百度OCR，蚂蚁新村将无法使用</tip-block>
+    <van-cell title="本地OCR优先级">
+      <template #right-icon>
+        <van-dropdown-menu active-color="#1989fa" class="cell-dropdown">
+          <van-dropdown-item v-model="configs.local_ocr_priority" :options="ocrPriorityOptions" />
+        </van-dropdown-menu>
+      </template>
+    </van-cell>
     <tip-block>脚本当前执行逻辑是，第一次喂食后等待20分钟，然后根据[循环检测等待时间]循环多次直到找到偷吃的野鸡或者达到40分钟后，
       根据倒计时（通过OCR识别，识别失败通过程序计算大约值）重新创建定时任务，定时任务会往后延期[喂食等待窗口时间]</tip-block>
     <tip-block>喂食等待窗口时间是为了避免倒计时计算不准确而加入的冗余时间，不建议设置成0</tip-block>

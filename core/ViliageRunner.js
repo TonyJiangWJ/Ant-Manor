@@ -7,7 +7,7 @@ let automator = singletonRequire('Automator')
 let FileUtils = singletonRequire('FileUtils')
 let openCvUtil = require('../lib/OpenCvUtil.js')
 let FloatyInstance = singletonRequire('FloatyUtil')
-let paddleOcr = singletonRequire('PaddleOcrUtil')
+let localOcr = require('../lib/LocalOcrUtil.js')
 FloatyInstance.enableLog()
 
 let viliageConfig = config.viliage_config
@@ -45,7 +45,23 @@ function VillageRunner () {
       packageName: 'com.eg.android.AlipayGphone'
     })
     sleep(1000)
+    openAlipayMultiLogin()
     waitForLoading()
+  }
+
+  function openAlipayMultiLogin (reopen) {
+    if (config.multi_device_login && !reopen) {
+      debugInfo(['已开启多设备自动登录检测，检查是否有 进入支付宝 按钮'])
+      let entryBtn = _widgetUtils.widgetGetOne(/^进入支付宝$/, 1000)
+      if (entryBtn) {
+        automator.clickCenter(entryBtn)
+        sleep(1000)
+        startApp()
+        return true
+      } else {
+        debugInfo(['未找到 进入支付宝 按钮'])
+      }
+    }
   }
 
   /**
@@ -106,13 +122,18 @@ function VillageRunner () {
    * @param {array: [left, top, width, height]} region 
    */
   function doCheckAndDriveOut (screen, region) {
-    if (!paddleOcr.enabled) {
-      warnInfo('paddleOcr初始化失败 或者当前版本AutoJs不支持PaddleOcr')
+    if (!localOcr.enabled) {
+      warnInfo('本地Ocr初始化失败 或者当前版本AutoJs不支持Ocr')
       return
     }
-    let recognizeText = paddleOcr.recognize(screen, region)
+    let clipImg = images.clip(screen, region[0],region[1],region[2],region[3])
+    if (localOcr.type == 'mlkit') {
+      // 识别准确率太低 进行放大
+      clipImg = images.resize(clipImg, [clipImg.getWidth() * 2, clipImg.getHeight() * 2])
+    }
+    let recognizeText = localOcr.recognize(clipImg)
     debugInfo(['识别文本：{}', recognizeText])
-    let regex = /.*(已停产|剩余经营.*)/
+    let regex = /.*(已停产|经营.*)/
     if (regex.test(recognizeText)) {
       FloatyInstance.setFloatyInfo({ x: region[0], y: region[1] }, '摊位超时：' + recognizeText)
       sleep(1000)
@@ -359,7 +380,7 @@ function VillageRunner () {
     logInfo('当前已摆摊数量：' + currentBoothSetted)
     let full = currentBoothSetted >= 3
     let screen = commonFunctions.captureScreen()
-    let findText = paddleOcr.recognizeWithBounds(screen, [config.device_width / 2, config.device_height / 2], '去摆摊')
+    let findText = localOcr.recognizeWithBounds(screen, [config.device_width / 2, config.device_height / 2], '去摆摊')
     if (findText && findText.length > 0) {
       let point = findText[0].bounds
       FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '去摆摊')

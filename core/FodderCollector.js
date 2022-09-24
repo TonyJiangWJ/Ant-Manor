@@ -6,7 +6,7 @@ let widgetUtils = singletonRequire('WidgetUtils')
 let OpenCvUtil = require('../lib/OpenCvUtil.js')
 let automator = singletonRequire('Automator')
 let logUtils = singletonRequire('LogUtils')
-let paddleOcrUtil = singletonRequire('PaddleOcrUtil')
+let localOcr = require('../lib/LocalOcrUtil.js')
 
 function Collector () {
 
@@ -123,13 +123,13 @@ module.exports = new Collector()
 
 
 function checkOcrText(regex, target, screen) {
-  if (!paddleOcrUtil.enabled) {
+  if (!localOcr.enabled) {
     return true
   }
   let bounds = target.bounds()
   screen = screen || commonFunctions.checkCaptureScreenPermission()
   if (screen) {
-    let text = paddleOcrUtil.recognize(screen, [bounds.left, bounds.top, bounds.width(), bounds.height()])
+    let text = localOcr.recognize(screen, [bounds.left, bounds.top, bounds.width(), bounds.height()])
     if (text) {
       text = text.replace(/\n/g, '')
       return new RegExp(regex).test(regex)
