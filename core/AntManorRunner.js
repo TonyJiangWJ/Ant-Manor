@@ -9,7 +9,7 @@ let { logInfo: _logInfo, errorInfo: _errorInfo, warnInfo: _warnInfo, debugInfo: 
 let _FloatyInstance = singletonRequire('FloatyUtil')
 let fodderCollector = require('./FodderCollector.js')
 let BaiduOcrUtil = require('../lib/BaiduOcrUtil.js')
-let paddleOcr = singletonRequire('PaddleOcrUtil')
+let localOcr = require('../lib/LocalOcrUtil.js')
 let contentDefine = {
   soft: {
     personal_home: '进入个人鸡鸡页面',
@@ -45,6 +45,9 @@ function AntManorRunner () {
       data: 'alipays://platformapi/startapp?appId=66666674',
       packageName: 'com.eg.android.AlipayGphone'
     })
+
+    openAlipayMultiLogin()
+
     if (config.is_alipay_locked) {
       sleep(1000)
       alipayUnlocker.unlockAlipay()
@@ -371,41 +374,38 @@ function AntManorRunner () {
   }
 
   this.recognizeCountdownByOcr = function () {
-    if (config.useOcr) {
-      let img = _commonFunctions.checkCaptureScreenPermission()
-      let region = config.COUNT_DOWN_REGION
-      debugInfo(['region:{}', JSON.stringify(config.COUNT_DOWN_REGION)])
-      img = images.clip(img, region[0], region[1], region[2], region[3])
-      img = images.interval(images.grayscale(img), '#FFFFFF', 50)
-      let result = ''
-      if (config.usePaddle && paddleOcr.enabled) {
-        // 对图片进行二次放大 否则可能识别不准
-        img = images.resize(img, [parseInt(img.width * 2), parseInt(img.height * 2)])
-        result = paddleOcr.recognize(img)
-        if (result) {
-          result = result.replace(/\n/g, '').replace(/\s/g, '')
-        }
-        debugInfo(['使用paddleOcr识别倒计时时间文本: {}', result])
-        debugInfo(['图片数据：[data:image/png;base64,{}]', images.toBase64(img)])
-      } else {
-        let base64Str = images.toBase64(img)
-        debugForDev(['image base64 [data:image/png;base64,{}]', base64Str])
-        result = BaiduOcrUtil.recognizeGeneralText(base64Str)
-        debugInfo(['使用百度API识别倒计时时间文本为：{}', JSON.stringify(result)])
+    let img = _commonFunctions.checkCaptureScreenPermission()
+    let region = config.COUNT_DOWN_REGION
+    debugInfo(['region:{}', JSON.stringify(config.COUNT_DOWN_REGION)])
+    img = images.clip(img, region[0], region[1], region[2], region[3])
+    img = images.interval(images.grayscale(img), '#FFFFFF', 50)
+    let result = ''
+    if (localOcr.enabled) {
+      // 对图片进行二次放大 否则可能识别不准
+      img = images.resize(img, [parseInt(img.width * 2), parseInt(img.height * 2)])
+      result = localOcr.recognize(img)
+      if (result) {
+        result = result.replace(/\n/g, '').replace(/\s/g, '')
       }
-      let hourMinutes = /(\d+)小时((\d+)分)?/
-      let minuteSeconds = /(\d+)分((\d+)秒)?/
-      let restTime = -1
-      if (hourMinutes.test(result)) {
-        let regexResult = hourMinutes.exec(result)
-        restTime = this.resolveOverflowNumber(regexResult[1]) * 60 + (regexResult[2] ? this.resolveOverflowNumber(regexResult[2]) : 0)
-      } else if (minuteSeconds.test(result)) {
-        restTime = this.resolveOverflowNumber(minuteSeconds.exec(result)[1]) + 1
-      }
-      debugInfo('计算得到剩余时间：' + restTime + '分')
-      return restTime
+      debugInfo(['使用{}ocr识别倒计时时间文本: {}', localOcr.type, result])
+      debugInfo(['图片数据：[data:image/png;base64,{}]', images.toBase64(img)])
+    } else {
+      let base64Str = images.toBase64(img)
+      debugForDev(['image base64 [data:image/png;base64,{}]', base64Str])
+      result = BaiduOcrUtil.recognizeGeneralText(base64Str)
+      debugInfo(['使用百度API识别倒计时时间文本为：{}', JSON.stringify(result)])
     }
-    return -1
+    let hourMinutes = /(\d+)小时((\d+)分)?/
+    let minuteSeconds = /(\d+)分((\d+)秒)?/
+    let restTime = -1
+    if (hourMinutes.test(result)) {
+      let regexResult = hourMinutes.exec(result)
+      restTime = this.resolveOverflowNumber(regexResult[1]) * 60 + (regexResult[2] ? this.resolveOverflowNumber(regexResult[2]) : 0)
+    } else if (minuteSeconds.test(result)) {
+      restTime = this.resolveOverflowNumber(minuteSeconds.exec(result)[1]) + 1
+    }
+    debugInfo('计算得到剩余时间：' + restTime + '分')
+    return restTime
   }
 
   /**
@@ -457,3 +457,19 @@ function AntManorRunner () {
 }
 
 module.exports = new AntManorRunner()
+
+
+function openAlipayMultiLogin (reopen) {
+  if (config.multi_device_login && !reopen) {
+    debugInfo(['已开启多设备自动登录检测，检查是否有 进入支付宝 按钮'])
+    let entryBtn = _widgetUtils.widgetGetOne(/^进入支付宝$/, 1000)
+    if (entryBtn) {
+      automator.clickCenter(entryBtn)
+      sleep(1000)
+      startApp()
+      return true
+    } else {
+      debugInfo(['未找到 进入支付宝 按钮'])
+    }
+  }
+}
