@@ -42,7 +42,7 @@ commonFunctions.showCommonDialogAndWait('蚂蚁庄园自动捐蛋')
 commonFunctions.listenDelayStart()
 commonFunctions.requestScreenCaptureOrRestart(true)
 manorRunner.launchApp()
-
+config.donate_egg = config.donate_egg || {}
 if (doDonateEgg()) {
   infoLog('捐蛋成功')
 } else {
@@ -62,7 +62,7 @@ exit()
 
 function doDonateEgg() {
   // 点击捐蛋
-  automator.click(530, 2100)
+  automator.click(config.donate_egg.x || 530, config.donate_egg.y || 2100)
   sleep(2000)
   let donateEgg = findByWidgetAndRecheckByOcr('去捐蛋')
   if (donateEgg) {

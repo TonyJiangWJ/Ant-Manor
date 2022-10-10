@@ -7,6 +7,7 @@ let _commonFunctions = singletonRequire('CommonFunction')
 let alipayUnlocker = singletonRequire('AlipayUnlocker')
 let { logInfo: _logInfo, errorInfo: _errorInfo, warnInfo: _warnInfo, debugInfo: _debugInfo, infoLog: _infoLog } = singletonRequire('LogUtils')
 let _FloatyInstance = singletonRequire('FloatyUtil')
+_FloatyInstance.enableLog()
 let fodderCollector = require('./FodderCollector.js')
 let BaiduOcrUtil = require('../lib/BaiduOcrUtil.js')
 let localOcr = require('../lib/LocalOcrUtil.js')
@@ -125,6 +126,38 @@ function AntManorRunner () {
     } else {
       this.setFloatyInfo(null, '没找到关闭按钮，奇了怪了')
     }
+  }
+
+  this.checkIsSleeping = function (notExit) {
+    let currentHours = new Date().getHours()
+    if (currentHours > 6 && currentHours < 20) {
+      // 晚上八点到早上6点检查是否睡觉中 其他时间跳过
+      _debugInfo(['当前时间{} 不在晚上八点和早上6点之间', currentHours])
+      return false
+    }
+    if (!localOcr.enabled) {
+      _warnInfo(['请至少安装mlkit-ocr插件或者修改版AutoJS获取本地OCR能力'])
+      return false
+    }
+    let screen = _commonFunctions.checkCaptureScreenPermission()
+    let sleepWidget = localOcr.recognizeWithBounds(screen, null, '睡觉中')
+    if (sleepWidget && sleepWidget.length > 0) {
+      let sleepBounds = sleepWidget[0].bounds
+      _debugInfo(['find text: {}', sleepWidget[0].label])
+      this.setFloatyInfo({ x: sleepBounds.left, y: sleepBounds.top }, '小鸡睡觉中')
+      sleep(1000)
+      // 设置第二天早上六点05启动 计算间隔时间
+      _commonFunctions.setUpAutoStart(6 * 60 + 24 * 60 - (21 * 60 + new Date().getMinutes()) + 5)
+      _commonFunctions.minimize()
+      resourceMonitor.releaseAll()
+      _runningQueueDispatcher.removeRunningTask()
+      if (notExit) {
+        return true
+      } else {
+        exit()
+      }
+    }
+    return false
   }
 
   this.checkIsOut = function () {
@@ -434,6 +467,7 @@ function AntManorRunner () {
     this.launchApp()
     this.setFloatyInfo(null, '打开APP成功！')
     sleep(1000)
+    this.checkIsSleeping()
     this.checkIsOut()
     let punchedLeft = this.checkThiefLeft()
     let punchedRight = this.checkThiefRight()

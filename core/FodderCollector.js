@@ -56,15 +56,18 @@ function Collector () {
     }
   }
 
-  this.collectAllIfExists = function () {
+  this.collectAllIfExists = function (lastTotal, findTime) {
+    if (findTime > 5) {
+      return
+    }
     let allCollect = widgetUtils.widgetGetAll('^领取$')
     if (allCollect && allCollect.length > 0) {
-      logUtils.logInfo(['找到了领取按钮：{}', allCollect.length])
+      let total = allCollect.length
+      logUtils.logInfo(['找到了领取按钮：{}', total])
       let allVisiableToUser = true
-      let screen = commonFunctions.checkCaptureScreenPermission()
       allCollect.forEach(collect => {
-        logUtils.debugInfo(['可点击收集位置：{} {},{}', collect.visibleToUser(), collect.bounds().centerX(), collect.bounds().centerY()])
-        if (collect.visibleToUser() && checkOcrText(/领取/, collect, screen)) {
+        logUtils.debugInfo(['领取按钮 是否可见{} 位置：{},{}', collect.visibleToUser(), collect.bounds().centerX(), collect.bounds().centerY()])
+        if (collect.visibleToUser() && checkIsValid(collect)) {
           sleep(200)
           logUtils.debugInfo(['点击领取：'])
           automator.clickCenter(collect)
@@ -88,7 +91,12 @@ function Collector () {
         automator.gestureDown(startY, endY)
       }
       sleep(500)
-      this.collectAllIfExists()
+      if (lastTotal == total && !findTime) {
+        findTime = 1
+      } else {
+        findTime = null
+      }
+      this.collectAllIfExists(total, findTime ? findTime + 1 : null)
     } else {
       logUtils.warnInfo(['无可领取饲料'], true)
       let screen = commonFunctions.captureScreen()
@@ -120,16 +128,45 @@ function Collector () {
 
 module.exports = new Collector()
 
+/**
+ * 判断高度是否符合条件
+ *
+ * @param {UIObject} target 
+ * @returns 
+ */
+function checkIsValid (target) {
+  let bounds = target.bounds()
+  if (bounds.height() < 10) {
+    logUtils.debugInfo(['控件高度小于10，无效控件'])
+    return false
+  }
+  return true
+}
 
-
-function checkOcrText(regex, target, screen) {
+/**
+ * @deprecated OCR不准放弃 
+ * @param {*} regex 
+ * @param {*} target 
+ * @param {*} screen 
+ * @returns 
+ */
+function checkOcrText (regex, target, screen) {
+  let bounds = target.bounds()
+  if (bounds.height() < 10) {
+    logUtils.debugInfo(['控件高度小于10，无效控件'])
+    return false
+  }
   if (!localOcr.enabled) {
     return true
   }
-  let bounds = target.bounds()
   screen = screen || commonFunctions.checkCaptureScreenPermission()
   if (screen) {
-    let text = localOcr.recognize(screen, [bounds.left, bounds.top, bounds.width(), bounds.height()])
+    let region = [bounds.left, bounds.top, bounds.width(), bounds.height()]
+    logUtils.debugInfo(['截取图片信息: data:image/png;base64,{}', images.toBase64(images.clip(screen, region[0], region[1], region[2], region[3]))])
+    // 进行灰度处理 降低干扰
+    screen = images.grayscale(screen)
+    logUtils.debugInfo(['校验图片区域文字信息：{}', JSON.stringify(region)])
+    let text = localOcr.recognize(screen, region)
     if (text) {
       text = text.replace(/\n/g, '')
       return new RegExp(regex).test(regex)

@@ -8,7 +8,7 @@ let automator = singletonRequire('Automator')
 let callStateListener = !config.is_pro && config.enable_call_state_control ? singletonRequire('CallStateListener') : { exitIfNotIdle: () => { } }
 let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile, flushAllLogs } = singletonRequire('LogUtils')
 let resourceMonitor = require('../lib/ResourceMonitor.js')(runtime, this)
-let viliageRunner = require('../core/ViliageRunner.js')
+let villageRunner = require('../core/VillageRunner.js')
 let unlocker = require('../lib/Unlock.js')
 
 logInfo('======加入任务队列，并关闭重复运行的脚本=======')
@@ -43,7 +43,7 @@ commonFunctions.showCommonDialogAndWait('蚂蚁新村自动摆摊')
 commonFunctions.listenDelayStart()
 commonFunctions.requestScreenCaptureOrRestart(true)
 
-viliageRunner.exec()
+villageRunner.exec()
 
 commonFunctions.minimize()
 

@@ -4,15 +4,15 @@ let FileUtils = singletonRequire('FileUtils')
 let currentWorkPath = FileUtils.getCurrentWorkPath()
 let configPath = currentWorkPath + '/config_data/'
 
-let viliage_config = config.viliage_config
+let village_config = config.village_config
 let fodder_config = config.fodder_config
 
 console.show()
-Object.keys(viliage_config).forEach(key => {
-  let filePath = configPath + 'viliage/' + key + '.data'
+Object.keys(village_config).forEach(key => {
+  let filePath = configPath + 'village/' + key + '.data'
   if (files.exists(filePath)) {
     console.verbose('导出配置：', key)
-    files.write(filePath, viliage_config[key])
+    files.write(filePath, village_config[key])
   } else {
     console.warn('配置文件不存在 跳过导出：', key)
   }

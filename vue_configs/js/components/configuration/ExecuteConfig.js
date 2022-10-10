@@ -24,6 +24,20 @@
         speeded_feed_cycle_time: 240,
         // 本地ocr优先级
         local_ocr_priority: 'auto',
+        // 小鸡睡觉配置
+        to_sleep_entry: {
+          x: 860,
+          y: 1220
+        },
+        to_sleep_bed: {
+          x: 200,
+          y: 740
+        },
+        // 捐蛋按钮位置
+        donate_egg: {
+          x: 530,
+          y: 2100
+        },
       }
     }
   },
@@ -57,5 +71,10 @@
       <template #right-icon><span>分</span></template>
     </number-field>
     <number-field v-model="configs.starBallScore" label="星星球目标分数" label-width="10em" placeholder="请输入星星球目标分数" />
+    <tip-block>可以每天晚上八点到早上六点自动去睡觉，对 unit/去睡觉.js 创建每天晚上八点后的定时任务即可</tip-block>
+    <position-input-field v-model="configs.to_sleep_entry" label="小鸡睡觉入口" label-width="12em" />
+    <position-input-field v-model="configs.to_sleep_bed" label="小鸡床的位置" label-width="12em" />
+    <tip-block>自动捐蛋配置，配置捐蛋按钮位置 对 unit/自动捐蛋.js 创建每天的定时任务即可</tip-block>
+    <position-input-field v-model="configs.donate_egg" label="捐蛋按钮位置" label-width="12em" />
   </div>`
 }
