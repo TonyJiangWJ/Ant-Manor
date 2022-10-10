@@ -11,7 +11,7 @@ const loadJsList = [
   './js/components/configuration/ColorRegionConfig.js',
   './js/components/configuration/ExecuteConfig.js',
   './js/components/configuration/FodderConfig.js',
-  './js/components/configuration/ViliageConfig.js',
+  './js/components/configuration/VillageConfig.js',
   './js/components/configuration/QuestionAnswer.js',
   './js/components/Index.js',
 ]

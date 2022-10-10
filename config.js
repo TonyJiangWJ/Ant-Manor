@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2022-09-24 19:26:08
+ * @Last Modified time: 2022-10-10 21:51:37
  * @Description: 
  */
 let currentEngine = engines.myEngine().getSource() + ''
@@ -94,6 +94,20 @@ var default_config = {
   history_tag_url: 'https://api.github.com/repos/TonyJiangWJ/Ant-Manor/tags',
   feed_cycle_time: 300,
   speeded_feed_cycle_time: 240,
+  // 小鸡睡觉配置
+  to_sleep_entry: {
+    x: 860,
+    y: 1220
+  },
+  to_sleep_bed: {
+    x: 200,
+    y: 740
+  },
+  // 捐蛋按钮位置
+  donate_egg: {
+    x: 530,
+    y: 2100
+  },
   // 区域信息配置
   CHECK_APP_COLOR: '#f1381a',         // 校验蚂蚁庄园是否打开成功的颜色
   CHECK_FRIENDS_COLOR: '#fad082',     // 校验是否成功进入好友首页的颜色
@@ -207,21 +221,23 @@ config.overwrite = (key, value) => {
 let workpath = getCurrentWorkPath()
 let configDataPath = workpath + '/config_data/'
 // 蚂蚁新村识图配置
-let default_viliage_config = {
-  checking_mail_box: files.read(configDataPath + 'viliage/checking_mail_box.data'),
-  empty_booth: files.read(configDataPath + 'viliage/empty_booth.data'),
-  my_booth: files.read(configDataPath + 'viliage/my_booth.data'),
-  speed_award: files.read(configDataPath + 'viliage/speed_award.data'),
-  do_setup_booth: files.read(configDataPath + 'viliage/do_setup_booth.data'),
+let default_village_config = {
+  checking_mail_box: files.read(configDataPath + 'village/checking_mail_box.data'),
+  empty_booth: files.read(configDataPath + 'village/empty_booth.data'),
+  my_booth: files.read(configDataPath + 'village/my_booth.data'),
+  speed_award: files.read(configDataPath + 'village/speed_award.data'),
+  do_setup_booth: files.read(configDataPath + 'village/do_setup_booth.data'),
   booth_position_left: [193, 1659, 436, 376],
   booth_position_right: [629, 1527, 386, 282],
   booth_black_list: [],
-  viliage_reward_click_x: 550,
-  viliage_reward_click_y: 1180,
+  village_reward_click_x: 550,
+  village_reward_click_y: 1180,
   interval_time: 120,
 }
-default_config.viliage_config = default_viliage_config
-config.viliage_config = convertDefaultData(default_viliage_config, CONFIG_STORAGE_NAME + '_viliage')
+default_config.village_config = default_village_config
+// 兼容旧版本
+let tempConfig = convertDefaultData(default_village_config, CONFIG_STORAGE_NAME + '_viliage')
+config.village_config = convertDefaultData(tempConfig, CONFIG_STORAGE_NAME + '_village')
 // 领饲料配置
 let default_fodder_config = {
   fodder_btn: files.read(configDataPath + 'fodder/fodder_btn.data'),

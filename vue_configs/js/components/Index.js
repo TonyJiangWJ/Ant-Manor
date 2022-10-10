@@ -17,7 +17,7 @@ let Index = {
         },
         {
           title: '蚂蚁新村配置',
-          link: '/viliage/viliageConfig'
+          link: '/village/villageConfig'
         },
         {
           title: '领饲料配置',

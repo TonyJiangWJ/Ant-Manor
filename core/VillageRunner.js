@@ -10,19 +10,19 @@ let FloatyInstance = singletonRequire('FloatyUtil')
 let localOcr = require('../lib/LocalOcrUtil.js')
 FloatyInstance.enableLog()
 
-let viliageConfig = config.viliage_config
+let villageConfig = config.village_config
 // 摆摊摊位框选 带文字
-viliageConfig.booth_position_left = viliageConfig.booth_position_left || [193, 1659, 436, 376]
-viliageConfig.booth_position_right = viliageConfig.booth_position_right || [629, 1527, 386, 282]
+villageConfig.booth_position_left = villageConfig.booth_position_left || [193, 1659, 436, 376]
+villageConfig.booth_position_right = villageConfig.booth_position_right || [629, 1527, 386, 282]
 function VillageRunner () {
   // 当前一摆摊的摊位
   let currentBoothSetted = 0
   this.exec = function () {
     try {
-      openMyViliage()
+      openMyVillage()
       sleep(1000)
       // 自动点击自己的能量豆
-      automator.click(viliageConfig.viliage_reward_click_x, viliageConfig.viliage_reward_click_y)
+      automator.click(villageConfig.village_reward_click_x, villageConfig.village_reward_click_y)
       sleep(500)
       // 加速产豆
       speedAward()
@@ -30,7 +30,7 @@ function VillageRunner () {
       checkAnyEmptyBooth()
       checkMyBooth()
       // 设置2小时后启动
-      commonFunctions.setUpAutoStart(viliageConfig.interval_time || 120)
+      commonFunctions.setUpAutoStart(villageConfig.interval_time || 120)
     } catch (e) {
       errorInfo('执行异常 五分钟后重试' + e)
       commonFunctions.setUpAutoStart(5)
@@ -38,7 +38,7 @@ function VillageRunner () {
     }
   }
 
-  function openMyViliage () {
+  function openMyVillage () {
     app.startActivity({
       action: 'VIEW',
       data: 'alipays://platformapi/startapp?appId=68687809',
@@ -69,13 +69,13 @@ function VillageRunner () {
    */
   function waitForLoading () {
     let screen = commonFunctions.captureScreen()
-    let findPoint = openCvUtil.findByGrayBase64(screen, viliageConfig.checking_mail_box)
+    let findPoint = openCvUtil.findByGrayBase64(screen, villageConfig.checking_mail_box)
     // 等待五秒
     let limit = 5
     while (limit-- > 0 && !findPoint) {
       sleep(1000)
       screen = commonFunctions.captureScreen()
-      findPoint = openCvUtil.findByGrayBase64(screen, viliageConfig.checking_mail_box)
+      findPoint = openCvUtil.findByGrayBase64(screen, villageConfig.checking_mail_box)
     }
     if (!!findPoint) {
       FloatyInstance.setFloatyInfo({ x: findPoint.centerX(), y: findPoint.centerY() }, '打开蚂蚁新村成功')
@@ -92,7 +92,7 @@ function VillageRunner () {
     FloatyInstance.setFloatyText('准备查找是否有空位')
     sleep(1000)
     let screen = commonFunctions.captureScreen()
-    let point = openCvUtil.findByGrayBase64(screen, viliageConfig.empty_booth)
+    let point = openCvUtil.findByGrayBase64(screen, villageConfig.empty_booth)
     if (point) {
       FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '有空位')
       sleep(1000)
@@ -107,8 +107,8 @@ function VillageRunner () {
       warnInfo('无空位', true)
       let haveDriveOut = false
       // 移除超过一定时间的好友摊位
-      haveDriveOut |= !!doCheckAndDriveOut(screen, viliageConfig.booth_position_left)
-      haveDriveOut |= !!doCheckAndDriveOut(screen, viliageConfig.booth_position_right)
+      haveDriveOut |= !!doCheckAndDriveOut(screen, villageConfig.booth_position_left)
+      haveDriveOut |= !!doCheckAndDriveOut(screen, villageConfig.booth_position_right)
       sleep(1000)
       if (haveDriveOut) {
         checkAnyEmptyBooth(true)
@@ -189,8 +189,8 @@ function VillageRunner () {
             debugInfo(['好友：{} 不能邀请：{}', name, inviteText])
             return
           }
-          if (typeof viliageConfig != 'undefined' && viliageConfig.booth_black_list && viliageConfig.booth_black_list.length > 0) {
-            if (viliageConfig.booth_black_list.indexOf(name) > -1) {
+          if (typeof villageConfig != 'undefined' && villageConfig.booth_black_list && villageConfig.booth_black_list.length > 0) {
+            if (villageConfig.booth_black_list.indexOf(name) > -1) {
               debugInfo(['{} 在黑名单中 跳过邀请', name])
               return
             }
@@ -223,7 +223,7 @@ function VillageRunner () {
    */
   function checkMyBooth () {
     let screen = commonFunctions.captureScreen()
-    let point = openCvUtil.findByGrayBase64(screen, viliageConfig.my_booth)
+    let point = openCvUtil.findByGrayBase64(screen, villageConfig.my_booth)
     if (point) {
       FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '找到了我的小摊按钮')
       sleep(500)
@@ -313,9 +313,9 @@ function VillageRunner () {
         // 降序排列
         return b.value - a.value
       })
-      if (viliageConfig.booth_black_list && viliageConfig.booth_black_list.length > 0) {
-        debugInfo(['过滤黑名单：{}', JSON.stringify(viliageConfig.booth_black_list)])
-        sortedBooth = sortedBooth.filter(booth => viliageConfig.booth_black_list.indexOf(booth.friendName) < 0)
+      if (villageConfig.booth_black_list && villageConfig.booth_black_list.length > 0) {
+        debugInfo(['过滤黑名单：{}', JSON.stringify(villageConfig.booth_black_list)])
+        sortedBooth = sortedBooth.filter(booth => villageConfig.booth_black_list.indexOf(booth.friendName) < 0)
       }
       if (sortedBooth && sortedBooth.length > 0) {
         let emptyBooth = sortedBooth[0]
@@ -346,7 +346,7 @@ function VillageRunner () {
   function setupToEmptyBooth () {
     FloatyInstance.setFloatyPosition(0, 0)
     let screen = commonFunctions.captureScreen()
-    let point = openCvUtil.findByGrayBase64(screen, viliageConfig.empty_booth)
+    let point = openCvUtil.findByGrayBase64(screen, villageConfig.empty_booth)
     if (point) {
       FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '有空位')
       sleep(1000)
@@ -404,7 +404,7 @@ function VillageRunner () {
       return
     }
     let screen = commonFunctions.captureScreen()
-    let point = openCvUtil.findByGrayBase64(screen, viliageConfig.speed_award)
+    let point = openCvUtil.findByGrayBase64(screen, villageConfig.speed_award)
     if (point) {
       FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '加速产豆')
       sleep(1000)

@@ -34,8 +34,8 @@ if (avatarList && avatarList.length > 0) {
         debugInfo(['好友：{} 不能邀请：{}', name, inviteText])
         return
       }
-      if (typeof viliageConfig != 'undefined' && viliageConfig.booth_black_list && viliageConfig.booth_black_list.length > 0) {
-        if (viliageConfig.booth_black_list.indexOf(name) > -1) {
+      if (typeof villageConfig != 'undefined' && villageConfig.booth_black_list && villageConfig.booth_black_list.length > 0) {
+        if (villageConfig.booth_black_list.indexOf(name) > -1) {
           debugInfo(['{} 在黑名单中 跳过邀请', name])
           return
         }

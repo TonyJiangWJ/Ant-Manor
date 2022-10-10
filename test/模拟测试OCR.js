@@ -15,13 +15,13 @@ if (!requestScreenCapture()) {
   toastLog('请求截图权限失败')
   exit()
 }
-let viliageConfig = config.viliage_config
+let villageConfig = config.village_config
 // 摆摊摊位框选 带文字
-viliageConfig.booth_position_left = viliageConfig.booth_position_left || [193, 1659, 436, 376]
-viliageConfig.booth_position_right = viliageConfig.booth_position_right || [629, 1527, 386, 282]
-// openMyViliage()
+villageConfig.booth_position_left = villageConfig.booth_position_left || [193, 1659, 436, 376]
+villageConfig.booth_position_right = villageConfig.booth_position_right || [629, 1527, 386, 282]
+// openMyVillage()
 // checkAnyEmptyBooth()
-doCheckAndDriveOut(captureScreen(), viliageConfig.booth_position_left)
+doCheckAndDriveOut(captureScreen(), villageConfig.booth_position_left)
 // captureAndOcr()
 
 /**
@@ -29,13 +29,13 @@ doCheckAndDriveOut(captureScreen(), viliageConfig.booth_position_left)
  */
 function waitForLoading () {
   let screen = captureScreen()
-  let findPoint = openCvUtil.findByGrayBase64(screen, viliageConfig.checking_mail_box)
+  let findPoint = openCvUtil.findByGrayBase64(screen, villageConfig.checking_mail_box)
   // 等待五秒
   let limit = 5
   while (limit-- > 0 && !findPoint) {
     sleep(1000)
     screen = captureScreen()
-    findPoint = openCvUtil.findByGrayBase64(screen, viliageConfig.checking_mail_box)
+    findPoint = openCvUtil.findByGrayBase64(screen, villageConfig.checking_mail_box)
   }
   if (!!findPoint) {
     FloatyInstance.setFloatyInfo({ x: findPoint.centerX(), y: findPoint.centerY() }, '打开蚂蚁新村成功')
@@ -44,7 +44,7 @@ function waitForLoading () {
     errorInfo('打开蚂蚁新村失败', true)
   }
 }
-function openMyViliage () {
+function openMyVillage () {
   app.startActivity({
     action: 'VIEW',
     data: 'alipays://platformapi/startapp?appId=68687809',
@@ -62,7 +62,7 @@ function checkAnyEmptyBooth (notCheckDrive) {
   FloatyInstance.setFloatyText('准备查找是否有空位')
   sleep(1000)
   let screen = captureScreen()
-  let point = openCvUtil.findByGrayBase64(screen, viliageConfig.empty_booth)
+  let point = openCvUtil.findByGrayBase64(screen, villageConfig.empty_booth)
   if (point) {
     FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '有空位')
     sleep(1000)
@@ -77,8 +77,8 @@ function checkAnyEmptyBooth (notCheckDrive) {
     warnInfo('无空位', true)
     let haveDriveOut = false
     // 移除超过一定时间的好友摊位
-    haveDriveOut |= !!doCheckAndDriveOut(screen, viliageConfig.booth_position_left)
-    haveDriveOut |= !!doCheckAndDriveOut(screen, viliageConfig.booth_position_right)
+    haveDriveOut |= !!doCheckAndDriveOut(screen, villageConfig.booth_position_left)
+    haveDriveOut |= !!doCheckAndDriveOut(screen, villageConfig.booth_position_right)
     sleep(1000)
     if (haveDriveOut) {
       checkAnyEmptyBooth(true)
