@@ -28,6 +28,7 @@ function VillageRunner () {
       speedAward()
       sleep(500)
       checkAnyEmptyBooth()
+      waitForLoading()
       checkMyBooth()
       // 设置2小时后启动
       commonFunctions.setUpAutoStart(villageConfig.interval_time || 120)
@@ -96,9 +97,14 @@ function VillageRunner () {
     if (point) {
       FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '有空位')
       sleep(1000)
-      inviteFriend(point)
-      sleep(1000)
-      checkAnyEmptyBooth(notCheckDrive)
+      if (inviteFriend(point)) {
+        sleep(1000)
+        checkAnyEmptyBooth(notCheckDrive)
+      } else {
+        warnInfo('无可邀请好友，不再检查空位')
+        automator.click(config.device_width / 2, config.device_height * 0.1)
+        sleep(1000)
+      }
     } else {
       if (notCheckDrive) {
         // 第二次进入时无需继续检测超时
@@ -209,9 +215,10 @@ function VillageRunner () {
         sleep(500)
         invited = true
       })
+      return invited
     } else {
       warnInfo('无可邀请好友', true)
-      automator.back()
+      return false
     }
   }
 
