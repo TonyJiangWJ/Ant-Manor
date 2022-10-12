@@ -129,10 +129,14 @@ function AntManorRunner () {
   }
 
   this.checkIsSleeping = function (notExit) {
-    let currentHours = new Date().getHours()
-    if (currentHours > 6 && currentHours < 20) {
+    let now = new Date()
+    let currentTime = {
+      hour: now.getHours(),
+      minute: now.getMinutes(),
+    }
+    if (currentTime.hour > 6 && currentTime.hour < 20) {
       // 晚上八点到早上6点检查是否睡觉中 其他时间跳过
-      _debugInfo(['当前时间{} 不在晚上八点和早上6点之间', currentHours])
+      _debugInfo(['当前时间{} 不在晚上八点和早上6点之间', currentTime.hour])
       return false
     }
     if (!localOcr.enabled) {
@@ -147,7 +151,13 @@ function AntManorRunner () {
       this.setFloatyInfo({ x: sleepBounds.left, y: sleepBounds.top }, '小鸡睡觉中')
       sleep(1000)
       // 设置第二天早上六点05启动 计算间隔时间
-      _commonFunctions.setUpAutoStart(6 * 60 + 24 * 60 - (21 * 60 + new Date().getMinutes()) + 5)
+      _commonFunctions.setUpAutoStart(
+        6 * 60 + (currentTime.hour >= 20 ?
+          // 晚上八点后 加上当天剩余时间（分）
+          (24 - currentTime.hour) * 60 - currentTime.minute
+          // 早上六点前 减去已经经过的时间（分）
+          : -(currentTime.hour * 60 + currentTime.minute)) + 5
+      )
       _commonFunctions.minimize()
       resourceMonitor.releaseAll()
       _runningQueueDispatcher.removeRunningTask()
