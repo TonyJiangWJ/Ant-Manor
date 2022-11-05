@@ -5,6 +5,7 @@ let singletonRequire = require('../lib/SingletonRequirer.js')(runtime, this)
 let _runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
 let _commonFunctions = singletonRequire('CommonFunction')
 let alipayUnlocker = singletonRequire('AlipayUnlocker')
+let widgetUtils = singletonRequire('WidgetUtils')
 let { logInfo: _logInfo, errorInfo: _errorInfo, warnInfo: _warnInfo, debugInfo: _debugInfo, infoLog: _infoLog } = singletonRequire('LogUtils')
 let _FloatyInstance = singletonRequire('FloatyUtil')
 _FloatyInstance.enableLog()
@@ -40,14 +41,21 @@ function AntManorRunner () {
     _FloatyInstance.setFloatyInfo(position, text)
   }
 
-  this.launchApp = function () {
+  this.launchApp = function (reopen) {
     app.startActivity({
       action: 'VIEW',
       data: 'alipays://platformapi/startapp?appId=66666674',
       packageName: 'com.eg.android.AlipayGphone'
     })
-
-    openAlipayMultiLogin()
+    _FloatyInstance.setFloatyInfo({ x: config.device_width / 2, y: config.device_height / 2 }, "查找是否有'打开'对话框")
+    let confirm = widgetUtils.widgetGetOne(/^打开$/, 1000)
+    if (confirm) {
+      automator.clickCenter(confirm)
+    }
+    sleep(1000)
+    if (openAlipayMultiLogin(reopen)) {
+      this.launchApp(true)
+    }
 
     if (config.is_alipay_locked) {
       sleep(1000)
@@ -431,7 +439,7 @@ function AntManorRunner () {
         result = result.replace(/\n/g, '').replace(/\s/g, '')
       }
       debugInfo(['使用{}ocr识别倒计时时间文本: {}', localOcr.type, result])
-      debugInfo(['图片数据：[data:image/png;base64,{}]', images.toBase64(img)])
+      debugForDev(['图片数据：[data:image/png;base64,{}]', images.toBase64(img)])
     } else {
       let base64Str = images.toBase64(img)
       debugForDev(['image base64 [data:image/png;base64,{}]', base64Str])
@@ -506,11 +514,10 @@ module.exports = new AntManorRunner()
 function openAlipayMultiLogin (reopen) {
   if (config.multi_device_login && !reopen) {
     debugInfo(['已开启多设备自动登录检测，检查是否有 进入支付宝 按钮'])
-    let entryBtn = _widgetUtils.widgetGetOne(/^进入支付宝$/, 1000)
+    let entryBtn = widgetUtils.widgetGetOne(/^进入支付宝$/, 1000)
     if (entryBtn) {
       automator.clickCenter(entryBtn)
       sleep(1000)
-      startApp()
       return true
     } else {
       debugInfo(['未找到 进入支付宝 按钮'])
