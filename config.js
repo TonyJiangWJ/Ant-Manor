@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2022-10-10 21:51:37
+ * @Last Modified time: 2022-10-17 13:56:06
  * @Description: 
  */
 let currentEngine = engines.myEngine().getSource() + ''
@@ -227,6 +227,7 @@ let default_village_config = {
   my_booth: files.read(configDataPath + 'village/my_booth.data'),
   speed_award: files.read(configDataPath + 'village/speed_award.data'),
   do_setup_booth: files.read(configDataPath + 'village/do_setup_booth.data'),
+  friend_end_up_regex: '.*(已停产|余.*营.*)',
   booth_position_left: [193, 1659, 436, 376],
   booth_position_right: [629, 1527, 386, 282],
   booth_black_list: [],
