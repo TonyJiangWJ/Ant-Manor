@@ -4,6 +4,7 @@ let commonFunctions = singletonRequire('CommonFunction')
 let resourceMonitor = require('../lib/ResourceMonitor.js')(runtime, global)
 let widgetUtils = singletonRequire('WidgetUtils')
 let automator = singletonRequire('Automator')
+let alipayUnlocker = singletonRequire('AlipayUnlocker')
 let FileUtils = singletonRequire('FileUtils')
 let openCvUtil = require('../lib/OpenCvUtil.js')
 let FloatyInstance = singletonRequire('FloatyUtil')
@@ -39,25 +40,37 @@ function VillageRunner () {
     }
   }
 
-  function openMyVillage () {
+  function openMyVillage (reopen) {
     app.startActivity({
       action: 'VIEW',
       data: 'alipays://platformapi/startapp?appId=68687809',
       packageName: 'com.eg.android.AlipayGphone'
     })
+    FloatyInstance.setFloatyInfo({ x: config.device_width / 2, y: config.device_height / 2 }, "查找是否有'打开'对话框")
+    let confirm = widgetUtils.widgetGetOne(/^打开$/, 1000)
+    if (confirm) {
+      automator.clickCenter(confirm)
+    }
     sleep(1000)
-    openAlipayMultiLogin()
+    if (openAlipayMultiLogin(reopen)) {
+      openMyVillage(true)
+    }
+
+    if (config.is_alipay_locked) {
+      sleep(1000)
+      alipayUnlocker.unlockAlipay()
+    }
+    sleep(1000)
     waitForLoading()
   }
 
   function openAlipayMultiLogin (reopen) {
     if (config.multi_device_login && !reopen) {
       debugInfo(['已开启多设备自动登录检测，检查是否有 进入支付宝 按钮'])
-      let entryBtn = _widgetUtils.widgetGetOne(/^进入支付宝$/, 1000)
+      let entryBtn = widgetUtils.widgetGetOne(/^进入支付宝$/, 1000)
       if (entryBtn) {
         automator.clickCenter(entryBtn)
         sleep(1000)
-        startApp()
         return true
       } else {
         debugInfo(['未找到 进入支付宝 按钮'])
