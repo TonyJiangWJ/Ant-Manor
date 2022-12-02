@@ -7,3 +7,4 @@ LockScreen.js
 *.ign.js
 .lhignore
 .lh/
+logs/

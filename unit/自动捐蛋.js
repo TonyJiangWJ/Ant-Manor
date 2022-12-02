@@ -46,8 +46,8 @@ config.donate_egg = config.donate_egg || {}
 if (doDonateEgg()) {
   infoLog('捐蛋成功')
 } else {
-  errorLog('捐蛋失败,1小时后重试')
   commonFunctions.setUpAutoStart(60)
+  errorInfo('捐蛋失败,1小时后重试')
 }
 
 commonFunctions.minimize()

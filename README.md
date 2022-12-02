@@ -30,7 +30,7 @@
 - 修改完成后，运行一遍 `unit/蚂蚁新村自动摆摊.js`，后续将根据执行间隔自动设置定时任务无限循环。
 - 蚂蚁新村自动摆摊功能强依赖于OCR 因此需要安装[AutoJs Modify](https://github.com/TonyJiangWJ/Auto.js/releases/download/v4.1.1/AutoJS.Modify.latest.apk)或[mlkit-ocr插件](https://github.com/TonyJiangWJ/Auto.js/releases/download/v4.1.1/mlkit-ocr-plugin-latest.apk)才能正常使用。
 - 关于本地OCR的说明，mlkit-ocr速度非常快，但是缺点是识别准确性不佳，目前基本能满足所需要的识别功能。PaddleOCR识别准确性很高但是缺点是速度慢，而且必须给AutoJS设置电量无限制权限否则容易闪退，另外就是必须安装[我的修改的AutoJS](https://github.com/TonyJiangWJ/Auto.js/releases/download/v4.1.1/AutoJS.Modify.latest.apk)才能使用PaddleOCR。本地OCR优先级可以自己前往设置中修改。
-- 取色工具请运行 `unit/灰度取色.js` 点击 `裁切小图` 可以框选区域或截取小图
+- 取色工具请运行 `独立工具/灰度取色.js` 点击 `裁切小图` 可以框选区域或截取小图
 
 ### 识别区域配置参考
 

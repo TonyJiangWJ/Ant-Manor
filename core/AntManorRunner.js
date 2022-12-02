@@ -14,8 +14,8 @@ let BaiduOcrUtil = require('../lib/BaiduOcrUtil.js')
 let localOcr = require('../lib/LocalOcrUtil.js')
 let contentDefine = {
   soft: {
-    personal_home: '进入个人鸡鸡页面',
-    friend_home: '进入好友鸡鸡页面',
+    personal_home: '进入个人鸡儿页面',
+    friend_home: '进入好友鸡儿页面',
   },
   hard: {
     personal_home: '进入个人小鸡页面',
@@ -104,6 +104,11 @@ function AntManorRunner () {
       this.setFloatyInfo(null, CONTENT.personal_home + '成功')
       return true
     } else {
+      this.setFloatyInfo(null, '检测失败，尝试OCR识别')
+      if (this.checkByOcr([0, 0, config.device_width * 0.2, config.device_height / 2], '捐蛋反馈|开心飞起')) {
+        this.setFloatyInfo(null, CONTENT.personal_home + '成功')
+        return true
+      }
       this.setFloatyTextColor('#ff0000')
       this.setFloatyInfo(getRegionCenter(config.CHECK_APP_REGION), CONTENT.personal_home + '失败，检测超时 ' + (keepAlive ? '等待脚本执行后续判断' : ''))
       if (!keepAlive) {
@@ -117,11 +122,15 @@ function AntManorRunner () {
   this.waitForFriends = function () {
     let findColor = this.waitFor(config.CHECK_FRIENDS_COLOR, config.CHECK_FRIENDS_REGION)
     if (findColor) {
-      this.setFloatyInfo(null, '进入好友鸡鸡页面成功')
+      this.setFloatyInfo(null, CONTENT.friend_home + '成功')
       return true
     } else {
+      if (this.checkByOcr([0, 0, config.device_width * 0.2, config.device_height / 2], '给Ta留言')) {
+        this.setFloatyInfo(null, CONTENT.friend_home + '成功')
+        return true
+      }
       this.setFloatyTextColor('#ff0000')
-      this.setFloatyInfo(null, '进入好友鸡鸡页面失败，检测超时')
+      this.setFloatyInfo(null, CONTENT.friend_home + '失败，检测超时')
       this.killAndRestart()
     }
   }
@@ -479,6 +488,32 @@ function AntManorRunner () {
       sleep(2000)
       exit()
     }, 30000)
+  }
+
+  this.checkByOcr = function (region, contentRegex) {
+    if (!localOcr.enabled) {
+      _warnInfo(['请至少安装mlkit-ocr插件或者修改版AutoJS获取本地OCR能力'])
+      return false
+    }
+    _FloatyInstance.hide()
+    sleep(50)
+    try {
+      let limit = 3
+      while (limit-- > 0) {
+        let screen = _commonFunctions.checkCaptureScreenPermission()
+        if (screen) {
+          _debugInfo(['ocr识别 {} 内容：{}', region ? '区域' + JSON.stringify(region) : '', contentRegex])
+          let result = localOcr.recognizeWithBounds(screen, region, contentRegex)
+          if (result && result.length > 0) {
+            return true
+          }
+        }
+        sleep(100)
+      }
+      return false
+    } finally {
+      _FloatyInstance.restore()
+    }
   }
 
   this.start = function () {
