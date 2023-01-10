@@ -218,6 +218,18 @@ function AntManorRunner () {
         let heightRate = config.device_height / 2160
         this.setFloatyInfo({ x: findColor.x, y: findColor.y + 200 * heightRate }, '点击叫回小鸡')
         click(findColor.x, parseInt(findColor.y + 200 * heightRate))
+        let isWorking = widgetUtils.widgetGetOne('小鸡工作中.*', 1000)
+        if (isWorking) {
+          _FloatyInstance.setFloatyText('小鸡工作中，寻找确认按钮')
+          let confirmBtn = widgetUtils.widgetGetOne('确认')
+          if (confirmBtn) {
+            this.setFloatyInfo({ x: confirmBtn.bounds().left, y: confirmBtn.bounds().top }, '确认按钮')
+            automator.clickCenter(confirmBtn)
+          } else {
+            _FloatyInstance.setFloatyText('未找到确认按钮')
+            _errorInfo('未找到确认按钮，请手动执行', true)
+          }
+        }
         sleep(1000)
         this.waitForOwn()
       } else {

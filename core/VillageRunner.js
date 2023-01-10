@@ -157,7 +157,7 @@ function VillageRunner () {
       FloatyInstance.setFloatyInfo({ x: region[0], y: region[1] }, '摊位超时：' + recognizeText)
       sleep(1000)
       var r = new org.opencv.core.Rect(region[0], region[1], region[2], region[3])
-      automator.click(r.x + r.width / 2, r.y + r.height / 2)
+      automator.click(r.x + r.width / 2, r.y + r.height * 0.2)
       let checking = widgetUtils.widgetWaiting(/.*并请走.*/, null, 3000)
       if (checking) {
         sleep(1000)
@@ -244,8 +244,15 @@ function VillageRunner () {
   function checkMyBooth () {
     let screen = commonFunctions.captureScreen()
     let point = openCvUtil.findByGrayBase64(screen, villageConfig.my_booth)
+    if (!point) {
+      debugInfo(['尝试OCR识别 摆摊赚币'])
+      let ocrResult = localOcr.recognizeWithBounds(screen, null, '摆摊赚币')
+      if (ocrResult && ocrResult.length > 0) {
+        point = ocrResult[0].bounds
+      }
+    }
     if (point) {
-      FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '找到了我的小摊按钮')
+      FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '找到了摆摊赚币按钮')
       sleep(500)
       automator.click(point.centerX(), point.centerY())
       sleep(500)
@@ -255,7 +262,7 @@ function VillageRunner () {
       sleep(500)
       setupBooth()
     } else {
-      warnInfo('未找到我的小摊', true)
+      warnInfo('未找到摆摊赚币', true)
     }
   }
 
