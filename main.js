@@ -2,13 +2,14 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2022-07-14 09:13:11
+ * @Last Modified time: 2022-12-12 16:47:42
  * @Description: 
  */
 let { config, storage_name } = require('./config.js')(runtime, this)
 let singletonRequire = require('./lib/SingletonRequirer.js')(runtime, this)
 let resourceMonitor = require('./lib/ResourceMonitor.js')(runtime, this)
 let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
+let FileUtils = singletonRequire('FileUtils')
 let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile, flushAllLogs } = singletonRequire('LogUtils')
 let commonFunctions = singletonRequire('CommonFunction')
 commonFunctions.delayIfBatteryLow()
