@@ -119,7 +119,10 @@ const VillageConfig = {
     executeVillage: function () {
       this.doSaveConfigs()
       $app.invoke('executeTargetScript', '/unit/蚂蚁新村自动摆摊.js')
-    }
+    },
+    showRealVisual: function () {
+      $app.invoke('showRealtimeVisualConfigVillage', {})
+    },
   },
   filters: {
     displayTime: value => {
@@ -129,11 +132,24 @@ const VillageConfig = {
       return ''
     }
   },
+  watch: {
+    configs: {
+      handler: function (newVal, oldVal) {
+        $app.invoke('villageConfigChanged', newVal)
+      },
+      deep: true,
+      immediate: true
+    }
+  },
   mounted () {
     $nativeApi.request('queryTargetTimedTaskInfo', { path: '/unit/蚂蚁新村自动摆摊.js' }).then(r => this.timedUnit = r)
   },
   template: `
   <div>
+    <van-divider content-position="left">
+      新村区域配置
+      <van-button style="margin-left: 0.4rem" plain hairline type="primary" size="mini" @click="showRealVisual">实时查看区域</van-button>
+    </van-divider>
     <tip-block style="margin: 0.5rem">区域输入框左滑可以通过滑块输入数值，也可以通过取色工具获取目标区域信息：<van-button style="margin-left: 0.4rem" plain hairline type="primary" size="mini" @click="openGrayDetector">打开取色工具</van-button></tip-block>
     <tip-block><van-button plain hairline type="primary" size="mini" style="margin-right: 0.3rem;" @click="executeVillage">执行</van-button>unit/蚂蚁新村自动摆摊.js{{timedUnit|displayTime}}</tip-block>
     <base64-image-viewer title="校验是否进入新村界面" v-model="configs.checking_mail_box"/>

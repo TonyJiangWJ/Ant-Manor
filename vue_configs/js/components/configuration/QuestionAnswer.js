@@ -3,7 +3,7 @@ const MarkdownPreview = {
   props: {
     text: String
   },
-  data() {
+  data () {
     return {
     }
   },
@@ -17,7 +17,7 @@ const MarkdownPreview = {
     }
   },
   template: `
-    <p v-html="markdownHtml" class="markdown-preview"></p>
+    <p v-html="markdownHtml" class="markdown-preview" style="width: 100%;word-break: break-all;"></p>
   `
 }
 
@@ -245,5 +245,70 @@ const Readme = {
       </div>
     </van-overlay>
   </div>
+  `
+}
+
+const HistoryRelease = {
+  name: 'HistoryRelease',
+  components: { MarkdownPreview },
+  data () {
+    return {
+      loading: false,
+      releasesUrl: 'https://api.github.com/repos/TonyJiangWJ/Ant-Manor/releases',
+      historyReleases: []
+    }
+  },
+  filters: {
+    dateStr: function (value) {
+      // console.log('date: ', value)
+      return formatDate(new Date(value))
+    }
+  },
+  methods: {
+    loadHistoryReleases: function () {
+      this.loadReleasesUrlByConfig().then(_ => {
+        this.loading = true
+        return API.get(this.releasesUrl).then(resp => {
+          let queryResult = resp
+          this.historyReleases = queryResult.map(({ tag_name, created_at, published_at, body }) => ({ tagName: tag_name, createdAt: created_at, publishedAt: published_at, body }))
+          return Promise.resolve(true)
+        }).catch(e => {
+          console.error('请求失败', e)
+          return Promise.resolve(false)
+        }).then(_ => this.loading = false)
+      })
+    },
+    loadReleasesUrlByConfig: function () {
+      return new Promise(resolve => {
+        if ($app.mock) {
+          resolve(this.releasesUrl)
+          return
+        }
+        $app.invoke('loadConfigs', {}, config => {
+          this.releasesUrl = (config.github_latest_url || '').replace('/latest', '') || this.releasesUrl
+          console.log('替换历史releaseUrl为：', this.releasesUrl)
+          resolve(this.releasesUrl)
+        })
+      })
+    }
+  },
+  mounted () {
+    this.loadHistoryReleases()
+  },
+  template: `
+   <div style="width: 100%">
+    <div v-for="release in historyReleases" :key="release.tagName" style="margin: 1rem;padding: 1rem;box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;">
+      <h4>{{release.tagName}}</h4>
+      <div style="display:inline">
+        <label style="font-size: 0.75rem;">{{release.publishedAt|dateStr}} => {{release.createdAt|dateStr}}</label>
+      </div>
+      <markdown-preview :text="release.body" />
+    </div>
+    <van-overlay :show="loading" z-index="1000">
+      <div class="wrapper">
+        <van-loading size="4rem" vertical>加载中...</van-loading>
+      </div>
+    </van-overlay>
+   </div>
   `
 }
