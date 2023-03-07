@@ -424,8 +424,8 @@ function AntManorRunner () {
     let img = _commonFunctions.checkCaptureScreenPermission()
     let pickRegion = config.SHIT_CHECK_REGION || [435, 1925, 40, 40]
     let collectRegion = config.COLLECT_SHIT_CHECK_REGION || [220, 2000, 80, 40]
-    let pickShitColor = config.PICK_SHIT_GRAY_COLOR || '#A6A6A6'
-    let collectShitColor = config.COLLECT_SHIT_GRAY_COLOR || '#838383'
+    let pickShitColor = config.PICK_SHIT_GRAY_COLOR || '#111111'
+    let collectShitColor = config.COLLECT_SHIT_GRAY_COLOR || '#535353'
     img = images.grayscale(img)
     let point = images.findColor(img, pickShitColor, { region: pickRegion })
     if (point) {
@@ -439,6 +439,8 @@ function AntManorRunner () {
       if (point) {
         click(point.x, point.y)
         debugInfo(['find point：{},{}', point.x, point.y])
+      } else {
+        warnInfo(['未找到执行捡屎标记位 寻找灰度颜色：{}', collectShitColor])
       }
     } else {
       this.setFloatyInfo({ x: pickRegion[0], y: pickRegion[1] }, "没有屎可以捡")

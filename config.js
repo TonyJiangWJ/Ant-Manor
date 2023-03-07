@@ -2,9 +2,10 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2022-10-17 13:56:06
+ * @Last Modified time: 2023-03-07 19:43:25
  * @Description: 
  */
+require('./lib/Runtimes.js')(global)
 let currentEngine = engines.myEngine().getSource() + ''
 let isRunningMode = currentEngine.endsWith('/config.js') && typeof module === 'undefined'
 let is_pro = !!Object.prototype.toString.call(com.stardust.autojs.core.timing.TimedTask.Companion).match(/Java(Class|Object)/)
@@ -157,7 +158,7 @@ var default_config = {
   // 捡屎
   SHIT_CHECK_REGION: [660, 1875, 30, 20],
   COLLECT_SHIT_CHECK_REGION: [220, 1210, 80, 40],
-  PICK_SHIT_GRAY_COLOR: '#9a9a9a',
+  PICK_SHIT_GRAY_COLOR: '#111111',
   COLLECT_SHIT_GRAY_COLOR: '#535353',
   // 找图缓存
   // template_img_for_collect: '',
@@ -247,7 +248,7 @@ let default_fodder_config = {
 }
 default_config.fodder_config = default_fodder_config
 config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_NAME + '_fodder')
-
+config.code_version = 'v1.2.5.11'
 if (!isRunningMode) {
   module.exports = function (__runtime__, scope) {
     if (typeof scope.config_instance === 'undefined') {

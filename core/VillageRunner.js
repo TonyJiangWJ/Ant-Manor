@@ -152,7 +152,8 @@ function VillageRunner () {
     }
     let recognizeText = localOcr.recognize(clipImg)
     debugInfo(['识别文本：{}', recognizeText])
-    let regex = new RegExp(config.friend_end_up_regex || /.*(已停产|余.*营.*)/)
+    let regex = new RegExp(villageConfig.friend_end_up_regex || /.*(已停产|余.*营.*)/)
+    debugInfo(['摊位超时校验正则：{}', '' + regex])
     if (regex.test(recognizeText)) {
       FloatyInstance.setFloatyInfo({ x: region[0], y: region[1] }, '摊位超时：' + recognizeText)
       sleep(1000)
