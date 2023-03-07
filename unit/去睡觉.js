@@ -66,8 +66,6 @@ function exec () {
   }
   manorRunner.launchApp()
   sleep(1000)
-  // 标记定时任务为main.js
-  config._auto_start_with_main_js = true
   manorRunner.checkIsSleeping()
   goToBed()
   if (!manorRunner.checkIsSleeping(true)) {
