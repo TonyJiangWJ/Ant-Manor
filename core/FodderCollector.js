@@ -56,6 +56,29 @@ function Collector () {
     }
   }
 
+  function collectCurrentVisible() {
+    let visiableCollect = widgetUtils.widgetGetAll('^领取$') || []
+    if (visiableCollect.length > 0) {
+      visiableCollect = visiableCollect.filter(v => v.visibleToUser() && checkIsValid(v))
+    }
+    if (visiableCollect.length > 0) {
+      logUtils.debugInfo(['点击领取'])
+      automator.clickCenter(visiableCollect[0])
+      sleep(500)
+      let full = widgetUtils.widgetGetOne(config.fodder_config.feed_package_full || '饲料袋.*满.*|知道了', 1000)
+      if (full) {
+        logUtils.warnInfo(['饲料袋已满'], true)
+        automator.back()
+        sleep(1000)
+        automator.back()
+        return false
+      }
+      return collectCurrentVisible()
+    }
+    let allCollect = widgetUtils.widgetGetAll('^领取$')
+    return allCollect && allCollect.length > 0
+  }
+
   this.collectAllIfExists = function (lastTotal, findTime) {
     if (findTime > 5) {
       return
@@ -63,28 +86,7 @@ function Collector () {
     let allCollect = widgetUtils.widgetGetAll('^领取$')
     if (allCollect && allCollect.length > 0) {
       let total = allCollect.length
-      logUtils.logInfo(['找到了领取按钮：{}', total])
-      let allVisiableToUser = true
-      allCollect.forEach(collect => {
-        logUtils.debugInfo(['领取按钮 是否可见{} 位置：{},{}', collect.visibleToUser(), collect.bounds().centerX(), collect.bounds().centerY()])
-        if (collect.visibleToUser() && checkIsValid(collect)) {
-          sleep(200)
-          logUtils.debugInfo(['点击领取：'])
-          automator.clickCenter(collect)
-        } else {
-          allVisiableToUser = false
-        }
-        sleep(500)
-      })
-      let full = widgetUtils.widgetGetOne(config.fodder_config.feed_package_full || '饲料袋.*满.*|知道了', 1000)
-      if (full) {
-        logUtils.warnInfo(['饲料袋已满'], true)
-        automator.back()
-        sleep(1000)
-        automator.back()
-        return
-      }
-      if (!allVisiableToUser) {
+      if (collectCurrentVisible()) {
         logUtils.logInfo(['滑动下一页查找目标'], true)
         let startY = config.device_height - config.device_height * 0.15
         let endY = startY - config.device_height * 0.3
