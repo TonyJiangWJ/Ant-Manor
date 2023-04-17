@@ -20,7 +20,7 @@
 
 ## 使用说明
 
-- 下载安装 [AutoJs Modify](https://github.com/TonyJiangWJ/Auto.js/releases/download/v4.1.1/AutoJS.Modify.latest.apk) 之后把整个脚本项目放进 **"/sdcard/脚本/"** 文件夹下面。打开软件后下拉刷新，然后运行项目或者 main 即可。
+- 下载安装 [AutoJs Modify](https://github.com/TonyJiangWJ/Ant-Forest/releases/download/v1.1.1.4/AutoJS.modify.latest.apk) 之后把整个脚本项目放进 **"/sdcard/脚本/"** 文件夹下面。打开软件后下拉刷新，然后运行项目或者 main 即可。
 - 给与软件必要权限 `后台弹出界面`、`显示悬浮窗`、`自启动`，并将软件保持后台运行
 - 定时启动脚本，点击 `main.js` 的菜单，选择 `更多` `定时任务` 即可配置定时启动
 - **由于每个人的机型不同，默认配置无法正常使用，请务必自己重新配置一遍**
@@ -28,8 +28,8 @@
 - [通过ADB授权脚本自动获取无障碍权限](https://github.com/TonyJiangWJ/AutoScriptBase/blob/master/resources/doc/ADB%E6%8E%88%E6%9D%83%E8%84%9A%E6%9C%AC%E8%87%AA%E5%8A%A8%E5%BC%80%E5%90%AF%E6%97%A0%E9%9A%9C%E7%A2%8D%E6%9D%83%E9%99%90.md)
 - **蚂蚁新村自动摆摊使用说明**：运行 `可视化配置.js` ，进入 `蚂蚁新村配置` 修改需要识别的图片和OCR识别区域，默认图片可能并不适合所以分辨率的手机，请务必进行修改。
 - 修改完成后，运行一遍 `unit/蚂蚁新村自动摆摊.js`，后续将根据执行间隔自动设置定时任务无限循环。
-- 蚂蚁新村自动摆摊功能强依赖于OCR 因此需要安装[AutoJs Modify](https://github.com/TonyJiangWJ/Auto.js/releases/download/v4.1.1/AutoJS.Modify.latest.apk)或[mlkit-ocr插件](https://github.com/TonyJiangWJ/Auto.js/releases/download/v4.1.1/mlkit-ocr-plugin-latest.apk)才能正常使用。
-- 关于本地OCR的说明，mlkit-ocr速度非常快，但是缺点是识别准确性不佳，目前基本能满足所需要的识别功能。PaddleOCR识别准确性很高但是缺点是速度慢，而且必须给AutoJS设置电量无限制权限否则容易闪退，另外就是必须安装[我的修改的AutoJS](https://github.com/TonyJiangWJ/Auto.js/releases/download/v4.1.1/AutoJS.Modify.latest.apk)才能使用PaddleOCR。本地OCR优先级可以自己前往设置中修改。
+- 蚂蚁新村自动摆摊功能强依赖于OCR 因此需要安装[AutoJs Modify](https://github.com/TonyJiangWJ/Ant-Forest/releases/download/v1.1.1.4/AutoJS.modify.latest.apk)或[mlkit-ocr插件](https://github.com/TonyJiangWJ/Ant-Forest/releases/download/v1.1.1.4/mlkit-ocr-plugin-latest.apk)才能正常使用。
+- 关于本地OCR的说明，mlkit-ocr速度非常快，但是缺点是识别准确性不佳，目前基本能满足所需要的识别功能。PaddleOCR识别准确性很高但是缺点是速度慢，而且必须给AutoJS设置电量无限制权限否则容易闪退，另外就是必须安装[我的修改的AutoJS](https://github.com/TonyJiangWJ/Ant-Forest/releases/download/v1.1.1.4/AutoJS.modify.latest.apk)才能使用PaddleOCR。本地OCR优先级可以自己前往设置中修改。
 - 取色工具请运行 `独立工具/灰度取色.js` 点击 `裁切小图` 可以框选区域或截取小图
 
 ### 识别区域配置参考
