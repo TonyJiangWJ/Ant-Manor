@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2023-04-08 19:10:16
+ * @Last Modified time: 2023-04-11 10:00:44
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -95,6 +95,7 @@ var default_config = {
   history_tag_url: 'https://api.github.com/repos/TonyJiangWJ/Ant-Manor/tags',
   feed_cycle_time: 300,
   speeded_feed_cycle_time: 240,
+  other_accessisibility_services: '',
   // 小鸡睡觉配置
   to_sleep_entry: {
     x: 860,
@@ -248,7 +249,7 @@ let default_fodder_config = {
 }
 default_config.fodder_config = default_fodder_config
 config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_NAME + '_fodder')
-config.code_version = 'v1.2.5.12'
+config.code_version = 'v1.2.5.13'
 if (!isRunningMode) {
   module.exports = function (__runtime__, scope) {
     if (typeof scope.config_instance === 'undefined') {
