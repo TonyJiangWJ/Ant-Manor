@@ -68,6 +68,7 @@ function exec () {
   sleep(1000)
   manorRunner.checkIsSleeping()
   goToBed()
+  manorRunner.waitForOwn(true)
   if (!manorRunner.checkIsSleeping(true)) {
     // 睡觉失败 五分钟后重试
     commonFunctions.setUpAutoStart(5)

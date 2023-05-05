@@ -191,7 +191,7 @@ function VillageRunner () {
     sleep(1000)
     automator.click(matchResult.centerX(), matchResult.centerY())
     widgetUtils.widgetWaiting('邀请.*摆摊', null, 3000)
-    let avatarList = widgetUtils.widgetGetAll('avatar')
+    let avatarList = widgetUtils.widgetGetAll('avatar', null, false, null, { algorithm: 'PDFS' })
     if (avatarList && avatarList.length > 0) {
       let invited = false
       avatarList.forEach(avatar => {
