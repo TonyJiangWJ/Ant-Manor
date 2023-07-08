@@ -9,6 +9,7 @@ let FileUtils = singletonRequire('FileUtils')
 let openCvUtil = require('../lib/OpenCvUtil.js')
 let FloatyInstance = singletonRequire('FloatyUtil')
 let localOcr = require('../lib/LocalOcrUtil.js')
+let WarningFloaty = singletonRequire('WarningFloaty')
 FloatyInstance.enableLog()
 
 let villageConfig = config.village_config
@@ -102,37 +103,46 @@ function VillageRunner () {
   /**
    * 查找空位，邀请好友摆摊
    */
-  function checkAnyEmptyBooth (notCheckDrive) {
+  function checkAnyEmptyBooth () {
+    FloatyInstance.setFloatyText('准备查找是否有超时摊位')
+    sleep(1000)
+    FloatyInstance.hide()
+    let haveDriveOut = false
+    let screen = commonFunctions.captureScreen()
+    FloatyInstance.restore()
+    // 移除超过一定时间的好友摊位
+    haveDriveOut |= !!doCheckAndDriveOut(screen, villageConfig.booth_position_left)
+    haveDriveOut |= !!doCheckAndDriveOut(screen, villageConfig.booth_position_right)
+    if (haveDriveOut) {
+      FloatyInstance.setFloatyText('成功驱离了好友的摊位')
+      sleep(1000)
+    }
     FloatyInstance.setFloatyText('准备查找是否有空位')
     sleep(1000)
-    let screen = commonFunctions.captureScreen()
-    let point = openCvUtil.findByGrayBase64(screen, villageConfig.empty_booth)
-    if (point) {
-      FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '有空位')
+    FloatyInstance.hide()
+    screen = commonFunctions.captureScreen()
+    FloatyInstance.restore()
+    let leftEmpty = doCheckEmptyBooth(screen, villageConfig.booth_position_left)
+    let noMoreFriend = false
+    if (leftEmpty) {
+      let point = wrapRegionForInvite(villageConfig.booth_position_left)
+      FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '左侧有空位')
       sleep(1000)
-      if (inviteFriend(point)) {
-        sleep(1000)
-        checkAnyEmptyBooth(notCheckDrive)
-      } else {
+      if (!inviteFriend(point)) {
         warnInfo('无可邀请好友，不再检查空位')
         automator.click(config.device_width / 2, config.device_height * 0.1)
+        noMoreFriend = true
         sleep(1000)
       }
-    } else {
-      if (notCheckDrive) {
-        // 第二次进入时无需继续检测超时
-        return
-      }
-      warnInfo('无空位', true)
-      let haveDriveOut = false
-      // 移除超过一定时间的好友摊位
-      haveDriveOut |= !!doCheckAndDriveOut(screen, villageConfig.booth_position_left)
-      haveDriveOut |= !!doCheckAndDriveOut(screen, villageConfig.booth_position_right)
-      sleep(1000)
-      if (haveDriveOut) {
-        checkAnyEmptyBooth(true)
-      }
     }
+    let rightEmpty = !noMoreFriend && doCheckEmptyBooth(screen, villageConfig.booth_position_right)
+    if (rightEmpty) {
+      let point = wrapRegionForInvite(villageConfig.booth_position_right)
+      FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '右侧有空位')
+      sleep(1000)
+      inviteFriend(point)
+    }
+    WarningFloaty.clearAll()
   }
 
   /**
@@ -145,7 +155,8 @@ function VillageRunner () {
       warnInfo('本地Ocr初始化失败 或者当前版本AutoJs不支持Ocr')
       return
     }
-    let clipImg = images.clip(screen, region[0],region[1],region[2],region[3])
+    WarningFloaty.addRectangle('OCR识别区域，需要保证中心点在摊位上', region, '#00ff00')
+    let clipImg = images.clip(screen, region[0], region[1], region[2], region[3])
     if (localOcr.type == 'mlkit') {
       // 识别准确率太低 进行放大
       clipImg = images.resize(clipImg, [clipImg.getWidth() * 2, clipImg.getHeight() * 2])
@@ -157,6 +168,7 @@ function VillageRunner () {
     if (regex.test(recognizeText)) {
       FloatyInstance.setFloatyInfo({ x: region[0], y: region[1] }, '摊位超时：' + recognizeText)
       sleep(1000)
+      WarningFloaty.clearAll()
       var r = new org.opencv.core.Rect(region[0], region[1], region[2], region[3])
       automator.click(r.x + r.width / 2, r.y + r.height * 0.2)
       let checking = widgetUtils.widgetWaiting(/.*并请走.*/, null, 3000)
@@ -177,8 +189,57 @@ function VillageRunner () {
       sleep(1000)
     } else {
       debugInfo(['未找到超时摊位 区域：{}', JSON.stringify(region)])
+      WarningFloaty.clearAll()
     }
     return false
+  }
+
+
+  /**
+   * 校验并驱赶
+   * @param {ImageWrapper} screen 
+   * @param {array: [left, top, width, height]} region 
+   */
+  function doCheckEmptyBooth (screen, region) {
+    if (!localOcr.enabled) {
+      warnInfo('本地Ocr初始化失败 或者当前版本AutoJs不支持Ocr')
+      return
+    }
+    WarningFloaty.addRectangle('OCR识别区域，需要保证中心点在摊位上', region, '#00ff00')
+    let clipImg = images.clip(screen, region[0], region[1], region[2], region[3])
+    if (localOcr.type == 'mlkit') {
+      // 识别准确率太低 进行放大
+      clipImg = images.resize(clipImg, [clipImg.getWidth() * 2, clipImg.getHeight() * 2])
+    }
+    let recognizeText = localOcr.recognize(clipImg)
+    debugInfo(['识别文本：{}', recognizeText])
+    let regex = new RegExp(/.*的.*摊.*/)
+    debugInfo(['摊位超时校验正则：{}', '' + regex])
+    if (regex.test(recognizeText)) {
+      FloatyInstance.setFloatyInfo({ x: region[0], y: region[1] }, '存在摊位：' + recognizeText)
+      sleep(1000)
+      WarningFloaty.clearAll()
+      return false
+    } else {
+      FloatyInstance.setFloatyInfo({ x: region[0], y: region[1] }, '不存在摊位：' + recognizeText)
+      sleep(1000)
+      WarningFloaty.clearAll()
+      return true
+    }
+  }
+
+  /**
+   * 对OCR识别区域进行封装，点击偏上的位置
+   *
+   * @param {Array} region 
+   * @returns 
+   */
+  function wrapRegionForInvite (region) {
+    var r = new org.opencv.core.Rect(region[0], region[1], region[2], region[3])
+    return {
+      centerX: () => r.x + r.width / 2,
+      centerY: () => r.y + r.height * 0.2
+    }
   }
 
   /**
@@ -304,11 +365,20 @@ function VillageRunner () {
    * 闲置摊位摆放
    */
   function setupBooth () {
-    FloatyInstance.setFloatyText('查找随机摆摊')
-    let randomSetup = widgetUtils.widgetGetOne('随机摆摊')
-    if (randomSetup) {
-      sleep(1000)
-      randomSetup.click()
+    if (villageConfig.setup_by_income_weight) {
+      let button = widgetUtils.widgetGetOne('去摆摊')
+      if (button) {
+        button.click()
+        checkFriendsVillage()
+      }
+    } else {
+      // 随机摆摊
+      FloatyInstance.setFloatyText('查找随机摆摊')
+      let randomSetup = widgetUtils.widgetGetOne('随机摆摊')
+      if (randomSetup) {
+        sleep(1000)
+        randomSetup.click()
+      }
     }
   }
 
@@ -317,52 +387,43 @@ function VillageRunner () {
    * TODO 按收益优先级排序
    */
   function checkFriendsVillage () {
-    widgetUtils.widgetWaiting('去好友家摆摊', null, 3000)
+    widgetUtils.widgetWaiting('.*木兰币产生速度会更快.*', null, 3000)
     FloatyInstance.setFloatyText('查找空位')
     sleep(1000)
-    let start = new Date().getTime()
-    let root = className('android.view.View').depth(15).indexInParent(6).scrollable(true).findOne()
-    debugInfo(['get root cost: {}ms', new Date() - start])
-    let allEmptyBooth = widgetUtils.subWidgetGetAll(root, '有空位', 8000, null, matcher => {
-      return matcher.depth(17)
-    })
-    if (allEmptyBooth && allEmptyBooth.length > 0) {
-      sortedBooth = allEmptyBooth.map(booth => {
-        let target = booth
-        let parent = target.parent()
-        let value = parent.child(5)
-        let friendName = parent.child(2)
+    let incomeRateList = widgetUtils.widgetGetAll(/\d+\/时/, 8000, false, null, { algorighm: 'PDFS' })
+    let blackList = villageConfig.booth_black_list || []
+    let noValidBooth = true
+    if (incomeRateList && incomeRateList.length > 0) {
+      let frientList = incomeRateList.map(incomeRate => {
+        let container = incomeRate.parent()
+        let friendName = container.child(1).text()
+        let incomeRateWeight = parseInt(/(\d+)\/时/.exec(incomeRate.text())[1])
         return {
-          target: target,
-          value: parseInt(value.desc() || value.text()),
-          friendName: friendName.desc() || friendName.text()
+          valid: incomeRate.indexInParent() == 4,
+          container: container,
+          friendName: friendName,
+          weight: incomeRateWeight
         }
-      }).sort((a, b) => {
-        // 降序排列
-        return b.value - a.value
-      })
-      if (villageConfig.booth_black_list && villageConfig.booth_black_list.length > 0) {
-        debugInfo(['过滤黑名单：{}', JSON.stringify(villageConfig.booth_black_list)])
-        sortedBooth = sortedBooth.filter(booth => villageConfig.booth_black_list.indexOf(booth.friendName) < 0)
-      }
-      if (sortedBooth && sortedBooth.length > 0) {
-        let emptyBooth = sortedBooth[0]
-        debugInfo(['过滤后选择好友: {} 进行摆摊 每小时：{}', emptyBooth.friendName, emptyBooth.value])
-        emptyBooth.target.click()
+      }).sort((a, b) => b.weight - a.weight).filter(v => v.valid && blackList.indexOf(v.friendName) < 0)
+      if (frientList.length > 0) {
+        noValidBooth = false
+        let emptyBooth = frientList[0]
+        debugInfo(['过滤后选择好友: {} 进行摆摊 每小时：{}', emptyBooth.friendName, emptyBooth.weight])
+        emptyBooth.container.click()
         waitForLoading()
         if (setupToEmptyBooth()) {
-          checkFriendsVillage()
+          return checkFriendsVillage()
         } else {
           logInfo(['摆摊完毕, 摆摊数量：{}', currentBoothSetted], true)
         }
       }
-    } else {
+    }
+    if (noValidBooth) {
       FloatyInstance.setFloatyText('未找到空位, 五分钟后再试')
       sleep(1000)
       commonFunctions.minimize()
       commonFunctions.setUpAutoStart(5)
       exit()
-      
     }
   }
 
@@ -374,12 +435,23 @@ function VillageRunner () {
   function setupToEmptyBooth () {
     FloatyInstance.setFloatyPosition(0, 0)
     let screen = commonFunctions.captureScreen()
-    let point = openCvUtil.findByGrayBase64(screen, villageConfig.empty_booth)
-    if (point) {
-      FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '有空位')
+    let emptyCheck = doCheckEmptyBooth(screen, villageConfig.booth_position_left)
+    let region = null
+    if (emptyCheck) {
+      region = villageConfig.booth_position_left
+    } else {
+      emptyCheck = doCheckEmptyBooth(screen, villageConfig.booth_position_right)
+      if (emptyCheck) {
+        region = villageConfig.booth_position_right
+      }
+    }
+
+    if (region) {
+      FloatyInstance.setFloatyInfo({ x: region[0], y: region[1] }, '有空位')
       sleep(1000)
-      automator.click(point.centerX(), point.centerY())
-      widgetUtils.widgetWaiting('我的摊位', null, 3000)
+      var r = new org.opencv.core.Rect(region[0], region[1], region[2], region[3])
+      automator.click(r.x + r.width / 2, r.y + r.height * 0.2)
+      widgetUtils.widgetWaiting('收摊|去摆摊', null, 3000)
       sleep(1500)
       return doSetupBooth()
     } else {
@@ -407,10 +479,10 @@ function VillageRunner () {
     }
     logInfo('当前已摆摊数量：' + currentBoothSetted)
     let full = currentBoothSetted >= 3
-    let screen = commonFunctions.captureScreen()
-    let findText = localOcr.recognizeWithBounds(screen, [config.device_width / 2, config.device_height / 2], '去摆摊')
-    if (findText && findText.length > 0) {
-      let point = findText[0].bounds
+
+    let setupBtn = widgetUtils.widgetGetOne('去摆摊')
+    if (setupBtn) {
+      let point = setupBtn.bounds()
       FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '去摆摊')
       sleep(500)
       automator.click(point.centerX(), point.centerY())
@@ -419,14 +491,15 @@ function VillageRunner () {
       automator.back()
       return !full
     }
-    warnInfo('未能通过OCR识别找到去摆摊')
+    warnInfo('未能找到去摆摊')
+    automator.back()
     return false
   }
 
   /**
    * 加速产豆
    */
-  function speedAward() {
+  function speedAward () {
     if (commonFunctions.checkSpeedUpCollected()) {
       debugInfo('今日已经完成加速，不继续查找加速产豆 答题等请手动执行')
       return

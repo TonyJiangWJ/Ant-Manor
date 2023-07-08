@@ -86,6 +86,7 @@ const VillageConfig = {
         interval_time: 120,
         village_reward_click_x: 550,
         village_reward_click_y: 1180,
+        setup_by_income_weight: false,
       },
       timedUnit: '',
       validations: {
@@ -155,16 +156,19 @@ const VillageConfig = {
     <base64-image-viewer title="校验是否进入新村界面" v-model="configs.checking_mail_box"/>
     <number-field v-model="configs.village_reward_click_x" label-width="10rem" label="收取金币横坐标位置" placeholder="请输入横坐标位置" />
     <number-field v-model="configs.village_reward_click_y" label-width="10rem" label="收取金币纵坐标位置" placeholder="请输入纵坐标位置" />
-    <base64-image-viewer title="校验空摊位" v-model="configs.empty_booth"/>
     <base64-image-viewer title="摆摊赚币" v-model="configs.my_booth"/>
     <base64-image-viewer title="加速产豆" v-model="configs.speed_award"/>
     <van-field v-model="configs.friend_end_up_regex" label="摆摊超时正则" type="text" label-width="12em" placeholder="留空使用默认配置" input-align="right" />
+    <tip-block style="margin: 0.5rem">脚本优先使用OCR校验是否存在空摊位，不支持OCR的情况下才通过找图寻找；因此请准确设置OCR识别区域</tip-block>
+    <base64-image-viewer title="校验空摊位" v-model="configs.empty_booth"/>
     <region-input-field :array-value="true" v-model="configs.booth_position_left" label="校验左侧摊位OCR" label-width="12em" />
     <region-input-field :array-value="true" v-model="configs.booth_position_right" label="校验右侧摊位OCR" label-width="12em" />
     <tip-block style="margin: 0.5rem">因为每天一个好友只能邀请一次，当好友数较少时建议增加间隔时间，建议最小值：max[120, 1440/(好友数/2)] 最大值6小时(360) 最大值在配置中不做限制</tip-block>
     <number-field v-model="configs.interval_time" label="执行间隔时间" label-width="10em" placeholder="执行间隔时间" :error-message="validationError.interval_time">
       <template #right-icon><span>分</span></template>
     </number-field>
+    <tip-block style="margin: 0.5rem">开启后根据好友每小时产量排序进行摆摊，同时跳过黑名单好友，脚本会比随机摆摊耗时，好处是收益最大化同时可以避免被黑名单好友扔屎或驱赶；关闭后则使用随机摆摊</tip-block>
+    <switch-cell title="按最大收益摆摊" v-model="configs.setup_by_income_weight" />
     <booth-black-config />
   </div>`
 }
