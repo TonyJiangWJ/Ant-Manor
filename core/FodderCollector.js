@@ -9,7 +9,7 @@ let logUtils = singletonRequire('LogUtils')
 let localOcr = require('../lib/LocalOcrUtil.js')
 
 function Collector () {
-
+  let _this = this
   this.useSimpleForMatchCollect = true
   this.useSimpleForCloseCollect = true
 
@@ -20,29 +20,47 @@ function Collector () {
   this.exec = function () {
     let screen = commonFunctions.captureScreen()
     if (screen) {
-      let originScreen = images.copy(screen)
-      let matchResult = OpenCvUtil.findByGrayBase64(screen, this.imageConfig.fodder_btn)
-      if (!matchResult) {
-        // 尝试
-        matchResult = OpenCvUtil.findBySIFTBase64(screen, this.imageConfig.fodder_btn)
-        this.useSimpleForMatchCollect = false
-      }
+      let matchResult = this.findCollectEntry(screen)
       if (matchResult) {
         toastLog('找到了领饲料位置' + JSON.stringify(matchResult))
         automator.click(matchResult.centerX(), matchResult.centerY())
         sleep(1000)
         this.collectAllIfExists()
         sleep(1000)
-        if (!this.useSimpleForMatchCollect) {
-          logUtils.debugInfo(['找到目标：「{},{}」[{},{}]', matchResult.roundX(), matchResult.roundY(), matchResult.width(), matchResult.height()])
-          let template_img_for_collect = images.toBase64(images.clip(originScreen, matchResult.roundX(), matchResult.roundY(), matchResult.width(), matchResult.height()))
-          config.overwrite('fodder.fodder_btn', template_img_for_collect)
-          logUtils.debugInfo('自动更新图片配置 fodder.fodder_btn')
-          logUtils.debugForDev(['自动保存匹配图片：{}', template_img_for_collect])
-        }
+      } else {
+        warnInfo(['未能找到领饲料入口'], true)
       }
       screen.recycle()
+    }
+  }
 
+  /**
+   * 查找领饲料入口
+   */
+  this.findCollectEntry = function (screen) {
+    let originScreen = images.copy(screen)
+    if (localOcr.enabled) {
+      logUtils.debugInfo(['尝试OCR查找领饲料入口'])
+      let result = localOcr.recognizeWithBounds(screen, null, '领饲料')
+      if (result && result.length > 0) {
+        return result[0].bounds
+      }
+    }
+    logUtils.debugInfo(['ocr不支持或未找到，尝试图片查找领饲料位置'])
+    let matchResult = OpenCvUtil.findByGrayBase64(screen, this.imageConfig.fodder_btn)
+    if (!matchResult) {
+      // 尝试
+      matchResult = OpenCvUtil.findBySIFTBase64(screen, this.imageConfig.fodder_btn)
+      this.useSimpleForMatchCollect = false
+      logUtils.debugInfo(['找到目标：「{},{}」[{},{}]', matchResult.roundX(), matchResult.roundY(), matchResult.width(), matchResult.height()])
+      let template_img_for_collect = images.toBase64(images.clip(originScreen, matchResult.roundX(), matchResult.roundY(), matchResult.width(), matchResult.height()))
+      config.overwrite('fodder.fodder_btn', template_img_for_collect)
+      logUtils.debugInfo('自动更新图片配置 fodder.fodder_btn')
+      logUtils.debugForDev(['自动保存匹配图片：{}', template_img_for_collect])
+    }
+    if (matchResult) {
+      toastLog('找到了领饲料位置' + JSON.stringify(matchResult))
+      return matchResult
     }
   }
 
@@ -57,11 +75,14 @@ function Collector () {
   }
 
   function collectCurrentVisible() {
+    auto.clearCache && auto.clearCache()
     let visiableCollect = widgetUtils.widgetGetAll('^领取$') || []
+    let originList = visiableCollect
     if (visiableCollect.length > 0) {
       visiableCollect = visiableCollect.filter(v => v.visibleToUser() && checkIsValid(v))
     }
     if (visiableCollect.length > 0) {
+      _this.collected = true
       logUtils.debugInfo(['点击领取'])
       automator.clickCenter(visiableCollect[0])
       sleep(500)
@@ -74,13 +95,23 @@ function Collector () {
         return false
       }
       return collectCurrentVisible()
+    } else {
+      _this.collected = false
+      logUtils.debugInfo(['可领取控件均无效或不可见：{}', JSON.stringify((() => {
+        return originList.map(target => {
+          let bounds = target.bounds()
+          let visibleToUser = target.visibleToUser()
+          return { visibleToUser, x: bounds.left, y: bounds.top, width: bounds.width(), height: bounds.height() }
+        })
+      })())])
     }
     let allCollect = widgetUtils.widgetGetAll('^领取$')
     return allCollect && allCollect.length > 0
   }
 
   this.collectAllIfExists = function (lastTotal, findTime) {
-    if (findTime > 5) {
+    if (findTime >= 5) {
+      logUtils.warnInfo(['超过5次未找到可收取控件，退出查找'])
       return
     }
     let allCollect = widgetUtils.widgetGetAll('^领取$')
@@ -93,8 +124,8 @@ function Collector () {
         automator.gestureDown(startY, endY)
       }
       sleep(500)
-      if (lastTotal == total && !findTime) {
-        findTime = 1
+      if (!this.collected) {
+        findTime = findTime ? findTime : 1
       } else {
         findTime = null
       }

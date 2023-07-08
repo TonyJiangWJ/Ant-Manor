@@ -6,6 +6,7 @@ let _runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
 let _commonFunctions = singletonRequire('CommonFunction')
 let alipayUnlocker = singletonRequire('AlipayUnlocker')
 let widgetUtils = singletonRequire('WidgetUtils')
+let WarningFloaty = singletonRequire('WarningFloaty')
 let { logInfo: _logInfo, errorInfo: _errorInfo, warnInfo: _warnInfo, debugInfo: _debugInfo, infoLog: _infoLog } = singletonRequire('LogUtils')
 let _FloatyInstance = singletonRequire('FloatyUtil')
 _FloatyInstance.enableLog()
@@ -69,6 +70,7 @@ function AntManorRunner () {
     let img = null
     let findColor = null
     let timeoutCount = 20
+    WarningFloaty.addRectangle('校验区域颜色：' + color, region, '#00ff00')
     do {
       sleep(400)
       img = _commonFunctions.checkCaptureScreenPermission()
@@ -77,6 +79,7 @@ function AntManorRunner () {
         threshold: threshold || config.color_offset || 4
       })
     } while (!findColor && timeoutCount-- > 0)
+    WarningFloaty.clearAll()
     return findColor
   }
 
@@ -188,6 +191,7 @@ function AntManorRunner () {
   }
 
   this.checkIsOut = function () {
+    WarningFloaty.addRectangle('校验是否外出', config.OUT_REGION)
     let img = _commonFunctions.checkCaptureScreenPermission()
     let findColor = images.findColor(img, config.OUT_COLOR, {
       region: config.OUT_REGION,
@@ -200,6 +204,8 @@ function AntManorRunner () {
       click(findColor.x, findColor.y)
       sleep(1000)
       this.waitForFriends()
+      WarningFloaty.clearAll()
+      WarningFloaty.addRectangle('校验左侧', config.OUT_IN_FRIENDS_REGION_LEFT)
       sleep(1000)
       img = _commonFunctions.checkCaptureScreenPermission()
       findColor = images.findColor(img, config.OUT_IN_FRIENDS_COLOR, {
@@ -207,6 +213,7 @@ function AntManorRunner () {
         threshold: config.color_offset
       })
       if (!findColor) {
+        WarningFloaty.addRectangle('校验右侧', config.OUT_IN_FRIENDS_REGION_RIGHT)
         findColor = images.findColor(img, config.OUT_IN_FRIENDS_COLOR, {
           region: config.OUT_IN_FRIENDS_REGION_RIGHT,
           threshold: config.color_offset
@@ -241,6 +248,7 @@ function AntManorRunner () {
   }
 
   this.checkThiefLeft = function () {
+    WarningFloaty.addRectangle('左侧小偷鸡检测区域', config.LEFT_THIEF_REGION, '#00ff00')
     sleep(500)
     let img = _commonFunctions.checkCaptureScreenPermission()
     let findColor = images.findColor(img, config.THIEF_COLOR, {
@@ -259,6 +267,7 @@ function AntManorRunner () {
         click(findColor.x, findColor.y)
         sleep(1500)
         img = _commonFunctions.checkCaptureScreenPermission()
+        WarningFloaty.addRectangle('左侧小偷鸡拳头', config.LEFT_PUNCH_REGION, '#00ff00')
         punch = images.findColor(img, config.PUNCH_COLOR, {
           region: config.LEFT_PUNCH_REGION,
           threshold: config.color_offset
@@ -283,6 +292,7 @@ function AntManorRunner () {
   }
 
   this.checkThiefRight = function () {
+    WarningFloaty.addRectangle('右侧小偷鸡检测区域', config.RIGHT_THIEF_REGION, '#00ff00')
     sleep(500)
     let img = _commonFunctions.checkCaptureScreenPermission()
     let findColor = images.findColor(img, config.THIEF_COLOR, {
@@ -299,6 +309,7 @@ function AntManorRunner () {
       let count = 3
       do {
         click(findColor.x, findColor.y)
+        WarningFloaty.addRectangle('右侧小偷鸡拳头', config.RIGHT_THIEF_REGION, '#00ff00')
         sleep(1500)
         img = _commonFunctions.checkCaptureScreenPermission()
         punch = images.findColor(img, config.PUNCH_COLOR, {
@@ -325,6 +336,7 @@ function AntManorRunner () {
   }
 
   this.checkAndFeed = function () {
+    WarningFloaty.addRectangle('校验是否有饭吃', config.FOOD_REGION, '#00ff00')
     sleep(500)
     let img = _commonFunctions.checkCaptureScreenPermission()
     // 记录是否执行了喂食操作
@@ -401,6 +413,7 @@ function AntManorRunner () {
     let checkSpeedup = false
     // 校验三次
     let checkCount = useSpeedCard ? 3 : 1
+    WarningFloaty.addRectangle('校验加速卡是否成功使用', config.SPEED_CHECK_REGION)
     do {
       // 延迟一秒半
       sleep(1500)
@@ -427,11 +440,13 @@ function AntManorRunner () {
     let pickShitColor = config.PICK_SHIT_GRAY_COLOR || '#111111'
     let collectShitColor = config.COLLECT_SHIT_GRAY_COLOR || '#535353'
     img = images.grayscale(img)
+    WarningFloaty.addRectangle('查找可捡屎区域', pickRegion)
     let point = images.findColor(img, pickShitColor, { region: pickRegion })
     if (point) {
       this.setFloatyInfo({ x: pickRegion[0], y: pickRegion[1] }, "有屎可以捡")
       click(point.x, point.y)
       debugInfo(['find point：{},{}', point.x, point.y])
+      WarningFloaty.addRectangle('查找可捡屎点击确认区域', collectRegion)
       sleep(1000)
       img = _commonFunctions.checkCaptureScreenPermission()
       img = images.grayscale(img)
@@ -448,6 +463,7 @@ function AntManorRunner () {
   }
 
   this.recognizeCountdownByOcr = function () {
+    WarningFloaty.addRectangle('OCR识别倒计时区域', config.COUNT_DOWN_REGION)
     let img = _commonFunctions.checkCaptureScreenPermission()
     let region = config.COUNT_DOWN_REGION
     debugInfo(['region:{}', JSON.stringify(config.COUNT_DOWN_REGION)])
@@ -542,10 +558,12 @@ function AntManorRunner () {
       // 揍过鸡
       _commonFunctions.setPunched()
     }
+    WarningFloaty.clearAll()
 
     sleep(1000)
     this.setFloatyInfo(null, '没有野鸡哦')
     this.checkAndFeed()
+    WarningFloaty.clearAll()
     sleep(1000)
     if (config.pick_shit) {
       this.checkAndPickShit()

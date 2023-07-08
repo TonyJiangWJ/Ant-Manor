@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2023-04-11 10:00:44
+ * @Last Modified time: 2023-07-07 11:04:30
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -236,6 +236,7 @@ let default_village_config = {
   village_reward_click_x: 550,
   village_reward_click_y: 1180,
   interval_time: 120,
+  setup_by_income_weight: false,
 }
 default_config.village_config = default_village_config
 // 兼容旧版本
@@ -249,7 +250,7 @@ let default_fodder_config = {
 }
 default_config.fodder_config = default_fodder_config
 config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_NAME + '_fodder')
-config.code_version = 'v1.2.5.14'
+config.code_version = 'v1.2.5.15'
 if (!isRunningMode) {
   module.exports = function (__runtime__, scope) {
     if (typeof scope.config_instance === 'undefined') {
