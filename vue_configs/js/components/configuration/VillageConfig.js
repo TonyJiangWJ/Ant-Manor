@@ -159,7 +159,7 @@ const VillageConfig = {
     <base64-image-viewer title="摆摊赚币" v-model="configs.my_booth"/>
     <base64-image-viewer title="加速产豆" v-model="configs.speed_award"/>
     <van-field v-model="configs.friend_end_up_regex" label="摆摊超时正则" type="text" label-width="12em" placeholder="留空使用默认配置" input-align="right" />
-    <tip-block style="margin: 0.5rem">脚本优先使用OCR校验是否存在空摊位，不支持OCR的情况下才通过找图寻找；因此请准确设置OCR识别区域</tip-block>
+    <tip-block style="margin: 0.5rem">脚本优先使用OCR校验是否存在空摊位，不支持OCR的情况下才通过找图寻找；因此请准确设置OCR识别区域，配置完毕后可以运行 test/蚂蚁新村悬浮窗显示-音量上键关闭.js 进行查看，具体参考README</tip-block>
     <base64-image-viewer title="校验空摊位" v-model="configs.empty_booth"/>
     <region-input-field :array-value="true" v-model="configs.booth_position_left" label="校验左侧摊位OCR" label-width="12em" />
     <region-input-field :array-value="true" v-model="configs.booth_position_right" label="校验右侧摊位OCR" label-width="12em" />

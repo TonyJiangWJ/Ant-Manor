@@ -155,7 +155,9 @@ function VillageRunner () {
       warnInfo('本地Ocr初始化失败 或者当前版本AutoJs不支持Ocr')
       return
     }
-    WarningFloaty.addRectangle('OCR识别区域，需要保证中心点在摊位上', region, '#00ff00')
+    WarningFloaty.addRectangle('OCR识别区域，需要保证点击位置在摊位上', region, '#00ff00')
+    let clickPoint = wrapRegionForInvite(region)
+    WarningFloaty.addText('点击位置', { x: clickPoint.centerX, y: clickPoint.centerY }, '#ff0000')
     let clipImg = images.clip(screen, region[0], region[1], region[2], region[3])
     if (localOcr.type == 'mlkit') {
       // 识别准确率太低 进行放大
@@ -205,7 +207,9 @@ function VillageRunner () {
       warnInfo('本地Ocr初始化失败 或者当前版本AutoJs不支持Ocr')
       return
     }
-    WarningFloaty.addRectangle('OCR识别区域，需要保证中心点在摊位上', region, '#00ff00')
+    WarningFloaty.addRectangle('OCR识别区域，需要保证点击位置在摊位上', region, '#00ff00')
+    let clickPoint = wrapRegionForInvite(region)
+    WarningFloaty.addText('点击位置', { x: clickPoint.centerX, y: clickPoint.centerY }, '#ff0000')
     let clipImg = images.clip(screen, region[0], region[1], region[2], region[3])
     if (localOcr.type == 'mlkit') {
       // 识别准确率太低 进行放大
