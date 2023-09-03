@@ -87,6 +87,7 @@ const VillageConfig = {
         village_reward_click_x: 550,
         village_reward_click_y: 1180,
         setup_by_income_weight: false,
+        friends_finding_timeout: 8000,
       },
       timedUnit: '',
       validations: {
@@ -159,7 +160,7 @@ const VillageConfig = {
     <base64-image-viewer title="摆摊赚币" v-model="configs.my_booth"/>
     <base64-image-viewer title="加速产豆" v-model="configs.speed_award"/>
     <van-field v-model="configs.friend_end_up_regex" label="摆摊超时正则" type="text" label-width="12em" placeholder="留空使用默认配置" input-align="right" />
-    <tip-block style="margin: 0.5rem">脚本优先使用OCR校验是否存在空摊位，不支持OCR的情况下才通过找图寻找；因此请准确设置OCR识别区域</tip-block>
+    <tip-block style="margin: 0.5rem">脚本优先使用OCR校验是否存在空摊位，不支持OCR的情况下才通过找图寻找；因此请准确设置OCR识别区域，配置完毕后可以运行 test/蚂蚁新村悬浮窗显示-音量上键关闭.js 进行查看，具体参考README</tip-block>
     <base64-image-viewer title="校验空摊位" v-model="configs.empty_booth"/>
     <region-input-field :array-value="true" v-model="configs.booth_position_left" label="校验左侧摊位OCR" label-width="12em" />
     <region-input-field :array-value="true" v-model="configs.booth_position_right" label="校验右侧摊位OCR" label-width="12em" />
@@ -169,6 +170,9 @@ const VillageConfig = {
     </number-field>
     <tip-block style="margin: 0.5rem">开启后根据好友每小时产量排序进行摆摊，同时跳过黑名单好友，脚本会比随机摆摊耗时，好处是收益最大化同时可以避免被黑名单好友扔屎或驱赶；关闭后则使用随机摆摊</tip-block>
     <switch-cell title="按最大收益摆摊" v-model="configs.setup_by_income_weight" />
+    <van-field v-model="configs.friends_finding_timeout" label="邀请摆摊和查找好友空位控件超时时间" label-width="12em" type="number" placeholder="请输入超时时间" input-align="right" >
+      <span slot="right-icon">毫秒</span>
+    </van-field>
     <booth-black-config />
   </div>`
 }

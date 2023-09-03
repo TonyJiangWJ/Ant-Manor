@@ -9,6 +9,8 @@ let widgetUtils = singletonRequire('WidgetUtils')
 let WarningFloaty = singletonRequire('WarningFloaty')
 let { logInfo: _logInfo, errorInfo: _errorInfo, warnInfo: _warnInfo, debugInfo: _debugInfo, infoLog: _infoLog } = singletonRequire('LogUtils')
 let _FloatyInstance = singletonRequire('FloatyUtil')
+let yoloTrainHelper = singletonRequire('YoloTrainHelper')
+let YoloDetection = singletonRequire('YoloDetectionUtil')
 _FloatyInstance.enableLog()
 let fodderCollector = require('./FodderCollector.js')
 let BaiduOcrUtil = require('../lib/BaiduOcrUtil.js')
@@ -66,7 +68,7 @@ function AntManorRunner () {
     this.waitForOwn()
   }
 
-  this.waitFor = function (color, region, threshold) {
+  this.waitFor = function (color, region, threshold, desc) {
     let img = null
     let findColor = null
     let timeoutCount = 20
@@ -80,7 +82,31 @@ function AntManorRunner () {
       })
     } while (!findColor && timeoutCount-- > 0)
     WarningFloaty.clearAll()
+    if (findColor) {
+      yoloTrainHelper.saveImage(img, desc + '成功')
+    } else {
+      yoloTrainHelper.saveImage(img, desc + '失败')
+    }
     return findColor
+  }
+
+  this.yoloWaitFor = function (desc, filter) {
+    let img = null
+    let timeoutCount = 20
+    let result = []
+    do {
+      sleep(400)
+      img = _commonFunctions.checkCaptureScreenPermission()
+      result = YoloDetection.forward(img, filter)
+    } while (result.length <= 0 && timeoutCount-- > 0)
+    if (result.length > 0) {
+      let { x, y, width, height } = result[0]
+      WarningFloaty.addRectangle('找到：' + desc, [x, y, width, height])
+      yoloTrainHelper.saveImage(img, desc + '成功')
+    } else {
+      yoloTrainHelper.saveImage(img, desc + '失败')
+    }
+    return result.length > 0
   }
 
   this.killAndRestart = function () {
@@ -102,7 +128,12 @@ function AntManorRunner () {
    * @returns 
    */
   this.waitForOwn = function (keepAlive) {
-    let findColor = this.waitFor(config.CHECK_APP_COLOR, config.CHECK_APP_REGION)
+    let findColor = false
+    if (YoloDetection.enabled) {
+      findColor = this.yoloWaitFor('领饲料', { confidence: 0.7, labelRegex: 'collect_food' })
+    } else {
+      findColor = this.waitFor(config.CHECK_APP_COLOR, config.CHECK_APP_REGION, null, '小鸡主界面')
+    }
     if (findColor) {
       this.setFloatyInfo(null, CONTENT.personal_home + '成功')
       return true
@@ -123,7 +154,8 @@ function AntManorRunner () {
 
 
   this.waitForFriends = function () {
-    let findColor = this.waitFor(config.CHECK_FRIENDS_COLOR, config.CHECK_FRIENDS_REGION)
+    // TODO 训练好友界面的关键元素信息
+    let findColor = this.waitFor(config.CHECK_FRIENDS_COLOR, config.CHECK_FRIENDS_REGION, null, '好友界面')
     if (findColor) {
       this.setFloatyInfo(null, CONTENT.friend_home + '成功')
       return true
@@ -139,11 +171,16 @@ function AntManorRunner () {
   }
 
   this.waitForDismiss = function () {
-    let findColor = this.waitFor(config.DISMISS_COLOR, config.DISMISS_REGION)
+    // TODO 训练关闭按钮，其实OCR也行
+    let findColor = this.waitFor(config.DISMISS_COLOR, config.DISMISS_REGION, null, '关闭按钮')
     if (findColor) {
       this.setFloatyInfo(findColor, '找到了关闭按钮')
       click(findColor.x, findColor.y)
     } else {
+      if (this.checkByOcr([0, config.device_height/2, config.device_width, config.device_height / 2], '.*关闭.*')) {
+        this.setFloatyInfo(null, '找到了关闭按钮')
+        return true
+      }
       this.setFloatyInfo(null, '没找到关闭按钮，奇了怪了')
     }
   }
@@ -167,6 +204,7 @@ function AntManorRunner () {
     let sleepWidget = localOcr.recognizeWithBounds(screen, null, '睡觉中')
     if (sleepWidget && sleepWidget.length > 0) {
       let sleepBounds = sleepWidget[0].bounds
+      yoloTrainHelper.saveImageWithLabels(screen, '睡觉中', [{ name: 'sleeping', region: widgetUtils.boundsToRegion(sleepBounds) }])
       _debugInfo(['find text: {}', sleepWidget[0].label])
       this.setFloatyInfo({ x: sleepBounds.left, y: sleepBounds.top }, '小鸡睡觉中')
       sleep(1000)
@@ -198,6 +236,7 @@ function AntManorRunner () {
       threshold: config.color_offset
     })
     if (findColor) {
+      yoloTrainHelper.saveImage(img, '小鸡外出')
       this.setFloatyInfo(findColor, '小鸡出去找吃的了')
       sleep(1000)
       this.setFloatyInfo(null, '点击去找小鸡')
@@ -220,6 +259,7 @@ function AntManorRunner () {
         })
       }
       if (findColor) {
+        yoloTrainHelper.saveImage(img, '小鸡在好友家')
         this.setFloatyInfo(findColor, '找到了我的小鸡')
         sleep(1000)
         let heightRate = config.device_height / 2160
@@ -240,6 +280,7 @@ function AntManorRunner () {
         sleep(1000)
         this.waitForOwn()
       } else {
+        yoloTrainHelper.saveImage(img, '小鸡不在好友家')
         this.setFloatyTextColor('#ff0000')
         this.setFloatyInfo(getRegionCenter(config.OUT_IN_FRIENDS_REGION_LEFT), '没有找到小鸡，奇了怪了！')
         return false
@@ -256,6 +297,7 @@ function AntManorRunner () {
       threshold: config.color_offset
     })
     if (findColor) {
+      yoloTrainHelper.saveImage(img, '左侧有小鸡')
       this.setFloatyInfo(findColor, '找到了左边的小透鸡')
       sleep(1000)
       this.setFloatyTextColor('#f35458')
@@ -277,6 +319,7 @@ function AntManorRunner () {
       if (punch) {
         this.setFloatyTextColor(config.PUNCH_COLOR)
         this.setFloatyInfo(punch, '找到了左边的小拳拳')
+        yoloTrainHelper.saveImage(img, '左侧小鸡带拳头')
         sleep(2000)
         this.setFloatyInfo(null, '点击揍小鸡')
         click(punch.x, punch.y)
@@ -288,6 +331,7 @@ function AntManorRunner () {
       }
     } else {
       this.setFloatyInfo(getRegionCenter(config.LEFT_THIEF_REGION), '左边没野鸡')
+      yoloTrainHelper.saveImage(img, '左侧无小鸡')
     }
   }
 
@@ -321,6 +365,7 @@ function AntManorRunner () {
       if (punch) {
         this.setFloatyTextColor(config.PUNCH_COLOR)
         this.setFloatyInfo(punch, '找到了右边的小拳拳')
+        yoloTrainHelper.saveImage(img, '右侧小鸡带拳头')
         sleep(2000)
         this.setFloatyInfo(null, '点击揍小鸡')
         click(punch.x, punch.y)
@@ -332,6 +377,7 @@ function AntManorRunner () {
       }
     } else {
       this.setFloatyInfo(getRegionCenter(config.RIGHT_THIEF_REGION), '右边没野鸡')
+      yoloTrainHelper.saveImage(img, '左侧无小鸡')
     }
   }
 
@@ -348,9 +394,11 @@ function AntManorRunner () {
       })
       if (findColor) {
         this.setFloatyInfo(findColor, '小鸡有饭吃哦')
+        yoloTrainHelper.saveImage(img, '小鸡有饭吃')
       } else {
         this.setFloatyTextColor('#ff0000')
         this.setFloatyInfo({ x: config.FOOD_REGION[0], y: config.FOOD_REGION[1] }, '小鸡没饭吃呢')
+        yoloTrainHelper.saveImage(img, '小鸡没饭吃')
         click(config.FEED_POSITION.x, config.FEED_POSITION.y)
         feed = true
         // 避免加速卡使用失败导致时间计算不正确的问题
@@ -424,10 +472,12 @@ function AntManorRunner () {
       })
     } while (!checkSpeedup && --checkCount > 0)
     if (checkSpeedup) {
+      yoloTrainHelper.saveImage(img, '加速吃饭中')
       this.setFloatyInfo(checkSpeedup, useSpeedCard ? "加速卡使用成功" : "检测到已使用加速卡")
       return true
     } else {
       this.setFloatyTextColor('#ff0000')
+      yoloTrainHelper.saveImage(img, '吃饭中可能没加速')
       this.setFloatyInfo({ x: config.SPEED_CHECK_REGION[0], y: config.SPEED_CHECK_REGION[1] }, useSpeedCard ? "加速卡使用失败" : "未使用加速卡")
       return false
     }
@@ -439,11 +489,13 @@ function AntManorRunner () {
     let collectRegion = config.COLLECT_SHIT_CHECK_REGION || [220, 2000, 80, 40]
     let pickShitColor = config.PICK_SHIT_GRAY_COLOR || '#111111'
     let collectShitColor = config.COLLECT_SHIT_GRAY_COLOR || '#535353'
+    let originImg = images.copy(img)
     img = images.grayscale(img)
     WarningFloaty.addRectangle('查找可捡屎区域', pickRegion)
     let point = images.findColor(img, pickShitColor, { region: pickRegion })
     if (point) {
       this.setFloatyInfo({ x: pickRegion[0], y: pickRegion[1] }, "有屎可以捡")
+      yoloTrainHelper.saveImage(originImg, '有屎可以捡')
       click(point.x, point.y)
       debugInfo(['find point：{},{}', point.x, point.y])
       WarningFloaty.addRectangle('查找可捡屎点击确认区域', collectRegion)
@@ -459,6 +511,7 @@ function AntManorRunner () {
       }
     } else {
       this.setFloatyInfo({ x: pickRegion[0], y: pickRegion[1] }, "没有屎可以捡")
+      yoloTrainHelper.saveImage(originImg, '没有屎可以捡')
     }
   }
 

@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2023-07-07 11:04:30
+ * @Last Modified time: 2023-09-03 16:50:28
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -12,6 +12,7 @@ let is_pro = !!Object.prototype.toString.call(com.stardust.autojs.core.timing.Ti
 
 // 执行配置
 var default_config = {
+  unlock_device_flag: 'normal',
   timeout_existing: 6000,
   timeout_findOne: 1000,
   timeout_unlock: 1000,
@@ -25,6 +26,13 @@ var default_config = {
   toast_debug_info: false,
   show_engine_id: false,
   develop_mode: false,
+  // 是否保存YOLO训练用图片数据
+  save_yolo_train_data: false,
+  detect_by_yolo: false,
+  enable_visual_helper: false,
+  console_log_maximum_size: 1500,
+  webview_loging: false,
+  noneed_resolve_dex: false,
   // 是否保存日志文件，如果设置为保存，则日志文件会按时间分片备份在logback/文件夹下
   save_log_file: true,
   // 日志保留天数
@@ -219,6 +227,20 @@ config.overwrite = (key, value) => {
   storages.create(storage_name).put(key, value)
 }
 
+config.scaleRate = (() => {
+  let width = config.device_width
+  if (width >= 1440) {
+    return 1440 / 1080
+  } else if (width < 1000) {
+    return 720 / 1080
+  } else {
+    if (config.device_width * config.device_height > 3000000) {
+      // K50U 1.5k屏幕
+      return config.device_width / 1080
+    }
+    return 1
+  }
+})()
 // 扩展配置
 let workpath = getCurrentWorkPath()
 let configDataPath = workpath + '/config_data/'
@@ -237,6 +259,7 @@ let default_village_config = {
   village_reward_click_y: 1180,
   interval_time: 120,
   setup_by_income_weight: false,
+  friends_finding_timeout: 8000,
 }
 default_config.village_config = default_village_config
 // 兼容旧版本
@@ -250,7 +273,7 @@ let default_fodder_config = {
 }
 default_config.fodder_config = default_fodder_config
 config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_NAME + '_fodder')
-config.code_version = 'v1.2.5.15'
+config.code_version = 'v1.2.6.0'
 if (!isRunningMode) {
   module.exports = function (__runtime__, scope) {
     if (typeof scope.config_instance === 'undefined') {

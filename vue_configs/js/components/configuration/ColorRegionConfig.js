@@ -7,6 +7,7 @@
   data () {
     return {
       configs: {
+        auto_set_bang_offset: false,
         CHECK_APP_COLOR: '#f1381a',         // 校验蚂蚁庄园是否打开成功的颜色
         CHECK_FRIENDS_COLOR: '#429beb',     // 校验是否成功进入好友首页的颜色
         THIEF_COLOR: '#000000',             // 校验小偷鸡眼罩的颜色 黑色
@@ -82,6 +83,12 @@
       校验区域配置
       <van-button style="margin-left: 0.4rem" plain hairline type="primary" size="mini" @click="showRealVisual">实时查看区域</van-button>
     </van-divider>
+    <tip-block>刘海屏或者挖孔屏悬浮窗显示位置和实际目测位置不同，需要施加一个偏移量，一般是负值，脚本运行时会自动设置，非异形屏请自行修改为0</tip-block>
+    <switch-cell title="下次执行时重新识别" v-model="configs.auto_set_bang_offset" />
+    <number-field v-if="!configs.auto_set_bang_offset" v-model="configs.bang_offset" label="偏移量" label-width="12em" />
+    <van-cell center title="偏移量" v-else>
+      <span>下次执行时重新识别</span>
+    </van-cell>
     <tip-block style="margin: 0.5rem">区域输入框左滑可以通过滑块输入数值，也可以通过取色工具获取目标区域信息：<van-button style="margin-left: 0.4rem" plain hairline type="primary" size="mini" @click="openGrayDetector">打开取色工具</van-button></tip-block>
     <van-cell-group>
       <color-input-field label="校验是否打开APP的颜色" label-width="12em" v-model="configs.CHECK_APP_COLOR"/>
