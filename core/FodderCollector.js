@@ -7,6 +7,7 @@ let OpenCvUtil = require('../lib/OpenCvUtil.js')
 let automator = singletonRequire('Automator')
 let logUtils = singletonRequire('LogUtils')
 let localOcr = require('../lib/LocalOcrUtil.js')
+let LogFloaty = singletonRequire('LogFloaty')
 
 function Collector () {
   let _this = this
@@ -20,14 +21,17 @@ function Collector () {
   this.exec = function () {
     let screen = commonFunctions.captureScreen()
     if (screen) {
+      LogFloaty.pushLog('查找领饲料入口')
       let matchResult = this.findCollectEntry(screen)
       if (matchResult) {
+        LogFloaty.pushLog('已找到领饲料入口')
         toastLog('找到了领饲料位置' + JSON.stringify(matchResult))
         automator.click(matchResult.centerX(), matchResult.centerY())
         sleep(1000)
         this.collectAllIfExists()
         sleep(1000)
       } else {
+        LogFloaty.pushWarningLog('未能找到领饲料入口')
         warnInfo(['未能找到领饲料入口'], true)
       }
       screen.recycle()
@@ -40,13 +44,13 @@ function Collector () {
   this.findCollectEntry = function (screen) {
     let originScreen = images.copy(screen)
     if (localOcr.enabled) {
-      logUtils.debugInfo(['尝试OCR查找领饲料入口'])
+      LogFloaty.pushLog('尝试OCR查找领饲料入口')
       let result = localOcr.recognizeWithBounds(screen, null, '领饲料')
       if (result && result.length > 0) {
         return result[0].bounds
       }
     }
-    logUtils.debugInfo(['ocr不支持或未找到，尝试图片查找领饲料位置'])
+    LogFloaty.pushLog('ocr不支持或未找到，尝试图片查找领饲料位置')
     let matchResult = OpenCvUtil.findByGrayBase64(screen, this.imageConfig.fodder_btn)
     if (!matchResult) {
       // 尝试
@@ -88,6 +92,7 @@ function Collector () {
       sleep(500)
       let full = widgetUtils.widgetGetOne(config.fodder_config.feed_package_full || '饲料袋.*满.*|知道了', 1000)
       if (full) {
+        LogFloaty.pushWarningLog('饲料袋已满')
         logUtils.warnInfo(['饲料袋已满'], true)
         automator.back()
         sleep(1000)
@@ -111,9 +116,10 @@ function Collector () {
 
   this.collectAllIfExists = function (lastTotal, findTime) {
     if (findTime >= 5) {
-      logUtils.warnInfo(['超过5次未找到可收取控件，退出查找'])
+      LogFloaty.pushWarningLog('超过5次未找到可收取控件，退出查找')
       return
     }
+    LogFloaty.pushLog('查找 领取 按钮')
     let allCollect = widgetUtils.widgetGetAll('^领取$')
     if (allCollect && allCollect.length > 0) {
       let total = allCollect.length
@@ -131,6 +137,7 @@ function Collector () {
       }
       this.collectAllIfExists(total, findTime ? findTime + 1 : null)
     } else {
+      LogFloaty.pushWarningLog('无可领取饲料')
       logUtils.warnInfo(['无可领取饲料'], true)
       let screen = commonFunctions.captureScreen()
       if (screen) {

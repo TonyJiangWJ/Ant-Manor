@@ -87,6 +87,7 @@ const VillageConfig = {
         village_reward_click_x: 550,
         village_reward_click_y: 1180,
         setup_by_income_weight: false,
+        friends_finding_timeout: 8000,
       },
       timedUnit: '',
       validations: {
@@ -169,6 +170,9 @@ const VillageConfig = {
     </number-field>
     <tip-block style="margin: 0.5rem">开启后根据好友每小时产量排序进行摆摊，同时跳过黑名单好友，脚本会比随机摆摊耗时，好处是收益最大化同时可以避免被黑名单好友扔屎或驱赶；关闭后则使用随机摆摊</tip-block>
     <switch-cell title="按最大收益摆摊" v-model="configs.setup_by_income_weight" />
+    <van-field v-model="configs.friends_finding_timeout" label="邀请摆摊和查找好友空位控件超时时间" label-width="12em" type="number" placeholder="请输入超时时间" input-align="right" >
+      <span slot="right-icon">毫秒</span>
+    </van-field>
     <booth-black-config />
   </div>`
 }

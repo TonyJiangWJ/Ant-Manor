@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 23:07:35
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2022-09-13 10:01:36
+ * @Last Modified time: 2023-08-07 21:24:07
  * @Description: 星星球自动游玩
  */
 importClass(java.util.concurrent.LinkedBlockingQueue)
@@ -11,57 +11,30 @@ importClass(java.util.concurrent.TimeUnit)
 importClass(java.util.concurrent.ThreadFactory)
 importClass(java.util.concurrent.Executors)
 
-let { config: _config } = require('./config.js')(runtime, this)
+let { config } = require('./config.js')(runtime, this)
 let singletonRequire = require('./lib/SingletonRequirer.js')(runtime, this)
 
 let commonFunctions = singletonRequire('CommonFunction')
 let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
-let FileUtils = singletonRequire('FileUtils')
+let CanvasDrawer = require('./lib/CanvasDrawer.js')
 let resourceMonitor = require('./lib/ResourceMonitor.js')(runtime, this)
 
 requestScreenCapture(false)
 
-const WIDTH = _config.device_width
-const HEIGHT = _config.device_height
-
-const widthRate = 1
-const heightRate = 1
-
-let default_config = {
+const WIDTH = config.device_width
+const HEIGHT = config.device_height
+let running = true
+let ball_config = {
   ballColor: '#ff4e86ff',
-  reco: [200, 100, 750, 1900],
+  reco: config.reco,
   threshold: 4,
   // 目标分数
-  targetScore: _config.starBallScore,
+  targetScore: config.starBallScore,
   // 运行超时时间 毫秒
   timeout: 240000
 }
 
-let custom_config = files.exists(FileUtils.getCurrentWorkPath() + '/extends/CustomConfig.js') ? require('./extends/CustomConfig.js') : null
-
-let config = {}
-Object.keys(default_config).forEach(key => {
-  let val = default_config[key]
-  if (typeof val === 'string') {
-    config[key] = val
-  } else if (Object.prototype.toString.call(val) === '[object Array]') {
-    let newArrayConfig = [
-      parseInt(val[0] * widthRate),
-      parseInt(val[1] * heightRate),
-      parseInt(val[2] * widthRate),
-      parseInt(val[3] * heightRate)
-    ]
-    config[key] = newArrayConfig
-  } else {
-    config[key] = val
-  }
-})
-
-if (custom_config && custom_config.reco !== null && custom_config.reco.length === 4) {
-  config.reco = custom_config.reco
-}
-
-console.verbose('转换后的配置：' + JSON.stringify(config))
+console.verbose('转换后的配置：' + JSON.stringify(ball_config))
 
 function Player () {
   this.floatyWindow = null
@@ -69,18 +42,29 @@ function Player () {
   this.floatyInitCondition = null
 
   this.threadPool = null
-
+  this.color = '#00ff00'
+  this.drawText = {
+    type: 'text',
+    text: '',
+    position: {
+      x: parseInt(WIDTH / 2),
+      y: parseInt(HEIGHT / 2)
+    },
+    color: this.color,
+    textSize: 40,
+  }
   this.initPool = function () {
     let ENGINE_ID = engines.myEngine().id
     this.threadPool = new ThreadPoolExecutor(4, 8, 60, TimeUnit.SECONDS, new LinkedBlockingQueue(1024), new ThreadFactory({
       newThread: function (runnable) {
         let thread = Executors.defaultThreadFactory().newThread(runnable)
-        thread.setName(_config.thread_name_prefix + ENGINE_ID + '-星星球-' + thread.getName())
+        thread.setName(config.thread_name_prefix + ENGINE_ID + '-星星球-' + thread.getName())
         return thread
       }
     }))
     let self = this
     commonFunctions.registerOnEngineRemoved(function () {
+      running = false
       if (self.threadPool !== null) {
         self.threadPool.shutdown()
         console.verbose('关闭线程池：{}', self.threadPool.awaitTermination(5, TimeUnit.SECONDS))
@@ -100,6 +84,7 @@ function Player () {
       toastLog('即将开始可按音量上键关闭', true)
       events.observeKey()
       events.onceKeyDown('volume_up', function (event) {
+        running = false
         runningQueueDispatcher.removeRunningTask()
         log('准备关闭线程')
         _this.destroyPool()
@@ -111,20 +96,53 @@ function Player () {
   }
 
   this.initFloaty = function () {
+    this.setRectangle('星星球区域', config.reco)
     let _this = this
     this.threadPool.execute(function () {
       sleep(500)
       _this.floatyLock.lock()
       _this.floatyWindow = floaty.rawWindow(
-        <frame gravity="left">
-          <text id="content" textSize="15dp" textColor="#00ff00" />
-        </frame>
+        <canvas id="canvas" layout_weight="1" />
       )
       _this.floatyWindow.setTouchable(false)
-      _this.floatyWindow.setPosition(WIDTH / 2, config.reco[1])
-      _this.floatyWindow.content.text('准备寻找球球的位置')
+      ui.run(() => {
+        _this.floatyWindow.setPosition(0, 0)
+        _this.floatyWindow.setSize(config.device_width, config.device_height)
+      })
       _this.floatyInitCondition.signalAll()
       _this.floatyLock.unlock()
+
+      _this.floatyWindow.canvas.on("draw", function (canvas) {
+        canvas.drawColor(0xFFFFFF, android.graphics.PorterDuff.Mode.CLEAR)
+
+        if (_this.drawer == null) {
+          _this.drawer = new CanvasDrawer(canvas, null, config.bang_offset)
+        }
+
+        let toDrawList = _this.toDrawList
+        if (toDrawList && toDrawList.length > 0) {
+          toDrawList.forEach(drawInfo => {
+            try {
+              switch (drawInfo.type) {
+                case 'rect':
+                  _this.drawer.drawRectAndText(drawInfo.text, drawInfo.rect, drawInfo.color || '#00ff00')
+                  break
+                case 'circle':
+                  _this.drawer.drawCircleAndText(drawInfo.text, drawInfo.circle, drawInfo.color || '#00ff00')
+                  break
+                case 'text':
+                  _this.drawer.drawText(drawInfo.text, drawInfo.position, drawInfo.color || '#00ff00', drawInfo.textSize)
+                  break
+                default:
+                  console.warn(['no match draw event for {}', drawInfo.type], true)
+              }
+            } catch (e) {
+              errorInfo('执行异常' + e)
+              commonFunction.printExceptionStack(e)
+            }
+          })
+        }
+      })
     })
   }
 
@@ -142,33 +160,35 @@ function Player () {
 
   this.setFloatyColor = function (colorStr) {
     if (colorStr && colorStr.match(/^#[\dabcdef]{6}$/)) {
-      this.floatyLock.lock()
-      if (this.floatyWindow === null) {
-        this.floatyInitCondition.await()
-      }
-      let _this = this
-      ui.run(function () {
-        _this.floatyWindow.content.setTextColor(android.graphics.Color.parseColor(colorStr))
-      })
-      this.floatyLock.unlock()
+      this.color = colorStr
     } else {
       console.error('颜色配置无效:' + colorStr)
     }
   }
 
-  this.setFloatyInfo = function (point, text) {
-    this.floatyLock.lock()
-    if (this.floatyWindow === null) {
-      this.floatyInitCondition.await()
+
+  this.setRectangle = function (text, rectRegion, color) {
+    this.drawRect = {
+      type: 'rect',
+      text: text,
+      rect: rectRegion,
+      color: color,
     }
-    let _this = this
-    ui.run(function () {
-      if (text)
-        _this.floatyWindow.content.text('' + text)
-      if (point)
-        _this.floatyWindow.setPosition(point.x, point.y)
-    })
-    this.floatyLock.unlock()
+    this.toDrawList = [this.drawRect, this.drawText, this.drawBall].filter(v => !!v)
+  }
+
+  this.setFloatyInfo = function (point, text) {
+    this.drawText = {
+      type: 'text',
+      text: text || this.drawText.text || '',
+      position: point || this.drawText.position || {
+        x: parseInt(WIDTH / 2),
+        y: parseInt(HEIGHT / 2)
+      },
+      color: this.color,
+      textSize: this.drawText.textSize,
+    }
+    this.toDrawList = [this.drawRect, this.drawText, this.drawBall].filter(v => !!v)
   }
 
 
@@ -195,7 +215,7 @@ function Player () {
     let countdownLatch = new java.util.concurrent.CountDownLatch(1)
     this.threadPool.execute(function () {
       let lastScore = 0
-      while (currentScore < stopScore) {
+      while (currentScore < stopScore && running) {
         currentScore = self.getScore()
         if (lastScore !== currentScore) {
           lastScore = currentScore
@@ -205,22 +225,27 @@ function Player () {
       }
     })
     this.threadPool.execute(function () {
-      while (currentScore < stopScore) {
+      while (currentScore < stopScore && running) {
         let img = captureScreen()
-        let point = images.findColor(img, config.ballColor, {
-          region: config.reco,
-          threshold: config.threshold
+        let point = images.findColor(img, ball_config.ballColor, {
+          region: ball_config.reco,
+          threshold: ball_config.threshold
         })
         if (!point) {
           point = images.findColor(img, '#ff4c4c', {
-            region: config.reco,
-            threshold: config.threshold
+            region: ball_config.reco,
+            threshold: ball_config.threshold
           })
         }
-  
+
         if (point) {
-          click(point.x + 10, point.y + 20)
+          click(point.x + 30, point.y + 50)
           clickCount++
+          self.drawBall = {
+            type: 'rect',
+            text: '球',
+            rect: [point.x, point.y, 30, 50],
+          }
           self.setFloatyInfo(point, null)
         }
       }
@@ -228,7 +253,7 @@ function Player () {
     })
 
     this.threadPool.execute(function () {
-      while (currentScore < stopScore) {
+      while (currentScore < stopScore && running) {
         let restart = textContains('再来一局').findOne(1000)
         if (restart) {
           currentScore = 0
@@ -268,7 +293,7 @@ function Player () {
     this.listenStop()
     this.initFloaty()
     this.setTimeoutExit()
-    this.playing(targetScore || config.targetScore)
+    this.playing(targetScore || ball_config.targetScore)
     this.destroyPool()
     runningQueueDispatcher.removeRunningTask()
     exit()

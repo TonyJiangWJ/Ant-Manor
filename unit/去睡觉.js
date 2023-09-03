@@ -61,7 +61,7 @@ function exec () {
   let currentHours = new Date().getHours()
   if (currentHours > 6 && currentHours < 20) {
     // 晚上八点到早上6点检查是否睡觉中 其他时间跳过
-    _debugInfo(['当前时间{} 不在晚上八点和早上6点之间', currentHours], true)
+    debugInfo(['当前时间{} 不在晚上八点和早上6点之间', currentHours], true)
     return
   }
   manorRunner.launchApp()

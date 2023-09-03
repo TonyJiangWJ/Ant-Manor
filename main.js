@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2022-12-12 16:47:42
+ * @Last Modified time: 2023-08-09 14:53:40
  * @Description: 
  */
 let { config, storage_name } = require('./config.js')(runtime, this)
@@ -89,7 +89,7 @@ try {
   exit()
 }
 logInfo('解锁成功')
-
+commonFunctions.forceCheckForcegroundPermission()
 
 let executeArguments = engines.myEngine().execArgv
 debugInfo(['启动参数：{}', JSON.stringify(executeArguments)])
