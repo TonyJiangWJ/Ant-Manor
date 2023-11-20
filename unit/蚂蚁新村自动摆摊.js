@@ -2,17 +2,16 @@ let { config } = require('../config.js')(runtime, this)
 config.async_save_log_file = false
 config.force_init_paddle = true
 let singletonRequire = require('../lib/SingletonRequirer.js')(runtime, this)
-let commonFunctions = singletonRequire('CommonFunction')
 let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
+let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile, flushAllLogs } = singletonRequire('LogUtils')
+logInfo('======加入任务队列，并关闭重复运行的脚本=======')
+runningQueueDispatcher.addRunningTask()
+let commonFunctions = singletonRequire('CommonFunction')
 let automator = singletonRequire('Automator')
 let callStateListener = !config.is_pro && config.enable_call_state_control ? singletonRequire('CallStateListener') : { exitIfNotIdle: () => { } }
-let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile, flushAllLogs } = singletonRequire('LogUtils')
 let resourceMonitor = require('../lib/ResourceMonitor.js')(runtime, this)
 let villageRunner = require('../core/VillageRunner.js')
 let unlocker = require('../lib/Unlock.js')
-
-logInfo('======加入任务队列，并关闭重复运行的脚本=======')
-runningQueueDispatcher.addRunningTask()
 // 注册自动移除运行中任务
 commonFunctions.registerOnEngineRemoved(function () {
   if (config.auto_lock === true && unlocker.needRelock() === true) {
