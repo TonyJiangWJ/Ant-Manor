@@ -177,7 +177,7 @@ function AntManorRunner () {
       this.setFloatyInfo(findColor, '找到了关闭按钮')
       click(findColor.x, findColor.y)
     } else {
-      if (this.checkByOcr([0, config.device_height/2, config.device_width, config.device_height / 2], '.*关闭.*')) {
+      if (this.checkByOcr([0, config.device_height / 2, config.device_width, config.device_height / 2], '.*关闭.*')) {
         this.setFloatyInfo(null, '找到了关闭按钮')
         return true
       }
@@ -242,50 +242,65 @@ function AntManorRunner () {
       this.setFloatyInfo(null, '点击去找小鸡')
       click(findColor.x, findColor.y)
       sleep(1000)
-      this.waitForFriends()
-      WarningFloaty.clearAll()
-      WarningFloaty.addRectangle('校验左侧', config.OUT_IN_FRIENDS_REGION_LEFT)
-      sleep(1000)
-      img = _commonFunctions.checkCaptureScreenPermission()
+      this.checkAndBringBack()
+    }
+  }
+
+  this.checkAndBringBack = function () {
+    this.waitForFriends()
+    WarningFloaty.clearAll()
+    WarningFloaty.addRectangle('校验左侧', config.OUT_IN_FRIENDS_REGION_LEFT)
+    sleep(1000)
+    let img = _commonFunctions.checkCaptureScreenPermission()
+    let findColor = images.findColor(img, config.OUT_IN_FRIENDS_COLOR, {
+      region: config.OUT_IN_FRIENDS_REGION_LEFT,
+      threshold: config.color_offset
+    })
+    if (!findColor) {
+      WarningFloaty.addRectangle('校验右侧', config.OUT_IN_FRIENDS_REGION_RIGHT)
       findColor = images.findColor(img, config.OUT_IN_FRIENDS_COLOR, {
-        region: config.OUT_IN_FRIENDS_REGION_LEFT,
+        region: config.OUT_IN_FRIENDS_REGION_RIGHT,
         threshold: config.color_offset
       })
-      if (!findColor) {
-        WarningFloaty.addRectangle('校验右侧', config.OUT_IN_FRIENDS_REGION_RIGHT)
-        findColor = images.findColor(img, config.OUT_IN_FRIENDS_COLOR, {
-          region: config.OUT_IN_FRIENDS_REGION_RIGHT,
-          threshold: config.color_offset
-        })
-      }
-      if (findColor) {
-        yoloTrainHelper.saveImage(img, '小鸡在好友家')
-        this.setFloatyInfo(findColor, '找到了我的小鸡')
-        sleep(1000)
-        let heightRate = config.device_height / 2160
-        this.setFloatyInfo({ x: findColor.x, y: findColor.y + 200 * heightRate }, '点击叫回小鸡')
-        click(findColor.x, parseInt(findColor.y + 200 * heightRate))
-        let isWorking = widgetUtils.widgetGetOne('小鸡工作中.*', 1000)
-        if (isWorking) {
-          _FloatyInstance.setFloatyText('小鸡工作中，寻找确认按钮')
-          let confirmBtn = widgetUtils.widgetGetOne('确认')
-          if (confirmBtn) {
-            this.setFloatyInfo({ x: confirmBtn.bounds().left, y: confirmBtn.bounds().top }, '确认按钮')
-            automator.clickCenter(confirmBtn)
-          } else {
-            _FloatyInstance.setFloatyText('未找到确认按钮')
-            _errorInfo('未找到确认按钮，请手动执行', true)
-          }
-        }
-        sleep(1000)
-        this.waitForOwn()
-      } else {
-        yoloTrainHelper.saveImage(img, '小鸡不在好友家')
-        this.setFloatyTextColor('#ff0000')
-        this.setFloatyInfo(getRegionCenter(config.OUT_IN_FRIENDS_REGION_LEFT), '没有找到小鸡，奇了怪了！')
-        return false
-      }
     }
+    if (findColor) {
+      yoloTrainHelper.saveImage(img, '小鸡在好友家')
+      this.setFloatyInfo(findColor, '找到了我的小鸡')
+      sleep(1000)
+      let heightRate = config.device_height / 2160
+      this.setFloatyInfo({ x: findColor.x, y: findColor.y + 200 * heightRate }, '点击叫回小鸡')
+      click(findColor.x, parseInt(findColor.y + 200 * heightRate))
+      let isWorking = widgetUtils.widgetGetOne('小鸡工作中.*', 1000)
+      if (isWorking) {
+        _FloatyInstance.setFloatyText('小鸡工作中，寻找确认按钮')
+        let confirmBtn = widgetUtils.widgetGetOne('确认')
+        if (confirmBtn) {
+          this.setFloatyInfo({ x: confirmBtn.bounds().left, y: confirmBtn.bounds().top }, '确认按钮')
+          automator.clickCenter(confirmBtn)
+        } else {
+          _FloatyInstance.setFloatyText('未找到确认按钮')
+          _errorInfo('未找到确认按钮，请手动执行', true)
+        }
+      }
+      sleep(1000)
+      this.waitForOwn()
+    } else {
+      yoloTrainHelper.saveImage(img, '小鸡不在好友家')
+      this.setFloatyTextColor('#ff0000')
+      this.setFloatyInfo(getRegionCenter(config.OUT_IN_FRIENDS_REGION_LEFT), '没有找到小鸡，奇了怪了！')
+      return false
+    }
+  }
+
+  this.checkIfChikenOut = function () {
+    let outBtn = widgetUtils.widgetGetOne('找小鸡', 2000)
+    if (outBtn) {
+      yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '小鸡外出了')
+      automator.clickCenter(outBtn)
+      this.checkAndBringBack()
+      return true
+    }
+    return false
   }
 
   this.checkThiefLeft = function () {
@@ -401,6 +416,9 @@ function AntManorRunner () {
         yoloTrainHelper.saveImage(img, '小鸡没饭吃')
         click(config.FEED_POSITION.x, config.FEED_POSITION.y)
         feed = true
+        if (this.checkIfChikenOut()) {
+          return this.checkAndFeed()
+        }
         // 避免加速卡使用失败导致时间计算不正确的问题
         _commonFunctions.updateSleepTime(20, true)
         if (config.useSpeedCard) {

@@ -110,6 +110,7 @@ function VillageRunner () {
       yoloTrainHelper.saveImage(screen, '打开新村失败')
       errorInfo('打开蚂蚁新村失败', true)
       LogFloaty.pushErrorLog('打开蚂蚁新村失败')
+      killAlipay()
       return false
     }
   }
@@ -281,33 +282,34 @@ function VillageRunner () {
           return
         }
         let index = avatar.indexInParent()
+        if (avatar.parent().childCount() <= index + 3) {
+          return
+        }
         let nameWidget = avatar.parent().child(index + 1)
         let name = nameWidget.desc() || nameWidget.text()
         let inviteBtnContainer = avatar.parent().child(index + 3)
+        let inviteBtn = null
         if (inviteBtnContainer.childCount() > 0) {
-          let inviteBtn = inviteBtnContainer.child(0)
-          let inviteText = inviteBtn.text() || inviteBtn.desc()
-          if (inviteText !== '直接邀请摆摊') {
-            debugInfo(['好友：{} 不能邀请：{}', name, inviteText])
-            return
-          }
-          if (typeof villageConfig != 'undefined' && villageConfig.booth_black_list && villageConfig.booth_black_list.length > 0) {
-            if (villageConfig.booth_black_list.indexOf(name) > -1) {
-              debugInfo(['{} 在黑名单中 跳过邀请', name])
-              return
-            }
-          }
-          debugInfo(['邀请好友「{}」', name])
+          inviteBtn = inviteBtnContainer.child(0)
         } else {
           inviteBtnContainer = avatar.parent().child(index + 2)
           if (inviteBtnContainer.childCount() > 0) {
-            let inviteBtn = inviteBtnContainer.child(0)
-            inviteText = inviteBtn.text() || inviteBtn.desc()
-            debugInfo(['好友[{}]不能邀请：{}', name, inviteText])
+            inviteBtn = inviteBtnContainer.child(0)
           }
+        }
+        let inviteText = inviteBtn.text() || inviteBtn.desc()
+        if (inviteText !== '直接邀请摆摊') {
+          debugInfo(['好友：[{}] 不能邀请：{}', name, inviteText])
           return
         }
-        inviteBtnContainer.click()
+        if (typeof villageConfig != 'undefined' && villageConfig.booth_black_list && villageConfig.booth_black_list.length > 0) {
+          if (villageConfig.booth_black_list.indexOf(name) > -1) {
+            debugInfo(['{} 在黑名单中 跳过邀请', name])
+            return
+          }
+        }
+        debugInfo(['邀请好友「{}」', name])
+        inviteBtn.click()
         sleep(500)
         invited = true
       })
@@ -604,8 +606,7 @@ function VillageRunner () {
       LogFloaty.pushLog('重新打开新村失败，关闭支付宝再打开')
       sleep(1000)
       // TODO 更完善的关闭方式
-      config.killAppWithGesture = true
-      commonFunctions.killCurrentApp()
+      killAlipay()
       sleep(3000)
       if (tryTime >= 3) {
         LogFloaty.pushWarningLog('重新打开失败多次，多等待一会儿')
@@ -614,6 +615,34 @@ function VillageRunner () {
         device.cancelKeepingAwake()
       }
       return reopenAndCheckSpeedAward(tryTime + 1)
+    }
+  }
+
+  function killAlipay() {
+    app.startActivity({
+      packageName: "com.eg.android.AlipayGphone",
+      action: "android.settings.APPLICATION_DETAILS_SETTINGS",
+      data: "package:" + packageName
+    });
+    LogFloaty.pushLog('等待进入设置界面加载')
+    let killed = false
+    sleep(1000)
+    let stop = widgetUtils.widgetWaiting('结束运行')
+    if (stop) {
+      sleep(1000)
+      stop = widgetUtils.widgetGetOne('结束运行')
+      automator.clickCenter(stop)
+      sleep(1000)
+      let confirm = widgetUtils.widgetGetOne('确定')
+      if (confirm) {
+        automator.clickCenter(confirm)
+        killed = true
+      }
+    }
+    if (!killed) {
+      LogFloaty.pushLog('未能通过设置界面关闭，采用手势关闭')
+      config.killAppWithGesture = true
+      commonFunctions.killCurrentApp()
     }
   }
 
@@ -680,6 +709,7 @@ function VillageRunner () {
   this.speedAward = speedAward
   this.waitForLoading = waitForLoading
   this.doTask = doTask
+  this.killAlipay = killAlipay
 }
 
 module.exports = new VillageRunner()
