@@ -36,6 +36,10 @@ let Index = {
           link: '/advance/common'
         },
         {
+          title: '新村助力设置',
+          link: '/village/share'
+        },
+        {
           title: '关于项目',
           link: '/about'
         },
