@@ -4,6 +4,8 @@ let singletonRequire = require('../lib/SingletonRequirer.js')(runtime, this)
 let commonFunctions = singletonRequire('CommonFunction')
 let widgetUtils = singletonRequire('WidgetUtils')
 let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
+// logInfo('======加入任务队列，并关闭重复运行的脚本=======')
+runningQueueDispatcher.addRunningTask()
 let automator = singletonRequire('Automator')
 
 let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile, flushAllLogs } = singletonRequire('LogUtils')
@@ -11,11 +13,11 @@ let resourceMonitor = require('../lib/ResourceMonitor.js')(runtime, this)
 let manorRunner = require('../core/AntManorRunner.js')
 let unlocker = require('../lib/Unlock.js')
 let localOcrUtil = require('../lib/LocalOcrUtil.js')
+let yoloTrainHelper = singletonRequire('YoloTrainHelper')
+let YoloDetection = singletonRequire('YoloDetectionUtil')
 
 let FloatyInstance = singletonRequire('FloatyUtil')
 FloatyInstance.enableLog()
-logInfo('======加入任务队列，并关闭重复运行的脚本=======')
-runningQueueDispatcher.addRunningTask()
 
 // 注册自动移除运行中任务
 commonFunctions.registerOnEngineRemoved(function () {
@@ -77,11 +79,22 @@ function exec () {
 }
 
 function goToBed () {
-  let toSleepPosition = { x: config.to_sleep_entry.x || 860, y: config.to_sleep_entry.y || 1220 }
-  FloatyInstance.setFloatyInfo(toSleepPosition, '去睡觉')
-  sleep(1000)
-  automator.click(toSleepPosition.x, toSleepPosition.y)
+  if (YoloDetection.enabled) {
+    let toSleep = manorRunner.yoloCheck('去睡觉', {confidence: 0.7, labelRegex: 'sleep'})
+    if (toSleep) {
+      FloatyInstance.setFloatyInfo(toSleep, '去睡觉')
+      sleep(1000)
+      automator.click(toSleep.x, toSleep.y)
+    }
+  } else {
+    let toSleepPosition = { x: config.to_sleep_entry.x || 860, y: config.to_sleep_entry.y || 1220 }
+    FloatyInstance.setFloatyInfo(toSleepPosition, '去睡觉')
+    sleep(1000)
+    automator.click(toSleepPosition.x, toSleepPosition.y)
+  }
+  // 训练，找到床
   sleep(2000)
+  yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '小鸡睡觉床')
   automator.click(config.to_sleep_bed.x || 200, config.to_sleep_bed.y || 740)
   sleep(2000)
   let yesSleepBtn = widgetUtils.widgetGetOne('去睡觉')

@@ -12,6 +12,7 @@ let localOcr = require('../lib/LocalOcrUtil.js')
 let WarningFloaty = singletonRequire('WarningFloaty')
 let LogFloaty = singletonRequire('LogFloaty')
 let yoloTrainHelper = singletonRequire('YoloTrainHelper')
+let YoloDetection = singletonRequire('YoloDetectionUtil')
 FloatyInstance.enableLog()
 
 let villageConfig = config.village_config
@@ -25,10 +26,9 @@ function VillageRunner () {
     try {
       openMyVillage()
       sleep(1000)
-      // 自动点击自己的能量豆
-      automator.click(villageConfig.village_reward_click_x, villageConfig.village_reward_click_y)
+      collectMyCoin()
       sleep(500)
-      // 加速产豆
+      // 加速产币
       speedAward()
       sleep(500)
       checkAnyEmptyBooth()
@@ -68,6 +68,7 @@ function VillageRunner () {
     if (!waitForLoading() && !retry) {
       LogFloaty.pushWarningLog('打开蚂蚁新村失败，重新打开')
       commonFunctions.minimize()
+      killAlipay()
       sleep(3000)
       openMyVillage(false, true)
     }
@@ -86,12 +87,34 @@ function VillageRunner () {
       }
     }
   }
-
+  function collectMyCoin() {
+    let findByYolo = false
+    if (YoloDetection.enabled) {
+      let collectCoin = yoloCheck('收集金币', { confidence: 0.7, labelRegex: 'collect_coin' })
+      if (collectCoin) {
+        automator.click(collectCoin.x, collectCoin.y)
+        findByYolo = false
+      }
+    }
+    if (!findByYolo) {
+      // 自动点击自己的能量豆
+      automator.click(villageConfig.village_reward_click_x, villageConfig.village_reward_click_y)
+    }
+  }
   /**
    * 等待摆摊界面或者好友界面打开完成 寻找邮箱或其他标志物
    */
   function waitForLoading () {
+    if (config._mock_fail && Math.random() > 0.25 || config._fail_next) {
+      config._fail_next = true
+      return false
+    }
     LogFloaty.pushLog('校验是否正确打开蚂蚁新村')
+    if (YoloDetection.enabled) {
+      if (yoloWaitFor('界面校验', { confidence: 0.7, labelRegex: 'booth_btn|empty_booth'})) {
+        return true
+      }
+    }
     let screen = commonFunctions.captureScreen()
     let findPoint = openCvUtil.findByGrayBase64(screen, villageConfig.checking_mail_box)
     // 等待五秒
@@ -110,7 +133,7 @@ function VillageRunner () {
       yoloTrainHelper.saveImage(screen, '打开新村失败')
       errorInfo('打开蚂蚁新村失败', true)
       LogFloaty.pushErrorLog('打开蚂蚁新村失败')
-      killAlipay()
+      // killAlipay()
       return false
     }
   }
@@ -122,6 +145,10 @@ function VillageRunner () {
     LogFloaty.pushLog('准备查找是否有超时摊位')
     sleep(1000)
     FloatyInstance.hide()
+    if (YoloDetection.enabled) {
+      checkAnyEmptyBoothByYolo()
+      return
+    }
     let haveDriveOut = false
     let screen = commonFunctions.captureScreen()
     FloatyInstance.restore()
@@ -163,6 +190,103 @@ function VillageRunner () {
     WarningFloaty.clearAll()
   }
 
+  function checkAnyEmptyBoothByYolo () {
+    // 检查是否有可驱赶的摊位
+    let findOperationBooth = yoloCheckAll('可操作摊位', { labelRegex: 'operation_booth' })
+    if (findOperationBooth && findOperationBooth.length > 0) {
+      let screen = commonFunctions.captureScreen()
+      findOperationBooth.forEach(ocrPosition => {
+        doCheckAndDriveOut(screen, [ocrPosition.left, ocrPosition.top, ocrPosition.width, ocrPosition.height])
+      })
+    }
+    // 检测空摊位并邀请
+    let findEmptyBooth = yoloCheckAll('空摊位', { labelRegex: 'empty_booth' })
+    if (findEmptyBooth && findEmptyBooth.length > 0) {
+      let noMoreFriend = false
+      findEmptyBooth.forEach(emptyBooth => {
+        if (noMoreFriend) {
+          return
+        }
+        let point = {
+          x: emptyBooth.x,
+          y: emptyBooth.y,
+          centerX: () => emptyBooth.x,
+          centerY: () => emptyBooth.y,
+        }
+        FloatyInstance.setFloatyInfo({ x: point.x, y: point.y }, '有空位点击触发邀请')
+        sleep(1000)
+        if (!inviteFriend(point)) {
+          warnInfo('无可邀请好友，不再检查空位')
+          automator.click(config.device_width / 2, config.device_height * 0.1)
+          noMoreFriend = true
+          sleep(1000)
+        }
+      })
+    }
+
+  }
+  function yoloCheck (desc, filter) {
+    let result = yoloCheckAll(desc, filter)
+    if (result && result.length > 0) {
+      return result[0]
+    }
+    return null
+  }
+
+  function yoloCheckAll (desc, filter) {
+    let img = null
+    let result = []
+    let tryTime = 5
+    WarningFloaty.clearAll()
+    debugInfo(['通过YOLO查找：{} props: {}', desc, JSON.stringify(filter)])
+    do {
+      sleep(400)
+      img = commonFunctions.captureScreen()
+      result = YoloDetection.forward(img, filter)
+    } while (result.length <= 0 && tryTime-- > 0)
+    if (result.length > 0) {
+      let hasLowConfidence = false
+      let res = result.map(r => {
+        let { x: left, y: top, width, height, label, confidence } = r
+        debugInfo(['通过YOLO找到目标：{} label: {} confidence: {}', desc, label, confidence])
+        if (confidence < 0.9) {
+          hasLowConfidence = true
+        }
+        return { x: left + width / 2, y: top + height / 2, width: width, height: height, left: left, top: top, label: label, confidence: confidence }
+      })
+      if (hasLowConfidence) {
+        yoloTrainHelper.saveImage(img, desc + 'yolo准确率低')
+      } else {
+        yoloTrainHelper.saveImage(img, desc + '成功')
+      }
+      return res
+    } else {
+      yoloTrainHelper.saveImage(img, desc + '失败')
+      debugInfo(['未能通过YOLO找到：{}', desc])
+    }
+    return null
+  }
+
+  function yoloWaitFor (desc, filter) {
+    debugInfo(['通过yolo方式等待界面元素：{}', desc])
+    let img = null
+    let timeoutCount = 5
+    let result = []
+    WarningFloaty.clearAll()
+    do {
+      sleep(400)
+      img = commonFunctions.checkCaptureScreenPermission()
+      result = YoloDetection.forward(img, filter)
+    } while (result.length <= 0 && timeoutCount-- > 0)
+    if (result.length > 0) {
+      let { x, y, width, height } = result[0]
+      WarningFloaty.addRectangle('找到：' + desc, [x, y, width, height])
+      yoloTrainHelper.saveImage(img, desc + '成功')
+    } else {
+      yoloTrainHelper.saveImage(img, desc + '失败')
+    }
+    return result.length > 0
+  }
   /**
    * 校验并驱赶
    * @param {ImageWrapper} screen 
@@ -216,7 +340,7 @@ function VillageRunner () {
 
 
   /**
-   * 校验并驱赶
+   * 校验指定区域是否有空摊位
    * @param {ImageWrapper} screen 
    * @param {array: [left, top, width, height]} region 
    */
@@ -327,8 +451,19 @@ function VillageRunner () {
    * 2 将闲置摊位进行摆放
    */
   function checkMyBooth () {
-    let screen = commonFunctions.captureScreen()
-    let point = openCvUtil.findByGrayBase64(screen, villageConfig.my_booth)
+    let point = null, screen = null
+    if (YoloDetection.enabled) {
+      let result = yoloCheck('摆摊赚币', { confidence: 0.7, labelRegex: 'booth_btn'})
+      if (result) {
+        point = {
+          centerX: () => result.x,
+          centerY: () => result.y
+        }
+      }
+    } else {
+      screen = commonFunctions.captureScreen()
+      point = openCvUtil.findByGrayBase64(screen, villageConfig.my_booth)
+    }
     if (!point) {
       debugInfo(['尝试OCR识别 摆摊赚币'])
       let ocrResult = localOcr.recognizeWithBounds(screen, null, '摆摊赚币')
@@ -418,20 +553,22 @@ function VillageRunner () {
     let blackList = villageConfig.booth_black_list || []
     let noValidBooth = true
     if (incomeRateList && incomeRateList.length > 0) {
-      let frientList = incomeRateList.map(incomeRate => {
+      debugInfo(['找到带收益数据数量:{}', incomeRateList.length])
+      let validFriendList = incomeRateList.map(incomeRate => {
         let container = incomeRate.parent()
         let friendName = container.child(1).text()
         let incomeRateWeight = parseInt(/(\d+)\/时/.exec(incomeRate.text())[1])
         return {
-          valid: incomeRate.indexInParent() == 4,
+          valid: incomeRate.indexInParent() == 4 || incomeRate.indexInParent() == 2,
           container: container,
           friendName: friendName,
           weight: incomeRateWeight
         }
       }).sort((a, b) => b.weight - a.weight).filter(v => v.valid && blackList.indexOf(v.friendName) < 0)
-      if (frientList.length > 0) {
+      debugInfo(['过滤有效控件信息数：{}', validFriendList.length])
+      if (validFriendList.length > 0) {
         noValidBooth = false
-        let emptyBooth = frientList[0]
+        let emptyBooth = validFriendList[0]
         debugInfo(['过滤后选择好友: {} 进行摆摊 每小时：{}', emptyBooth.friendName, emptyBooth.weight])
         emptyBooth.container.click()
         waitForLoading()
@@ -458,20 +595,32 @@ function VillageRunner () {
    */
   function setupToEmptyBooth () {
     FloatyInstance.setFloatyPosition(0, 0)
-    let screen = commonFunctions.captureScreen()
-    let emptyCheck = doCheckEmptyBooth(screen, villageConfig.booth_position_left)
     let region = null
-    if (emptyCheck) {
-      region = villageConfig.booth_position_left
+    if (YoloDetection.enabled) {
+      let emptyBooth = yoloCheck('空摊位', {labelRegex: 'empty_booth', confidence: 0.7})
+      if (emptyBooth) {
+        let {left, top, width, height} = emptyBooth
+        region = [left, top, width, height]
+      }
     } else {
-      emptyCheck = doCheckEmptyBooth(screen, villageConfig.booth_position_right)
+      let screen = commonFunctions.captureScreen()
+      let emptyCheck = doCheckEmptyBooth(screen, villageConfig.booth_position_left)
       if (emptyCheck) {
-        region = villageConfig.booth_position_right
+        region = villageConfig.booth_position_left
+      } else {
+        emptyCheck = doCheckEmptyBooth(screen, villageConfig.booth_position_right)
+        if (emptyCheck) {
+          region = villageConfig.booth_position_right
+        }
+      }
+      if (region) {
+        yoloTrainHelper.saveImage(screen, '好友界面有空位')
+      } else {
+        yoloTrainHelper.saveImage(screen, '好友界面无空位')
       }
     }
 
     if (region) {
-      yoloTrainHelper.saveImage(screen, '好友界面有空位')
       FloatyInstance.setFloatyInfo({ x: region[0], y: region[1] }, '有空位')
       sleep(1000)
       var r = new org.opencv.core.Rect(region[0], region[1], region[2], region[3])
@@ -480,7 +629,6 @@ function VillageRunner () {
       sleep(1500)
       return doSetupBooth()
     } else {
-      yoloTrainHelper.saveImage(screen, '好友界面无空位')
       logInfo('无空位', true)
       logInfo(['当前已摆摊数量为：{}', currentBoothSetted])
       if (currentBoothSetted < 4) {
@@ -524,11 +672,11 @@ function VillageRunner () {
   }
 
   /**
-   * 加速产豆
+   * 加速产币
    */
   function speedAward (force) {
     if (!force && commonFunctions.checkSpeedUpCollected()) {
-      debugInfo('今日已经完成加速，不继续查找加速产豆 答题等请手动执行')
+      debugInfo('今日已经完成加速，不继续查找加速产币 答题等请手动执行')
       return
     }
     if (clickSpeedAward()) {
@@ -540,13 +688,13 @@ function VillageRunner () {
         hadAward = true
       }
       if (!force && !hadAward) {
-        debugInfo('已经没有可领取的加速产豆了 设置今日不再执行')
+        debugInfo('已经没有可领取的加速产币了 设置今日不再执行')
         commonFunctions.setSpeedUpCollected()
       }
       automator.click(config.device_width / 2, config.device_height * 0.1)
       sleep(1000)
     } else {
-      LogFloaty.pushLog('未找到加速产豆')
+      LogFloaty.pushLog('未找到加速产币')
       sleep(1000)
     }
   }
@@ -618,7 +766,7 @@ function VillageRunner () {
     }
   }
 
-  function killAlipay() {
+  function killAlipay (rekill) {
     app.startActivity({
       packageName: "com.eg.android.AlipayGphone",
       action: "android.settings.APPLICATION_DETAILS_SETTINGS",
@@ -627,7 +775,7 @@ function VillageRunner () {
     LogFloaty.pushLog('等待进入设置界面加载')
     let killed = false
     sleep(1000)
-    let stop = widgetUtils.widgetWaiting('结束运行')
+    let stop = widgetUtils.widgetWaiting('结束运行', null, 3800)
     if (stop) {
       sleep(1000)
       stop = widgetUtils.widgetGetOne('结束运行')
@@ -638,28 +786,38 @@ function VillageRunner () {
         automator.clickCenter(confirm)
         killed = true
       }
+    } else {
+      LogFloaty.pushWarningLog('未能找到结束运行，通过设置关闭支付宝失败')
     }
-    if (!killed) {
+    if (!killed && !rekill) {
       LogFloaty.pushLog('未能通过设置界面关闭，采用手势关闭')
       config.killAppWithGesture = true
       commonFunctions.killCurrentApp()
+      killAlipay(true)
     }
   }
 
   function clickSpeedAward () {
+    if (YoloDetection.enabled) {
+      let speedupBtn = yoloCheck('加速产币', { confidence: 0.7, labelRegex: 'speedup'})
+      if (speedupBtn) {
+        automator.click(speedupBtn.x, speedupBtn.y)
+        return true
+      }
+    }
 
     let screen = commonFunctions.captureScreen()
     let point = openCvUtil.findByGrayBase64(screen, villageConfig.speed_award)
     if (!point && localOcr.enabled) {
-      debugInfo(['尝试OCR识别 加速产豆'])
-      let ocrResult = localOcr.recognizeWithBounds(screen, null, '加速产豆')
+      debugInfo(['尝试OCR识别 加速产币'])
+      let ocrResult = localOcr.recognizeWithBounds(screen, null, '加速产币')
       if (ocrResult && ocrResult.length > 0) {
         point = ocrResult[0].bounds
       }
     }
     if (point) {
-      yoloTrainHelper.saveImage(screen, '有加速产豆')
-      FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '加速产豆')
+      yoloTrainHelper.saveImage(screen, '有加速产币')
+      FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '加速产币')
       sleep(1000)
       automator.click(point.centerX(), point.centerY())
       sleep(1000)

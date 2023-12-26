@@ -8,9 +8,11 @@ let automator = singletonRequire('Automator')
 let logUtils = singletonRequire('LogUtils')
 let localOcr = require('../lib/LocalOcrUtil.js')
 let LogFloaty = singletonRequire('LogFloaty')
+let YoloDetection = singletonRequire('YoloDetectionUtil')
 
 function Collector () {
   let _this = this
+  let collectBtnContetRegex = /^(x\d+g)领取$/
   this.useSimpleForMatchCollect = true
   this.useSimpleForCloseCollect = true
 
@@ -43,6 +45,19 @@ function Collector () {
    */
   this.findCollectEntry = function (screen) {
     let originScreen = images.copy(screen)
+    if (YoloDetection.enabled) {
+      LogFloaty.pushLog('尝试YOLO查找领饲料入口')
+      let result = YoloDetection.forward(screen, { confidence: 0.7, labelRegex: 'collect_food' })
+      if (result && result.length > 0) {
+        let { x, y, width, height } = result[0]
+        LogFloaty.pushLog('Yolo找到：领饲料入口')
+        return {
+          x: x, y: y,
+          centerX: () => x,
+          centerY: () => y
+        }
+      }
+    }
     if (localOcr.enabled) {
       LogFloaty.pushLog('尝试OCR查找领饲料入口')
       let result = localOcr.recognizeWithBounds(screen, null, '领饲料')
@@ -78,9 +93,9 @@ function Collector () {
     }
   }
 
-  function collectCurrentVisible() {
+  function collectCurrentVisible () {
     auto.clearCache && auto.clearCache()
-    let visiableCollect = widgetUtils.widgetGetAll('^领取$') || []
+    let visiableCollect = widgetUtils.widgetGetAll(collectBtnContetRegex) || []
     let originList = visiableCollect
     if (visiableCollect.length > 0) {
       visiableCollect = visiableCollect.filter(v => v.visibleToUser() && checkIsValid(v))
@@ -94,9 +109,12 @@ function Collector () {
       if (full) {
         LogFloaty.pushWarningLog('饲料袋已满')
         logUtils.warnInfo(['饲料袋已满'], true)
-        automator.back()
-        sleep(1000)
-        automator.back()
+        _this.food_is_full = true
+        let confirmBtn = widgetUtils.widgetGetOne('知道了', 1000)
+        if (confirmBtn) {
+          automator.clickCenter(confirmBtn)
+          sleep(1000)
+        }
         return false
       }
       return collectCurrentVisible()
@@ -110,17 +128,18 @@ function Collector () {
         })
       })())])
     }
-    let allCollect = widgetUtils.widgetGetAll('^领取$')
+    let allCollect = widgetUtils.widgetGetAll(collectBtnContetRegex)
     return allCollect && allCollect.length > 0
   }
 
   this.collectAllIfExists = function (lastTotal, findTime) {
     if (findTime >= 5) {
       LogFloaty.pushWarningLog('超过5次未找到可收取控件，退出查找')
+      this.closeFoodCollection()
       return
     }
     LogFloaty.pushLog('查找 领取 按钮')
-    let allCollect = widgetUtils.widgetGetAll('^领取$')
+    let allCollect = widgetUtils.widgetGetAll(collectBtnContetRegex)
     if (allCollect && allCollect.length > 0) {
       let total = allCollect.length
       if (collectCurrentVisible()) {
@@ -128,6 +147,9 @@ function Collector () {
         let startY = config.device_height - config.device_height * 0.15
         let endY = startY - config.device_height * 0.3
         automator.gestureDown(startY, endY)
+      } else if (this.food_is_full) {
+        this.closeFoodCollection()
+        return
       }
       sleep(500)
       if (!this.collected) {
@@ -137,8 +159,24 @@ function Collector () {
       }
       this.collectAllIfExists(total, findTime ? findTime + 1 : null)
     } else {
-      LogFloaty.pushWarningLog('无可领取饲料')
-      logUtils.warnInfo(['无可领取饲料'], true)
+      this.closeFoodCollection()
+    }
+  }
+
+  this.closeFoodCollection = function () {
+    LogFloaty.pushWarningLog('无可领取饲料')
+    logUtils.warnInfo(['无可领取饲料'], true)
+    if (YoloDetection.enabled) {
+      let result = YoloDetection.forward(commonFunctions.captureScreen(), { confidence: 0.7, labelRegex: 'close_btn' })
+      if (result && result.length > 0) {
+        LogFloaty.pushLog('通过yolo找到了关闭按钮')
+        automator.click(result[0].x, result[0].y)
+      } else {
+        LogFloaty.pushWarningLog('无法通过yolo查找到关闭按钮')
+        logUtils.warnInfo(['无法通过yolo查找到关闭按钮'])
+        automator.back()
+      }
+    } else {
       let screen = commonFunctions.captureScreen()
       if (screen) {
         screen = images.copy(images.grayscale(screen), true)

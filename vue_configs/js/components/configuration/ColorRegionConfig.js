@@ -8,6 +8,7 @@
     return {
       configs: {
         auto_set_bang_offset: false,
+        detect_by_yolo: false,
         CHECK_APP_COLOR: '#f1381a',         // 校验蚂蚁庄园是否打开成功的颜色
         CHECK_FRIENDS_COLOR: '#429beb',     // 校验是否成功进入好友首页的颜色
         THIEF_COLOR: '#000000',             // 校验小偷鸡眼罩的颜色 黑色
@@ -89,6 +90,8 @@
     <van-cell center title="偏移量" v-else>
       <span>下次执行时重新识别</span>
     </van-cell>
+    <tip-block>请确保已下载YOLO识别模型到config_data/manor_lite.onnx，并且当前AutoJS支持YOLO识别，否则将无法使用YOLO。启用后无需再配置区域颜色，当前为实验性功能，不保证可靠性</tip-block>
+    <switch-cell title="使用YOLO识别" v-model="configs.detect_by_yolo" />
     <tip-block style="margin: 0.5rem">区域输入框左滑可以通过滑块输入数值，也可以通过取色工具获取目标区域信息：<van-button style="margin-left: 0.4rem" plain hairline type="primary" size="mini" @click="openGrayDetector">打开取色工具</van-button></tip-block>
     <van-cell-group>
       <color-input-field label="校验是否打开APP的颜色" label-width="12em" v-model="configs.CHECK_APP_COLOR"/>

@@ -13,6 +13,7 @@ const loadJsList = [
   './js/components/configuration/FodderConfig.js',
   './js/components/configuration/VillageConfig.js',
   './js/components/configuration/QuestionAnswer.js',
+  './js/components/configuration/AccountManage.js',
   './js/components/Index.js',
 ]
 

@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2023-09-03 16:50:28
+ * @Last Modified time: 2023-12-10 00:13:33
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -17,6 +17,7 @@ var default_config = {
   timeout_findOne: 1000,
   timeout_unlock: 1000,
   password: '',
+  infinite_retry_unlock: false,
   is_alipay_locked: false,
   alipay_lock_password: '',
   color_offset: 20,
@@ -88,6 +89,9 @@ var default_config = {
   check_device_posture: false,
   check_distance: false,
   posture_threshold_z: 6,
+  // 蚂蚁新村多账号配置
+  main_account: '',
+  accounts: [],
   // 电量保护，低于该值延迟60分钟执行脚本
   battery_keep_threshold: 20,
   // 锁屏启动时自动设置最低亮度
@@ -273,7 +277,7 @@ let default_fodder_config = {
 }
 default_config.fodder_config = default_fodder_config
 config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_NAME + '_fodder')
-config.code_version = 'v1.2.6.1'
+config.code_version = 'v1.3.0'
 if (!isRunningMode) {
   module.exports = function (__runtime__, scope) {
     if (typeof scope.config_instance === 'undefined') {
