@@ -74,6 +74,7 @@ const VillageConfig = {
   components: { BoothBlackConfig },
   mixins: [mixin_common],
   data() {
+    let _this = this
     return {
       configs: {
         checking_mail_box: '',
@@ -88,6 +89,9 @@ const VillageConfig = {
         village_reward_click_y: 1180,
         setup_by_income_weight: false,
         friends_finding_timeout: 8000,
+        award_close_specific: false,
+        award_close_x: 0,
+        award_close_y: 0,
       },
       timedUnit: '',
       validations: {
@@ -100,7 +104,27 @@ const VillageConfig = {
             }
             return ''
           }
-        }
+        },
+        award_close_x: {
+          required: true,
+          validate: () => false,
+          message: (v) => {
+            if (isNaN(v) || (v = parseInt(v)) <= 0 || v > _this.device.width) {
+              return '应当大于0且不能大于屏幕宽度' + _this.device.width
+            }
+            return ''
+          }
+        },
+        award_close_y: {
+          required: true,
+          validate: () => false,
+          message: (v) => {
+            if (isNaN(v) || (v = parseInt(v)) <= 0 || v > _this.device.height) {
+              return '应当大于0且不能大于屏幕高度' + _this.device.height
+            }
+            return ''
+          }
+        },
       }
     }
   },
@@ -159,6 +183,11 @@ const VillageConfig = {
     <number-field v-model="configs.village_reward_click_y" label-width="10rem" label="收取金币纵坐标位置" placeholder="请输入纵坐标位置" />
     <base64-image-viewer title="摆摊赚币" v-model="configs.my_booth"/>
     <base64-image-viewer title="加速产豆" v-model="configs.speed_award"/>
+    <switch-cell title="指定关闭加速产币抽屉按钮坐标" v-model="configs.award_close_specific" />
+    <template v-if="configs.award_close_specific" >
+      <number-field v-model="configs.award_close_x" label-width="10rem" label="关闭按钮横坐标位置" placeholder="请输入横坐标位置" :error-message="validationError.award_close_x"/>
+      <number-field v-model="configs.award_close_y" label-width="10rem" label="关闭按钮纵坐标位置" placeholder="请输入纵坐标位置" :error-message="validationError.award_close_y"/>  
+    </template>
     <van-field v-model="configs.friend_end_up_regex" label="摆摊超时正则" type="text" label-width="12em" placeholder="留空使用默认配置" input-align="right" />
     <tip-block style="margin: 0.5rem">脚本优先使用OCR校验是否存在空摊位，不支持OCR的情况下才通过找图寻找；因此请准确设置OCR识别区域，配置完毕后可以运行 test/蚂蚁新村悬浮窗显示-音量上键关闭.js 进行查看，具体参考README</tip-block>
     <base64-image-viewer title="校验空摊位" v-model="configs.empty_booth"/>

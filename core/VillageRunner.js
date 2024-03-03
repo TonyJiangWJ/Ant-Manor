@@ -146,8 +146,13 @@ function VillageRunner () {
     sleep(1000)
     FloatyInstance.hide()
     if (YoloDetection.enabled) {
-      checkAnyEmptyBoothByYolo()
-      return
+      let successCheck = checkAnyEmptyBoothByYolo()
+      if (successCheck) {
+        return
+      } else {
+        warnInfo(['检查后 可操作摊位小于2 需要使用OCR方式兜底 可能当前界面无法通过YOLO识别空摊位'])
+        yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '无法正确校验空摊位')
+      }
     }
     let haveDriveOut = false
     let screen = commonFunctions.captureScreen()
@@ -223,7 +228,9 @@ function VillageRunner () {
         }
       })
     }
-
+    // 二次校验可操作摊位 如果小于2 则表示有空摊位无法识别
+    findOperationBooth = yoloCheckAll('可操作摊位', { labelRegex: 'operation_booth' })
+    return findOperationBooth && findOperationBooth.length >= 2
   }
   function yoloCheck (desc, filter) {
     let result = yoloCheckAll(desc, filter)
@@ -557,9 +564,13 @@ function VillageRunner () {
       let validFriendList = incomeRateList.map(incomeRate => {
         let container = incomeRate.parent()
         let friendName = container.child(1).text()
+        let nameContainerWidth = container.child(1).bounds().width()
+        let parentWidth = container.bounds().width()
+        let widthRate = nameContainerWidth / parentWidth
+        debugInfo(['名称控件宽度占比：{}', widthRate.toFixed(2)])
         let incomeRateWeight = parseInt(/(\d+)\/时/.exec(incomeRate.text())[1])
         return {
-          valid: incomeRate.indexInParent() == 4 || incomeRate.indexInParent() == 2,
+          valid: widthRate < 0.6 && (incomeRate.indexInParent() == 4 || incomeRate.indexInParent() == 2),
           container: container,
           friendName: friendName,
           weight: incomeRateWeight
@@ -670,7 +681,7 @@ function VillageRunner () {
     automator.back()
     return false
   }
-
+  let doneList = []
   /**
    * 加速产币
    */
@@ -680,6 +691,7 @@ function VillageRunner () {
       return
     }
     if (clickSpeedAward()) {
+      doneList = []
       doTask(force)
       let hadAward = false
       if (doCollectAll()) {
@@ -691,7 +703,13 @@ function VillageRunner () {
         debugInfo('已经没有可领取的加速产币了 设置今日不再执行')
         commonFunctions.setSpeedUpCollected()
       }
-      automator.click(config.device_width / 2, config.device_height * 0.1)
+      if (villageConfig.award_close_specific) {
+        debugInfo(['已指定关闭按钮坐标：{}, {}', villageConfig.award_close_x, villageConfig.award_close_y])
+        automator.click(villageConfig.award_close_x, villageConfig.award_close_y)
+      } else {
+        debugInfo(['通过计算点击区域 关闭领取抽屉，如果不能正确关闭，请在设置中指定 加速产币关闭按钮坐标：{}, {}', config.device_width / 2, config.device_height * 0.2])
+        automator.click(config.device_width / 2, config.device_height * 0.2)
+      }
       sleep(1000)
     } else {
       LogFloaty.pushLog('未找到加速产币')
@@ -770,7 +788,7 @@ function VillageRunner () {
     app.startActivity({
       packageName: "com.eg.android.AlipayGphone",
       action: "android.settings.APPLICATION_DETAILS_SETTINGS",
-      data: "package:" + packageName
+      data: "package:com.eg.android.AlipayGphone"
     });
     LogFloaty.pushLog('等待进入设置界面加载')
     let killed = false
@@ -827,20 +845,27 @@ function VillageRunner () {
 
   let taskTitleList = ['会员签到', '芭芭农场', '饿了么', '余额宝', '喂小羊', '听听TA的故事', '神奇海洋']
   let justBackList = ['听听TA的故事']
-  function doTask (force) {
+
+  function doTask (force, lastLength) {
     let toFinishList = widgetUtils.widgetGetAll('去完成') || []
     let currnetType = null
     toFinishList = toFinishList.filter(v => {
       let index = v.indexInParent()
-      if (index < 2) {
+      if (index < 2 || currnetType) {
         return
       }
       let parent = v.parent()
       let titleContainer = parent.child(index - 2)
       let title = titleContainer.text()
       for (let i = 0; i < taskTitleList.length; i++) {
-        if (title.indexOf(taskTitleList[i]) > -1) {
-          currnetType = taskTitleList[i]
+        let keyword = taskTitleList[i]
+        // 标题包含可执行任务 且该任务未执行过
+        if (title.indexOf(keyword) > -1) {
+          if (doneList.indexOf(keyword) > -1) {
+            warnInfo(['当前任务已执行过，可能执行失败 不再执行它：[{}] title: {}', keyword, title])
+            return false
+          }
+          currnetType = keyword
           return true
         }
       }
@@ -850,6 +875,7 @@ function VillageRunner () {
       let toFinishBtn = toFinishList[0]
       toFinishBtn.click()
       LogFloaty.pushLog('等待界面加载')
+      doneList.push(currnetType)
       if (justBackList.indexOf(currnetType) > -1) {
         sleep(5000)
         back()
@@ -859,7 +885,7 @@ function VillageRunner () {
         commonFunctions.minimize()
         reopenAndCheckSpeedAward()
       }
-      return doTask(force)
+      return doTask(force, toFinishList.length)
     }
     return false
   }
