@@ -20,6 +20,9 @@ let villageConfig = config.village_config
 villageConfig.booth_position_left = villageConfig.booth_position_left || [193, 1659, 436, 376]
 villageConfig.booth_position_right = villageConfig.booth_position_right || [629, 1527, 386, 282]
 function VillageRunner () {
+  let _this = this
+  // 已访问的好友 避免识别失败后重复进入
+  this.visited_friends = []
   // 当前一摆摊的摊位
   let currentBoothSetted = 0
   this.exec = function () {
@@ -467,7 +470,8 @@ function VillageRunner () {
           centerY: () => result.y
         }
       }
-    } else {
+    }
+    if (!point) {
       screen = commonFunctions.captureScreen()
       point = openCvUtil.findByGrayBase64(screen, villageConfig.my_booth)
     }
@@ -570,7 +574,7 @@ function VillageRunner () {
         debugInfo(['名称控件宽度占比：{}', widthRate.toFixed(2)])
         let incomeRateWeight = parseInt(/(\d+)\/时/.exec(incomeRate.text())[1])
         return {
-          valid: widthRate < 0.6 && (incomeRate.indexInParent() == 4 || incomeRate.indexInParent() == 2),
+          valid: _this.visited_friends.indexOf(friendName) < 0 && widthRate < 0.6 && (incomeRate.indexInParent() == 4 || incomeRate.indexInParent() == 2),
           container: container,
           friendName: friendName,
           weight: incomeRateWeight
@@ -583,6 +587,7 @@ function VillageRunner () {
         debugInfo(['过滤后选择好友: {} 进行摆摊 每小时：{}', emptyBooth.friendName, emptyBooth.weight])
         emptyBooth.container.click()
         waitForLoading()
+        _this.visited_friends.push(emptyBooth.friendName)
         if (setupToEmptyBooth()) {
           return checkFriendsVillage()
         } else {
@@ -613,7 +618,11 @@ function VillageRunner () {
         let {left, top, width, height} = emptyBooth
         region = [left, top, width, height]
       }
-    } else {
+    } 
+    if (!region) {
+      if (YoloDetection.enabled) {
+        warnInfo('YOLO方式未找到空位，尝试OCR识别')
+      }
       let screen = commonFunctions.captureScreen()
       let emptyCheck = doCheckEmptyBooth(screen, villageConfig.booth_position_left)
       if (emptyCheck) {
@@ -714,6 +723,11 @@ function VillageRunner () {
     } else {
       LogFloaty.pushLog('未找到加速产币')
       sleep(1000)
+    }
+    if (!waitForLoading()) {
+      LogFloaty.pushLog('等待界面加载失败，尝试重新打开')
+      commonFunctions.minimize()
+      openMyVillage()
     }
   }
 
