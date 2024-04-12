@@ -1,5 +1,10 @@
 # 蚂蚁庄园自动喂鸡驱赶脚本
 
+[![GitHub forks](https://img.shields.io/github/forks/TonyJiangWJ/Ant-Manor?style=flat-square)](https://github.com/TonyJiangWJ/Ant-Manor/forks)
+[![GitHub stars](https://img.shields.io/github/stars/TonyJiangWJ/Ant-Manor?style=flat-square)](https://github.com/TonyJiangWJ/Ant-Manor/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/TonyJiangWJ/Ant-Manor?style=flat-square)](https://github.com/TonyJiangWJ/Ant-Manor/issues)
+[![Page Views Count](https://badges.toozhao.com/badges/01HV8RQMC13FAHYZCG8HEBT696/green.svg)](https://badges.toozhao.com/stats/01HV8RQMC13FAHYZCG8HEBT696 "Get your own page views count badge on badges.toozhao.com")
+
 ## 其他脚本
 
 - [蚂蚁森林脚本传送门](https://github.com/TonyJiangWJ/Ant-Forest)
