@@ -504,8 +504,44 @@ function AntManorRunner () {
   this.checkAndFeed = function () {
     sleep(500)
     this.setFloatyInfo(null, '检查是否有饭吃')
-    let img = null
+    let feed = this.doFeed()
     // 记录是否执行了喂食操作
+    if (feed) {
+      if (this.checkIfChikenOut()) {
+        return this.checkAndFeed()
+      }
+      this.checkFeedSuccess()
+      // 避免加速卡使用失败导致时间计算不正确的问题
+      _commonFunctions.updateSleepTime(20, true)
+      if (config.useSpeedCard) {
+        this.useSpeedCard()
+      }
+    }
+    sleep(1500)
+    let ocrRestTime = this.recognizeCountdownByOcr()
+    if (feed) {
+      // 刚刚喂食，且成功识别OCR，将当前时间设置为执行倒计时
+      _commonFunctions.updateSleepTime(20, false, ocrRestTime)
+      // 喂鸡后领取饲料
+      fodderCollector.exec()
+      if (!this.waitForOwn(true)) {
+        debugInfo(['打开小鸡页面失败，重新打开'])
+        this.launchApp(true)
+      }
+    } else if (ocrRestTime > -1) {
+      // 大概情况就是上一次执行喂食后加速卡用完了 导致OCR识别失败 以上机制懒得修改了 先这么适配
+      let feedPassedTime = _commonFunctions.getFeedPassedTime()
+      if (feedPassedTime < 20 && _commonFunctions.getSleepStorage().runningCycleTime < 0) {
+        _commonFunctions.updateSleepTime(20 - feedPassedTime, false, ocrRestTime + feedPassedTime)
+      }
+    }
+    let sleepTime = _commonFunctions.getSleepTimeByOcr(ocrRestTime)
+    this.setFloatyInfo(null, sleepTime + '分钟后来检查状况')
+    _commonFunctions.setUpAutoStart(sleepTime)
+  }
+
+  this.doFeed = function () {
+    let img = null
     let feed = false
     if (YoloDetection.enabled) {
       let checkHasOrNoFood = this.yoloCheck('校验有饭吃', { confidence: 0.7, labelRegex: 'has_food|no_food' })
@@ -548,39 +584,25 @@ function AntManorRunner () {
         this.setFloatyInfo(null, '截图失败了！')
       }
     }
-    if (feed) {
-      if (this.checkIfChikenOut()) {
-        return this.checkAndFeed()
-      }
-      // 避免加速卡使用失败导致时间计算不正确的问题
-      _commonFunctions.updateSleepTime(20, true)
-      if (config.useSpeedCard) {
-        this.useSpeedCard()
-      }
+    return feed
+  }
+
+  /**
+   * 校验是否喂食成功，因为可能存在特殊饲料，吃完还能再吃，喂食失败后重试
+   *
+   * @param {*} retryTime 
+   * @returns 
+   */
+  this.checkFeedSuccess = function (retryTime) {
+    retryTime = retryTime || 0
+    // 应该不会攒那么多特殊饲料吧
+    if (retryTime >= 5) {
+      return false
     }
-    if (this.checkSpeedSuccess()) {
-      _commonFunctions.setSpeeded()
-    } else {
-      _commonFunctions.setSpeedFail()
+    if (this.doFeed()) {
+      sleep(1000)
+      return this.checkFeedSuccess(retryTime++)
     }
-    sleep(1500)
-    let ocrRestTime = this.recognizeCountdownByOcr()
-    if (feed) {
-      // 刚刚喂食，且成功识别OCR，将当前时间设置为执行倒计时
-      _commonFunctions.updateSleepTime(20, false, ocrRestTime)
-      // 喂鸡后领取饲料
-      fodderCollector.exec()
-      this.waitForOwn(true)
-    } else if (ocrRestTime > -1) {
-      // 大概情况就是上一次执行喂食后加速卡用完了 导致OCR识别失败 以上机制懒得修改了 先这么适配
-      let feedPassedTime = _commonFunctions.getFeedPassedTime()
-      if (feedPassedTime < 20 && _commonFunctions.getSleepStorage().runningCycleTime < 0) {
-        _commonFunctions.updateSleepTime(20 - feedPassedTime, false, ocrRestTime + feedPassedTime)
-      }
-    }
-    let sleepTime = _commonFunctions.getSleepTimeByOcr(ocrRestTime)
-    this.setFloatyInfo(null, sleepTime + '分钟后来检查状况')
-    _commonFunctions.setUpAutoStart(sleepTime)
   }
 
   /**
@@ -594,9 +616,9 @@ function AntManorRunner () {
         sleep(1000)
       }
     } else {
-      sleep(1000)
       yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '准备点击道具')
       click(config.TOOL_POSITION.x, config.TOOL_POSITION.y)
+      sleep(1000)
       // sleep(1000)
       // yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '点击使用道具')
       // click(config.SPEED_CARD_POSITION.x, config.SPEED_CARD_POSITION.y)
@@ -608,20 +630,27 @@ function AntManorRunner () {
     if (speedupCard) {
       automator.clickCenter(speedupCard)
       sleep(1000)
-      let confirmUsing = widgetUtils.widgetGetOne('使用')
-      automator.clickCenter(confirmUsing)
+      let confirmUsing = widgetUtils.widgetGetOne('立即加速')
+      if (!confirmUsing) {
+        warnInfo(['未找到使用按钮，可能是加速卡用完了'])
+      } else {
+        automator.clickCenter(confirmUsing)
+      }
       sleep(1000)
+      automator.back()
     }
     if (!this.waitForOwn(true)) {
-      debugInfo('可能加速卡用完了，使用失败，直接返回 再次检测')
-      automator.back()
-      sleep(1000)
-      this.waitForOwn()
+      warnInfo(['校验失败，重新打开个人界面'])
+      this.launchApp(true)
     }
   }
 
+  /**
+   * @deprecated 当前加速卡可以无限使用，校验是否在加速中没有意义了
+   * @returns 
+   */
   this.checkSpeedSuccess = function () {
-    this.checker.checkSpeedSuccess()
+    return this.checker.checkSpeedSuccess()
   }
 
   this.checkAndPickShit = function () {

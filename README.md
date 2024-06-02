@@ -13,13 +13,14 @@
 
 ## 基于AutoJS实现的自动喂养脚本
 
-- 运行config.js 修改配置，设置密码等
+- 运行 `可视化配置.js` 修改配置，设置密码等
+- 支持YOLO目标检测识别元素
 - 支持使用加速卡
 - 支持捡屎
 - 支持OCR识别倒计时，需要配置倒计时识别区域
 - 支持每日自动领取免费饲料
 - AutoJS中手动更新代码。执行`update/检测更新.js`即可 可以选择覆盖更新或者备份后更新 更多说明见`update/说明-重要.txt`
-- `星星球` 脚本，打开AutoJS悬浮球 然后进入到开始的界面，通过悬浮球菜单打开`星星球.js` 自动开始和小鸡玩，默认达到230分就结束。
+- `星星球` 脚本，打开AutoJS悬浮球 然后进入到开始的界面，通过悬浮球菜单打开 `星星球.js` 自动开始和小鸡玩，默认达到230分就结束。
 - 支持自定义扩展解锁和配置信息，不会因为更新脚本导致配置丢失
 - 支持蚂蚁新村自动摆摊
 
@@ -36,14 +37,17 @@
 - 蚂蚁新村自动摆摊功能强依赖于OCR 因此需要安装[AutoJs Modify](https://github.com/TonyJiangWJ/Ant-Forest/releases/download/v1.1.1.4/AutoJS.modify.latest.apk)或[mlkit-ocr插件](https://github.com/TonyJiangWJ/Ant-Forest/releases/download/v1.1.1.4/mlkit-ocr-plugin-latest.apk)才能正常使用。
 - 关于本地OCR的说明，mlkit-ocr速度非常快，但是缺点是识别准确性不佳，目前基本能满足所需要的识别功能。PaddleOCR识别准确性很高但是缺点是速度慢，而且必须给AutoJS设置电量无限制权限否则容易闪退，另外就是必须安装[我的修改的AutoJS](https://github.com/TonyJiangWJ/Ant-Forest/releases/download/v1.1.1.4/AutoJS.modify.latest.apk)才能使用PaddleOCR。本地OCR优先级可以自己前往设置中修改。
 - 取色工具请运行 `独立工具/灰度取色.js` 点击 `裁切小图` 可以框选区域或截取小图
+- 推荐安装支持YOLO的AutoJs并在 `区域颜色配置` 中启用 `使用YOLO识别`，这样脚本将自动识别所有元素，而不需要对识色区域进行复杂的配置。
 
 ### 识别区域配置参考
 
+- 如果你安装了支持YOLO的AutoJS版本并启用使用YOLO识别，则无需关注以下配置
 - ![配置界面](https://user-images.githubusercontent.com/11325805/114294987-db6c8a80-9ad4-11eb-9a7d-b12e28d53f45.png)
 - ![捡屎配置](https://user-images.githubusercontent.com/11325805/114295015-09ea6580-9ad5-11eb-9705-1674e214fa8f.png)
 
 ### 蚂蚁新村配置说明
 
+- 在启用YOLO的情况下，虽然模型会自动识别，但是因为模型训练的滞后性会导致部分村庄识别失败，所以建议进行正确的OCR区域配置，以实现兜底。
 - 驱赶好友摊位的OCR识别区域需要按如下配置，运行 `灰度取色脚本` 框选后区域数据在最下面的 `位置` 点击即可复制，此时也可以测试OCR是否可用。
 - OCR识别区域参考如下，配置完之后可以运行 `test/蚂蚁新村悬浮窗显示-音量上键关闭.js` 查看, 保证蓝色字的左侧在空摊位中心附近即可：
 - ![ocr区域样例](./resources/viliage_ocr_region.jpg)
@@ -52,7 +56,7 @@
 
 ## 配置
 
-- 配置导出导入功能，点击右上角菜单即可导出当前配置到local_config.cfg中，默认已加密加密密码为通过以下方法获取`device.getAndriodId()` 如果需要在免费版和付费版AutoJS之间同步 需要自行获取该值并按提示输入密码
+- 配置导出导入功能，点击右上角菜单即可导出当前配置到local_config.cfg中，默认已加密加密密码为当前设备id 可以通过此函数获取到剪切板，或自己打印 `setClip(device.getAndroidId())` 如果需要在免费版和付费版AutoJS之间同步 需要自行创建脚本获取该密码
 - 运行时数据导出导入功能同上所述
 
 ## 添加解锁设备

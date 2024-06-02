@@ -6,7 +6,9 @@ let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
 let automator = singletonRequire('Automator')
 let widgetUtils = singletonRequire('WidgetUtils')
 let localOcr = require('../lib/LocalOcrUtil.js')
-
+let WarningFloaty = singletonRequire('WarningFloaty')
+let YoloDetection = singletonRequire('YoloDetectionUtil')
+let yoloTrainHelper = singletonRequire('YoloTrainHelper')
 let FloatyInstance = singletonRequire('FloatyUtil')
 let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile, flushAllLogs } = singletonRequire('LogUtils')
 let resourceMonitor = require('../lib/ResourceMonitor.js')(runtime, this)
@@ -60,10 +62,37 @@ if (config.auto_lock === true && unlocker.needRelock() === true) {
 runningQueueDispatcher.removeRunningTask(true)
 exit()
 
-function doDonateEgg() {
-  // 点击捐蛋
-  automator.click(config.donate_egg.x || 530, config.donate_egg.y || 2100)
+function doDonateEgg () {
+  let clicked = false
+  if (YoloDetection.enabled) {
+    let donateButton = yoloCheck('捐蛋按钮', { confidence: 0.7, labelRegex: 'donate' })
+    if (donateButton) {
+      debugInfo(['通过YOLO找到捐蛋按钮: {}', donateButton])
+      FloatyInstance.setFloatyInfo(donateButton, '捐蛋按钮')
+      automator.click(donateButton.x, donateButton.y)
+      clicked = true
+    } else {
+      warnInfo('未能通过YOLO找到捐蛋按钮', true)
+    }
+  }
+  if (!clicked &&localOcr.enabled) {
+    let recResult = localOcr.recognizeWithBounds(commonFunctions.captureScreen(), null, '去捐蛋')
+    if (recResult && recResult.length > 0) {
+      let btnBounds = recResult[0].bounds
+      let position = { x: btnBounds.left, y: btnBounds.top }
+      debugInfo(['通过OCR找到了捐蛋按钮：{}', position])
+      FloatyInstance.setFloatyInfo(position, '捐蛋按钮')
+      automator.click(position.x, position.y)
+      clicked = true
+    }
+  }
+  if (!clicked) {
+    warnInfo(['未能通过YOLO或OCR找到捐蛋按钮，请确认在可视化配置-执行设置中正确配置了捐蛋按钮坐标'])
+    // 点击捐蛋
+    automator.click(config.donate_egg.x || 530, config.donate_egg.y || 2100)
+  }
   sleep(2000)
+  WarningFloaty.clearAll()
   let donateEgg = findByWidgetAndRecheckByOcr('去捐蛋')
   if (donateEgg) {
     displayFloaty(donateEgg, '去捐蛋')
@@ -94,12 +123,12 @@ function doDonateEgg() {
   return false
 }
 
-function displayFloaty(target, desc) {
+function displayFloaty (target, desc) {
   FloatyInstance.setFloatyInfo({ x: target.bounds().centerX(), y: target.bounds().centerY() }, desc)
   sleep(500)
 }
 
-function checkOcrText(regex, target) {
+function checkOcrText (regex, target) {
   let bounds = target.bounds()
   let screen = commonFunctions.checkCaptureScreenPermission()
   if (screen) {
@@ -112,7 +141,7 @@ function checkOcrText(regex, target) {
   return !localOcr.enabled
 }
 
-function findByWidgetAndRecheckByOcr(findText) {
+function findByWidgetAndRecheckByOcr (findText) {
   let target = widgetUtils.widgetGetOne(findText)
   let tryTimes = 3
   if (target) {
@@ -122,4 +151,30 @@ function findByWidgetAndRecheckByOcr(findText) {
     }
   }
   return target
+}
+
+function yoloCheck (desc, filter) {
+  let img = null
+  let result = []
+  let tryTime = 5
+  WarningFloaty.clearAll()
+  debugInfo(['通过YOLO查找：{} props: {}', desc, JSON.stringify(filter)])
+  do {
+    sleep(400)
+    img = commonFunctions.captureScreen()
+    result = YoloDetection.forward(img, filter)
+  } while (result.length <= 0 && tryTime-- > 0)
+  if (result.length > 0) {
+    let { x, y, width, height, label, confidence } = result[0]
+    let left = x, top = y
+    WarningFloaty.addRectangle('找到：' + desc, [left, top, width, height])
+    debugInfo(['通过YOLO找到目标：{} label: {} confidence: {}', desc, label, confidence])
+    if (confidence < 0.9) {
+      yoloTrainHelper.saveImage(commonFunctions.captureScreen(), desc + 'yolo准确率低')
+    }
+    return { x: left + width / 2, y: top + height / 2, width: width, height: height, left: left, top: top, label: label }
+  } else {
+    debugInfo(['未能通过YOLO找到：{}', desc])
+  }
+  return null
 }

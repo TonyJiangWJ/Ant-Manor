@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2024-03-03 21:50:11
+ * @Last Modified time: 2024-05-12 16:53:39
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -277,9 +277,15 @@ let default_fodder_config = {
   fodder_btn: files.read(configDataPath + 'fodder/fodder_btn.data'),
   close_interval: files.read(configDataPath + 'fodder/close_interval.data'),
   feed_package_full: '饲料袋.*满.*|知道了',
+  ai_type: 'kimi',// kimi、chatgml or empty
+  kimi_api_key: '',
+  chatgml_api_key: '',
 }
 default_config.fodder_config = default_fodder_config
 config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_NAME + '_fodder')
+config.ai_type = config.fodder_config.ai_type
+config.kimi_api_key = config.fodder_config.kimi_api_key
+config.chatgml_api_key = config.fodder_config.chatgml_api_key
 config.code_version = 'v1.3.1.1'
 if (!isRunningMode) {
   module.exports = function (__runtime__, scope) {
