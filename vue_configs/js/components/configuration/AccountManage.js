@@ -100,7 +100,7 @@ const AccountManager = {
       <van-button style="margin-left: 0.4rem" plain hairline type="primary" size="mini" @click="addAccount">增加</van-button>
     </van-divider>
     <tip-block>配置账号切换界面的脱敏账号和昵称并勾选一个主账号</tip-block>
-    <tip-block>各个账号助力完成后将自动完成加速产豆中的通用任务</tip-block>
+    <tip-block>配置每个账号的昵称和对应的分享链接，运行‘蚂蚁新村大小号助力.js’后将按顺序自动给其他账号进行助力，例如配置了三个账号A助力BC,B助力AC,C助力AB。各个账号助力完成后将自动完成加速产豆中的通用任务，全部执行完毕后将切换回主账号</tip-block>
     <tip-block>打开蚂蚁新村，加速产币中选择邀请好友助力，弹窗中左滑复制链接链接即可获取永久助力链接，可以直接使用https开头的链接，也可以在浏览器中获取schemeUrl。
     推荐手动解析一下schemeUrl，避免调用系统浏览器打开http链接失败。schemeUrl参考：alipays://platformapi/startapp?appId=68687809&backgroundColor=...</tip-block>
     <van-radio-group v-model="configs.main_account">

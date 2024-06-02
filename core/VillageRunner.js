@@ -369,8 +369,8 @@ function VillageRunner () {
     }
     let recognizeText = localOcr.recognize(clipImg)
     debugInfo(['识别文本：{}', recognizeText])
-    let regex = new RegExp(/.*的.*摊.*/)
-    debugInfo(['摊位超时校验正则：{}', '' + regex])
+    let regex = new RegExp(/(.*的.*摊.*)|(剩余|免租|经营)/)
+    debugInfo(['摊位存在校验正则：{}', '' + regex])
     if (regex.test(recognizeText)) {
       FloatyInstance.setFloatyInfo({ x: region[0], y: region[1] }, '存在摊位：' + recognizeText)
       sleep(1000)

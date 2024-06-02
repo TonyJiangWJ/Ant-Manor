@@ -9,6 +9,7 @@ let logUtils = singletonRequire('LogUtils')
 let localOcr = require('../lib/LocalOcrUtil.js')
 let LogFloaty = singletonRequire('LogFloaty')
 let YoloDetection = singletonRequire('YoloDetectionUtil')
+let AiUtil = require('../lib/AIRequestUtil.js')
 
 function Collector () {
   let _this = this
@@ -30,6 +31,8 @@ function Collector () {
         toastLog('找到了领饲料位置' + JSON.stringify(matchResult))
         automator.click(matchResult.centerX(), matchResult.centerY())
         sleep(1000)
+        this.doDailyTasks()
+        LogFloaty.pushLog('每日任务执行完毕，开始收集可收取饲料')
         this.collectAllIfExists()
         sleep(1000)
       } else {
@@ -83,13 +86,211 @@ function Collector () {
     }
   }
 
+  this.doDailyTasks = function () {
+    // 答题
+    this.answerQuestion()
+    // 小视频
+    this.watchVideo()
+    // 逛一逛
+    this.browseAds()
+    // 抽抽乐
+    this.luckyDraw()
+    // 农场施肥
+    this.farmFertilize()
+    // 逛一逛助农专场
+    this.browseHelpFarm()
+  }
+
   this.answerQuestion = function () {
-    let toAnswer = widgetUtils.widgetGetOne('去答题')
+    LogFloaty.pushLog('查找答题')
+    let toAnswer = widgetUtils.widgetGetOne('去答题', 2000)
+    let ai_type = config.ai_type || 'kimi'
+    let kimi_api_key = config.kimi_api_key
+    let chatgml_api_key = config.chatgml_api_key
     if (toAnswer) {
-      automator.clickCenter(toAnswer)
+      toAnswer.click()
       sleep(1000)
-      automator.widgetWaiting('题目来源.*')
+      widgetUtils.widgetWaiting('题目来源.*')
+      sleep(1000)
+      let key = ai_type === 'kimi' ? kimi_api_key : chatgml_api_key
+      if (!key) {
+        LogFloaty.pushLog('推荐去KIMI开放平台申请API Key并在可视化配置中进行配置')
+        LogFloaty.pushLog('否则免费接口这个智障AI经常性答错')
+      }
+      let result = AiUtil.getQuestionInfo(ai_type, key)
+      if (result) {
+        LogFloaty.pushLog('答案解释：' + result.describe)
+        LogFloaty.pushLog('答案坐标：' + JSON.stringify(result.target))
+        automator.click(result.target.x, result.target.y)
+      }
+      sleep(1000)
       // TODO 随机答题
+      automator.back()
+    } else {
+      LogFloaty.pushWarningLog('未找到答题入口')
+    }
+  }
+
+  this.watchVideo = function () {
+    LogFloaty.pushLog('查找看视频')
+    let videoTitle = widgetUtils.widgetGetOne('庄园小视频', 2000)
+    if (videoTitle) {
+      let btnText = videoTitle.parent().child(2).text()
+      if (btnText === '去完成') {
+        videoTitle.parent().child(2).click()
+        sleep(1000)
+        LogFloaty.pushLog('看视频 等待倒计时结束')
+        let limit = 20
+        while (limit-- > 0) {
+          sleep(1000)
+          LogFloaty.replaceLastLog('看视频 等待倒计时结束 剩余：' + limit + 's')
+        }
+        automator.back()
+      } else {
+        LogFloaty.pushLog('今日视频已观看：' + btnText)
+      }
+    } else {
+      LogFloaty.pushWarningLog('未找到看视频入口')
+    }
+  }
+
+  this.browseAds = function () {
+    LogFloaty.pushLog('准备逛杂货铺')
+
+    let adsTitle = widgetUtils.widgetGetOne('去杂货铺逛一逛', 2000)
+    if (adsTitle) {
+      let btnText = adsTitle.parent().child(2).text()
+      if (btnText === '去完成') {
+        adsTitle.parent().child(2).click()
+        sleep(1000)
+        LogFloaty.pushLog('去杂货铺逛一逛 等待倒计时结束')
+        let limit = 15
+        while (limit-- > 0) {
+          sleep(1000)
+          LogFloaty.replaceLastLog('去杂货铺逛一逛 等待倒计时结束 剩余：' + limit + 's')
+          if (limit % 2 == 0) {
+            automator.randomScrollDown()
+          }
+        }
+        automator.back()
+      } else {
+        LogFloaty.pushLog('今日广告逛完：' + btnText)
+      }
+    } else {
+      LogFloaty.pushWarningLog('未找到去杂货铺逛一逛入口')
+    }
+  }
+
+  this.luckyDraw = function () {
+    LogFloaty.pushLog('准备抽奖')
+
+    let luckyTitle = widgetUtils.widgetGetOne('.*抽抽乐.*', 2000)
+    if (luckyTitle) {
+      let btnText = luckyTitle.parent().child(2).text()
+      if (btnText === '去完成') {
+        luckyTitle.parent().child(2).click()
+        sleep(1000)
+        LogFloaty.pushLog('抽抽乐 查找领取')
+        let collect = widgetUtils.widgetGetOne('领取')
+        if (collect) {
+          automator.clickCenter(collect)
+          sleep(1000)
+          let clickBtn = widgetUtils.widgetGetOne('还剩\\d次机会')
+          if (clickBtn) {
+            automator.clickCenter(clickBtn)
+            LogFloaty.pushLog('抽抽乐 等待抽奖结束')
+            sleep(3000)
+          }
+        }
+        automator.back()
+      } else {
+        LogFloaty.pushLog('今日抽奖已完成：' + btnText)
+      }
+    } else {
+      LogFloaty.pushWarningLog('未找到抽抽乐入口')
+    }
+  }
+
+  this.farmFertilize = function () {
+    LogFloaty.pushLog('准备施肥')
+
+    let farmTitle = widgetUtils.widgetGetOne('去芭芭农场.*', 2000)
+    if (farmTitle) {
+      let btnText = farmTitle.parent().child(2).text()
+      if (btnText === '去完成') {
+        farmTitle.parent().child(2).click()
+        sleep(1000)
+        LogFloaty.pushLog('等待进入芭芭农场')
+        widgetUtils.widgetWaiting('任务列表')
+        sleep(1000)
+        LogFloaty.pushLog('查找 施肥 按钮')
+        let result = localOcr.recognizeWithBounds(commonFunctions.captureScreen(), null, '肥料.*\\d+')
+        if (result && result.length > 0) {
+          let bounds = result[0].bounds
+          LogFloaty.pushLog('施肥按钮位置：' + JSON.stringify({ x: bounds.centerX(), y: bounds.centerY() }))
+          automator.click(bounds.centerX(), bounds.centerY())
+        } else {
+          LogFloaty.pushLog('未找到施肥按钮')
+        }
+        automator.back()
+      } else {
+        LogFloaty.pushLog('今日施肥已完成：' + btnText)
+      }
+    } else {
+      LogFloaty.pushWarningLog('未找到施肥入口')
+    }
+  }
+
+  this.browseHelpFarm = function () {
+    LogFloaty.pushLog('准备逛一逛助农专场')
+    // let title = widgetUtils.widgetGetOne('逛一逛.*助农专场', 2000)
+    // if (title) {
+    //   let btnText = title.parent().child(2).text()
+    //   if (btnText === '去完成') {
+    //     title.parent().child(2).click()
+    //     sleep(1000)
+    //     LogFloaty.pushLog('等待进入助农专场')
+    //     widgetUtils.widgetWaiting('点击或滑动浏览得肥料')
+    //     sleep(1000)
+    //     LogFloaty.pushLog('啥也不用干 直接返回')
+    //     automator.back()
+    //   } else {
+    //     LogFloaty.pushLog('今日逛一逛助农专场已完成：' + btnText)
+    //   }
+    // } else {
+    //   LogFloaty.pushWarningLog('未找到逛一逛助农专场入口')
+    // }
+    findAndOpenTaskPage('逛一逛.*助农专场', null, result => {
+      let enter = result.enter
+      let btnText = result.btnText
+      if (enter) {
+        LogFloaty.pushLog('等待进入助农专场')
+        widgetUtils.widgetWaiting('点击或滑动浏览得肥料')
+        sleep(1000)
+        LogFloaty.pushLog('啥也不用干 直接返回')
+        automator.back()
+      } else {
+        LogFloaty.pushLog('今日逛一逛助农专场已完成：' + btnText)
+      }
+    }, e => {
+      LogFloaty.pushWarningLog('未找到逛一逛助农专场入口: ' + e)
+    })
+  }
+
+  function findAndOpenTaskPage (titleRegex, btnText, callback, errorCallback) {
+    btnText = btnText || '去完成'
+    let title = widgetUtils.widgetGetOne(titleRegex, 2000)
+    if (title) {
+      let entryText = title.parent().child(2).text()
+      if (entryText === btnText) {
+        title.parent().child(2).click()
+        sleep(1000)
+        return callback({ enter: true, btnText })
+      } else {
+        return callback({ enter: false, btnText: entryText })
+      }
+    } else {
+      errorCallback('未能找到：' + titleRegex)
     }
   }
 
