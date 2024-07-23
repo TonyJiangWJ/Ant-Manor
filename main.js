@@ -12,6 +12,7 @@ let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
 let FileUtils = singletonRequire('FileUtils')
 let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile, flushAllLogs } = singletonRequire('LogUtils')
 let commonFunctions = singletonRequire('CommonFunction')
+let YoloDetection = singletonRequire('YoloDetectionUtil')
 commonFunctions.delayIfBatteryLow()
 if (config.single_script) {
   logInfo('======单脚本运行直接清空任务队列=======')
@@ -72,6 +73,8 @@ logInfo(['AutoJS version: {}', app.autojs.versionName])
 logInfo(['device info: {} {} {}', device.brand, device.product, device.release])
 
 logInfo(['设备分辨率：[{}, {}]', config.device_width, config.device_height])
+logInfo(['Yolo支持：{}', YoloDetection.enabled])
+YoloDetection.validLabels()
 logInfo('======解锁======')
 try {
   unlocker.exec()

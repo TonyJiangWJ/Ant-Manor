@@ -38,6 +38,8 @@
           x: 530,
           y: 2100
         },
+        // 星星球识别区域
+        reco: [200, 1100, 750, 600],
       }
     }
   },
@@ -71,6 +73,7 @@
       <template #right-icon><span>分</span></template>
     </number-field>
     <number-field v-model="configs.starBallScore" label="星星球目标分数" label-width="10em" placeholder="请输入星星球目标分数" />
+    <region-input-field :array-value="true" v-model="configs.reco" label="星星球识别区域" label-width="12em" />
     <tip-block>可以每天晚上八点到早上六点自动去睡觉，对 unit/去睡觉.js 创建每天晚上八点后的定时任务即可</tip-block>
     <position-input-field v-model="configs.to_sleep_entry" label="小鸡睡觉入口" label-width="12em" />
     <position-input-field v-model="configs.to_sleep_bed" label="小鸡床的位置" label-width="12em" />

@@ -79,22 +79,28 @@ function exec () {
 }
 
 function goToBed () {
+  let clickPosition = null
+  yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '睡觉入口', 'sleep_entry', _config.save_sleep_train_data)
   if (YoloDetection.enabled) {
-    let toSleep = manorRunner.yoloCheck('去睡觉', {confidence: 0.7, labelRegex: 'sleep'})
+    let toSleep = manorRunner.yoloCheck('去睡觉', { confidence: 0.7, labelRegex: 'sleep' })
     if (toSleep) {
       FloatyInstance.setFloatyInfo(toSleep, '去睡觉')
       sleep(1000)
-      automator.click(toSleep.x, toSleep.y)
+      clickPosition = toSleep
+    } else {
+      warnInfo(['无法通过YOLO检测到去睡觉入口，请确保设置中正确配置了入口坐标'])
     }
-  } else {
-    let toSleepPosition = { x: config.to_sleep_entry.x || 860, y: config.to_sleep_entry.y || 1220 }
-    FloatyInstance.setFloatyInfo(toSleepPosition, '去睡觉')
-    sleep(1000)
-    automator.click(toSleepPosition.x, toSleepPosition.y)
   }
+  if (!clickPosition) {
+    clickPosition = { x: config.to_sleep_entry.x || 860, y: config.to_sleep_entry.y || 1220 }
+    debugInfo(['睡觉入口坐标: {}', JSON.stringify(clickPosition)])
+  }
+  FloatyInstance.setFloatyInfo(clickPosition, '去睡觉')
+  sleep(1000)
+  automator.click(clickPosition.x, clickPosition.y)
   // 训练，找到床
   sleep(2000)
-  yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '小鸡睡觉床')
+  yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '小鸡睡觉床', 'sleep_bed', _config.save_sleep_train_data)
   automator.click(config.to_sleep_bed.x || 200, config.to_sleep_bed.y || 740)
   sleep(2000)
   let yesSleepBtn = widgetUtils.widgetGetOne('去睡觉')

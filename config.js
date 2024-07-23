@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2024-06-02 14:53:40
+ * @Last Modified time: 2024-07-23 22:32:41
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -30,6 +30,15 @@ var default_config = {
   // 是否保存YOLO训练用图片数据
   save_yolo_train_data: false,
   detect_by_yolo: false,
+  yolo_shape_size: 480,
+  yolo_confidence_threshold: 0.5,
+  yolo_model_path: '/config_data/manor_lite.onnx',
+  yolo_labels: ['booth_btn', 'collect_coin', 'collect_egg', 'collect_food', 'cook', 'countdown', 'donate',
+      'eating_chicken', 'employ', 'empty_booth', 'feed_btn', 'friend_btn', 'has_food', 'has_shit',
+      'hungry_chicken', 'item', 'kick-out', 'no_food', 'not_ready', 'operation_booth', 'plz-go',
+      'punish_booth', 'punish_btn', 'signboard', 'sleep', 'speedup', 'sports', 'stopped_booth',
+      'thief_chicken', 'close_btn', 'collect_muck', 'confirm_btn', 'working_chicken', 'bring_back',
+      'leave_msg', 'speedup_eating',],
   enable_visual_helper: false,
   console_log_maximum_size: 1500,
   webview_loging: false,
@@ -286,7 +295,7 @@ config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_
 config.ai_type = config.fodder_config.ai_type
 config.kimi_api_key = config.fodder_config.kimi_api_key
 config.chatgml_api_key = config.fodder_config.chatgml_api_key
-config.code_version = 'v1.3.2'
+config.code_version = 'v1.3.3'
 if (!isRunningMode) {
   module.exports = function (__runtime__, scope) {
     if (typeof scope.config_instance === 'undefined') {
