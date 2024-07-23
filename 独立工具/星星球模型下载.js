@@ -1,4 +1,4 @@
-importClass(com.tony.autojs.common.OkHttpDownloader)
+
 let { config } = require('../config.js')(runtime, global)
 
 let cancel = false
