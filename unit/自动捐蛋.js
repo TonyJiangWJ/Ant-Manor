@@ -75,7 +75,7 @@ function doDonateEgg () {
       warnInfo('未能通过YOLO找到捐蛋按钮', true)
     }
   }
-  if (!clicked &&localOcr.enabled) {
+  if (!clicked && localOcr.enabled) {
     let recResult = localOcr.recognizeWithBounds(commonFunctions.captureScreen(), null, '去捐蛋')
     if (recResult && recResult.length > 0) {
       let btnBounds = recResult[0].bounds
@@ -170,7 +170,7 @@ function yoloCheck (desc, filter) {
     WarningFloaty.addRectangle('找到：' + desc, [left, top, width, height])
     debugInfo(['通过YOLO找到目标：{} label: {} confidence: {}', desc, label, confidence])
     if (confidence < 0.9) {
-      yoloTrainHelper.saveImage(commonFunctions.captureScreen(), desc + 'yolo准确率低')
+      yoloTrainHelper.saveImage(commonFunctions.captureScreen(), desc + 'yolo准确率低', desc + '_low')
     }
     return { x: left + width / 2, y: top + height / 2, width: width, height: height, left: left, top: top, label: label }
   } else {

@@ -8,3 +8,4 @@ LockScreen.js
 .lhignore
 .lh/
 logs/
+*.onnx
