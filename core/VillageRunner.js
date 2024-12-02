@@ -13,6 +13,9 @@ let WarningFloaty = singletonRequire('WarningFloaty')
 let LogFloaty = singletonRequire('LogFloaty')
 let yoloTrainHelper = singletonRequire('YoloTrainHelper')
 let YoloDetection = singletonRequire('YoloDetectionUtil')
+let NotificationHelper = singletonRequire('Notification')
+let formatDate = require('../lib/DateUtil.js')
+let AiUtil = require('../lib/AIRequestUtil.js')
 FloatyInstance.enableLog()
 
 let villageConfig = config.village_config
@@ -38,7 +41,10 @@ function VillageRunner () {
       waitForLoading()
       checkMyBooth()
       // 设置2小时后启动
-      commonFunctions.setUpAutoStart(villageConfig.interval_time || 120)
+      let sleepTime = villageConfig.interval_time || 120
+      commonFunctions.setUpAutoStart(sleepTime)
+      NotificationHelper.createNotification('新村摆摊已完成，等待' + sleepTime + '分钟后自动启动',
+        '下次执行时间：' + formatDate(new Date(new Date().getTime() + sleepTime * 60000)), config.notificationId * 10 + 2)
     } catch (e) {
       errorInfo('执行异常 五分钟后重试' + e)
       commonFunctions.setUpAutoStart(5)
@@ -700,24 +706,26 @@ function VillageRunner () {
       return
     }
     if (clickSpeedAward()) {
+      sleep(1000)
       doneList = []
+      // 执行每日任务
       doTask(force)
       let hadAward = false
       if (doCollectAll()) {
-        debugInfo('全部领取点击完毕')
+        LogFloaty.pushLog('全部领取点击完毕')
         sleep(1000)
         hadAward = true
       }
       if (!force && !hadAward) {
-        debugInfo('已经没有可领取的加速产币了 设置今日不再执行')
+        LogFloaty.pushLog('已经没有可领取的加速产币了 设置今日不再执行')
         commonFunctions.setSpeedUpCollected()
       }
       if (villageConfig.award_close_specific) {
-        debugInfo(['已指定关闭按钮坐标：{}, {}', villageConfig.award_close_x, villageConfig.award_close_y])
+        LogFloaty.pushLog(['已指定关闭按钮坐标：{}, {}', villageConfig.award_close_x, villageConfig.award_close_y])
         automator.click(villageConfig.award_close_x, villageConfig.award_close_y)
       } else {
-        debugInfo(['通过计算点击区域 关闭领取抽屉，如果不能正确关闭，请在设置中指定 加速产币关闭按钮坐标：{}, {}', config.device_width / 2, config.device_height * 0.2])
-        automator.click(config.device_width / 2, config.device_height * 0.2)
+        LogFloaty.pushLog(['通过计算点击区域 关闭领取抽屉，如果不能正确关闭，请在设置中指定 加速产币关闭按钮坐标：{}, {}', config.device_width / 2, config.device_height * 0.15])
+        automator.click(config.device_width / 2, config.device_height * 0.15)
       }
       sleep(1000)
     } else {
@@ -857,8 +865,10 @@ function VillageRunner () {
     }
   }
 
-  let taskTitleList = ['会员签到', '芭芭农场', '饿了么', '余额宝', '喂小羊', '听听TA的故事', '神奇海洋']
-  let justBackList = ['听听TA的故事']
+  let taskTitleList = ['会员签到', '芭芭农场', '饿了么', '余额宝', '喂小羊', '听听TA的故事', '神奇海洋', '蚂蚁庄园', '知识问答', '木兰市集']
+  let justBackList = ['听听TA的故事', '蚂蚁庄园']
+  let questing = '知识问答'
+  let browseAd = '木兰市集'
 
   function doTask (force, lastLength) {
     let toFinishList = widgetUtils.widgetGetAll('去完成') || []
@@ -871,6 +881,7 @@ function VillageRunner () {
       let parent = v.parent()
       let titleContainer = parent.child(index - 2)
       let title = titleContainer.text()
+      // 通用任务，提取关键字匹配
       for (let i = 0; i < taskTitleList.length; i++) {
         let keyword = taskTitleList[i]
         // 标题包含可执行任务 且该任务未执行过
@@ -891,15 +902,34 @@ function VillageRunner () {
       LogFloaty.pushLog('等待界面加载')
       doneList.push(currnetType)
       if (justBackList.indexOf(currnetType) > -1) {
-        sleep(5000)
+        let limit = 5
+        while (--limit > 0) {
+          LogFloaty.replaceLastLog('等待界面加载 剩余：' + limit + 's')
+          sleep(1000)
+        }
         back()
         sleep(1000)
+      } else if (currnetType == questing) {
+        // 执行AI知识问答
+        answerQuestion()
+        sleep(1000)
+      } else if (currnetType == browseAd) {
+        // 木兰市集，需要滑动30秒
+        browseAds()
+        sleep(1000)
       } else {
-        sleep(10000)
+        // 通用任务，等待界面加载10秒自动结束
+        let limit = 10
+        while (--limit > 0) {
+          LogFloaty.replaceLastLog('等待界面加载 剩余：' + limit + 's')
+          sleep(1000)
+        }
         commonFunctions.minimize()
         reopenAndCheckSpeedAward()
       }
       return doTask(force, toFinishList.length)
+    } else {
+      LogFloaty.pushLog('未找到更多可完成任务')
     }
     return false
   }
@@ -908,6 +938,46 @@ function VillageRunner () {
   this.waitForLoading = waitForLoading
   this.doTask = doTask
   this.killAlipay = killAlipay
+}
+
+
+function answerQuestion () {
+  LogFloaty.pushLog('查找答题')
+  let ai_type = config.ai_type || 'kimi'
+  let kimi_api_key = config.kimi_api_key
+  let chatgml_api_key = config.chatgml_api_key
+  sleep(1000)
+  widgetUtils.widgetWaiting('题目来源.*')
+  sleep(1000)
+  let key = ai_type === 'kimi' ? kimi_api_key : chatgml_api_key
+  if (!key) {
+    LogFloaty.pushLog('推荐去KIMI开放平台申请API Key并在可视化配置中进行配置')
+    LogFloaty.pushLog('否则免费接口这个智障AI经常性答错')
+  }
+  let result = AiUtil.getQuestionInfo(ai_type, key)
+  if (result) {
+    LogFloaty.pushLog('答案解释：' + result.describe)
+    LogFloaty.pushLog('答案坐标：' + JSON.stringify(result.target))
+    automator.click(result.target.x, result.target.y)
+  } else {
+    NotificationHelper.createNotification('蚂蚁新村答题失败', '今日脚本自动答题失败，请手动处理', config.notificationId * 10 + 4)
+  }
+  sleep(1000)
+  // TODO 随机答题
+  automator.back()
+}
+
+function browseAds() {
+  LogFloaty.pushLog('准备逛杂货铺')
+  sleep(1000)
+  let limit = 35
+  let startY = config.device_height - config.device_height * 0.15
+  let endY = startY - config.device_height * 0.3
+  while (--limit > 0) {
+    automator.gestureDown(startY, endY, 1000)
+    LogFloaty.replaceLastLog('逛杂货铺 剩余：' + limit + 's')
+  }
+  automator.back()
 }
 
 module.exports = new VillageRunner()
