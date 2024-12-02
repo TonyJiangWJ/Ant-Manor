@@ -6,6 +6,8 @@ const FodderConfig = {
       configs: {
         fodder_btn: '',
         close_interval: '',
+        chopping_board: '',
+        farm_collect: '',
         feed_package_full: '饲料袋.*满.*|知道了',
         ai_type: 'kimi',// kimi、chatgml or empty
         kimi_api_key: '',
@@ -34,6 +36,8 @@ const FodderConfig = {
     <tip-block style="margin: 0.5rem">如支持ocr则将使用ocr识别领饲料入口</tip-block>
     <base64-image-viewer title="领饲料按钮" v-model="configs.fodder_btn"/>
     <base64-image-viewer title="关闭按钮" v-model="configs.close_interval"/>
+    <base64-image-viewer title="菜板" v-model="configs.chopping_board"/>
+    <base64-image-viewer title="农场领取" v-model="configs.farm_collect"/>
     <van-field v-model="configs.feed_package_full" label="饲料袋已满" type="text" placeholder="请输入饲料袋已满控件文本" input-align="right" />
     <tip-block>AI答题配置，留空使用默认配置。KIMI令牌请前往开放平台申请：https://platform.moonshot.cn/console/api-keys</tip-block>
     <tip-block>智谱清言(chatgml)令牌请前往开放平台申请（新用户首月免费100万token，后续似乎按量收费，但是响应比Kimi快）：https://open.bigmodel.cn/usercenter/apikeys</tip-block>

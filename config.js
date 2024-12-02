@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2024-07-23 22:32:41
+ * @Last Modified time: 2024-12-01 14:20:35
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -106,6 +106,8 @@ var default_config = {
   // 锁屏启动时自动设置最低亮度
   auto_set_brightness: false,
   skip_running_packages: [],
+  // 视频app，当前app前台时先退出到桌面再打开支付宝 避免小窗执行
+  video_packages: [{ packageName: 'tv.danmaku.bili', appName: '哔哩哔哩' }],
   warn_skipped_ignore_package: false,
   warn_skipped_too_much: false,
   auto_check_update: false,
@@ -131,6 +133,10 @@ var default_config = {
     x: 530,
     y: 2100
   },
+  notificationId: 143,
+  notificationChannelId: 'ant_manor_channel_id',
+  notificationChannel: '蚂蚁庄园通知',
+  show_summary_notice: true,
   // 区域信息配置
   CHECK_APP_COLOR: '#f1381a',         // 校验蚂蚁庄园是否打开成功的颜色
   CHECK_FRIENDS_COLOR: '#fad082',     // 校验是否成功进入好友首页的颜色
@@ -285,6 +291,8 @@ config.village_config = convertDefaultData(tempConfig, CONFIG_STORAGE_NAME + '_v
 let default_fodder_config = {
   fodder_btn: files.read(configDataPath + 'fodder/fodder_btn.data'),
   close_interval: files.read(configDataPath + 'fodder/close_interval.data'),
+  chopping_board: files.read(configDataPath + 'fodder/chopping_board.data'),
+  farm_collect: files.read(configDataPath + 'fodder/farm_collect.data'),
   feed_package_full: '饲料袋.*满.*|知道了',
   ai_type: 'kimi',// kimi、chatgml or empty
   kimi_api_key: '',
@@ -295,7 +303,7 @@ config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_
 config.ai_type = config.fodder_config.ai_type
 config.kimi_api_key = config.fodder_config.kimi_api_key
 config.chatgml_api_key = config.fodder_config.chatgml_api_key
-config.code_version = 'v1.3.3'
+config.code_version = 'v1.3.4'
 if (!isRunningMode) {
   module.exports = function (__runtime__, scope) {
     if (typeof scope.config_instance === 'undefined') {

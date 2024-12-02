@@ -9,6 +9,7 @@ let logUtils = singletonRequire('LogUtils')
 let localOcr = require('../lib/LocalOcrUtil.js')
 let LogFloaty = singletonRequire('LogFloaty')
 let YoloDetection = singletonRequire('YoloDetectionUtil')
+let NotificationHelper = singletonRequire('Notification')
 let AiUtil = require('../lib/AIRequestUtil.js')
 
 function Collector () {
@@ -122,6 +123,8 @@ function Collector () {
         LogFloaty.pushLog('答案解释：' + result.describe)
         LogFloaty.pushLog('答案坐标：' + JSON.stringify(result.target))
         automator.click(result.target.x, result.target.y)
+      } else {
+        NotificationHelper.createNotification('蚂蚁庄园答题失败', '今日脚本自动答题失败，请手动处理', config.notificationId * 10 + 3)
       }
       sleep(1000)
       // TODO 随机答题

@@ -11,6 +11,7 @@ let { logInfo, errorInfo, warnInfo, debugInfo, infoLog } = singletonRequire('Log
 let _FloatyInstance = singletonRequire('FloatyUtil')
 let yoloTrainHelper = singletonRequire('YoloTrainHelper')
 let YoloDetection = singletonRequire('YoloDetectionUtil')
+let NotificationHelper = singletonRequire('Notification')
 _FloatyInstance.enableLog()
 let fodderCollector = require('./FodderCollector.js')
 let BaiduOcrUtil = require('../lib/BaiduOcrUtil.js')
@@ -45,6 +46,7 @@ function AntManorRunner () {
   }
 
   this.launchApp = function (reopen) {
+    _commonFunctions.backHomeIfInVideoPackage()
     app.startActivity({
       action: 'VIEW',
       data: 'alipays://platformapi/startapp?appId=66666674',
@@ -531,7 +533,9 @@ function AntManorRunner () {
     } else if (ocrRestTime > -1) {
       // 大概情况就是上一次执行喂食后加速卡用完了 导致OCR识别失败 以上机制懒得修改了 先这么适配
       let feedPassedTime = _commonFunctions.getFeedPassedTime()
-      if (feedPassedTime < 20 && _commonFunctions.getSleepStorage().runningCycleTime < 0) {
+      if (feedPassedTime < 20 && _commonFunctions.getSleepStorage().runningCycleTime < 0
+          // 已记录的喂食周期比当前OCR识别的时间还短，不正常 需要重新记录
+          || _commonFunctions.getSleepStorage().runningCycleTime - ocrRestTime <= 0) {
         _commonFunctions.updateSleepTime(20 - feedPassedTime, false, ocrRestTime + feedPassedTime)
       }
     }
