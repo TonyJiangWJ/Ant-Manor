@@ -53,6 +53,7 @@ function VillageRunner () {
   }
 
   function openMyVillage (reopen, retry) {
+    commonFunctions.backHomeIfInVideoPackage()
     LogFloaty.pushLog('准备打开蚂蚁新村')
     app.startActivity({
       action: 'VIEW',
@@ -160,7 +161,7 @@ function VillageRunner () {
         return
       } else {
         warnInfo(['检查后 可操作摊位小于2 需要使用OCR方式兜底 可能当前界面无法通过YOLO识别空摊位'])
-        yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '无法正确校验空摊位', 'empty_booth')
+        yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '无法正确校验空摊位', 'empty_booth', config.yolo_save_empty_booth_failed)
       }
     }
     let haveDriveOut = false
@@ -238,7 +239,7 @@ function VillageRunner () {
       })
     }
     // 二次校验可操作摊位 如果小于2 则表示有空摊位无法识别
-    findOperationBooth = yoloCheckAll('可操作摊位', { labelRegex: 'operation_booth' })
+    findOperationBooth = yoloCheckAll('可操作摊位', { labelRegex: 'operation_booth', confidence: 0.8 /* 需要高可信度 否则可能漏了 */ })
     return findOperationBooth && findOperationBooth.length >= 2
   }
   function yoloCheck (desc, filter) {
@@ -271,13 +272,13 @@ function VillageRunner () {
         return { x: left + width / 2, y: top + height / 2, width: width, height: height, left: left, top: top, label: label, confidence: confidence }
       })
       if (hasLowConfidence) {
-        yoloTrainHelper.saveImage(img, desc + 'yolo准确率低', 'low' + desc)
+        yoloTrainHelper.saveImage(img, desc + 'yolo准确率低', 'low_predict_village', config.yolo_save_low_predict)
       } else {
         yoloTrainHelper.saveImage(img, desc + '成功', desc)
       }
       return res
     } else {
-      yoloTrainHelper.saveImage(img, desc + '失败', desc + '_failed')
+      yoloTrainHelper.saveImage(img, desc + '失败', 'village_target_failed', config.yolo_save_check_failed)
       debugInfo(['未能通过YOLO找到：{}', desc])
     }
     return null
@@ -299,7 +300,7 @@ function VillageRunner () {
       WarningFloaty.addRectangle('找到：' + desc, [x, y, width, height])
       yoloTrainHelper.saveImage(img, desc + '成功', desc)
     } else {
-      yoloTrainHelper.saveImage(img, desc + '失败', desc + '_failed')
+      yoloTrainHelper.saveImage(img, desc + '失败', desc + '_failed', config.yolo_save_check_failed)
     }
     return result.length > 0
   }
@@ -435,6 +436,8 @@ function VillageRunner () {
           inviteBtnContainer = avatar.parent().child(index + 2)
           if (inviteBtnContainer.childCount() > 0) {
             inviteBtn = inviteBtnContainer.child(0)
+          } else {
+            inviteBtn = inviteBtnContainer
           }
         }
         let inviteText = inviteBtn.text() || inviteBtn.desc()
@@ -509,8 +512,8 @@ function VillageRunner () {
    */
   function recycleBoothIfNeeded () {
     LogFloaty.pushLog('查找超过2小时或已停产的摊位')
-    let over2 = /[2-6]时(\d+)分/
-    let stopped = /已停产/
+    let over2 = /.*[2-6]时(\d+)分.*/
+    let stopped = /.*已停产.*/
     let checkResult = widgetUtils.alternativeWidget(over2, stopped, null, true)
     if (checkResult.value == 0) {
       LogFloaty.pushLog('无超过2小时或已停产的摊位')
