@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2024-12-01 14:20:35
+ * @Last Modified time: 2025-01-17 11:08:55
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -303,7 +303,7 @@ config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_
 config.ai_type = config.fodder_config.ai_type
 config.kimi_api_key = config.fodder_config.kimi_api_key
 config.chatgml_api_key = config.fodder_config.chatgml_api_key
-config.code_version = 'v1.3.4'
+config.code_version = 'v1.3.4.1'
 if (!isRunningMode) {
   module.exports = function (__runtime__, scope) {
     if (typeof scope.config_instance === 'undefined') {
