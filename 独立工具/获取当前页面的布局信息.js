@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2020-04-29 14:44:49
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2024-11-12 16:49:53
+ * @Last Modified time: 2024-12-07 23:30:05
  * @Description: https://github.com/TonyJiangWJ/AutoScriptBase
  */
 let { config } = require('../config.js')(runtime, global)
@@ -243,7 +243,7 @@ function iterateAll (root, depth, index) {
   let uiObjectInfo = new UiObjectInfo(root.root, depth, index)
   logUtils.logInfo(uiObjectInfo.toString())
   if (root.getChildList().size() > 0) {
-    return [uiObjectInfo].concat(runtime.bridges.bridges.toArray(root.getChildList()).map((child, index) => iterateAll(child, depth + 1, index)))
+    return [uiObjectInfo].concat(bridges.toArray(root.getChildList()).map((child, index) => iterateAll(child, depth + 1, index)))
   } else {
     return [uiObjectInfo]
   }

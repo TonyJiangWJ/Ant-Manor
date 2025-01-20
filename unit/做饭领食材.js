@@ -106,9 +106,19 @@ function exec () {
       }
       // 领每日食材
       let dailySuccess = collectWithOcr('领今日食材')
-      let farmSuccess = collectWithOcr('领取.*')
+      if (!dailySuccess) {
+        if (manorRunner.checkByOcr(null, '明日可领.*')) {
+          LogFloaty.pushLog('今日食材已领取')
+          dailySuccess = true
+        }
+      }
+      yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '农场食材领取之前', 'farm_collect')
+      let farmSuccess = collectWithOcr('领取.*') || collectFarmByImg()
       if (!farmSuccess) {
-        farmSuccess = collectFarmByImg()
+        // 尝试芭芭农场施肥
+        tryFarm()
+        yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '执行农场施肥后', 'farm_collect')
+        farmSuccess = collectWithOcr('领取.*') || collectFarmByImg()
       }
       if (!dailySuccess || !farmSuccess) {
         NotificationHelper.createNotification('每日食材领取失败，请手动执行', '今日'
@@ -134,6 +144,23 @@ function exec () {
     }
   } else {
     LogFloaty.pushErrorLog('无法找到 做饭 入口')
+  }
+}
+
+function tryFarm() {
+  if (collectWithOcr('去施肥领食材.*')) {
+    LogFloaty.pushLog('找到了去施肥，等待进入芭芭农场')
+    sleep(1000)
+    // 指定区域为底部
+    let ocrRegion = [0, config.device_height * 0.7, config.device_width, config.device_height * 0.3]
+    let limit = 5
+    while (!collectWithOcr('^施肥$', ocrRegion) && limit-- > 0) {
+      sleep(800)
+      LogFloaty.replaceLastLog('OCR 查找 施肥 失败 延迟重试 剩余次数：' + limit)
+    }
+    sleep(1000)
+    automator.back()
+    sleep(1000)
   }
 }
 
@@ -191,6 +218,7 @@ function findChoppingBoard (limit) {
       matchResult = OpenCvUtil.findBySIFTBase64(grayScreen, config.fodder_config.chopping_board)
     }
     if (matchResult) {
+      yoloTrainHelper.saveImage(screen, '小屋茶几', 'table')
       return matchResult
     }
   }
@@ -207,7 +235,7 @@ function cookFood() {
       LogFloaty.pushLog('食材不够了，不再继续做饭')
       cooked = false
     }
-    let close = widgetUtils.widgetGetOne('关闭', 1000)
+    let close = widgetUtils.widgetGetOne('关闭|返回厨房', 1000)
     if (close) {
       automator.clickCenter(close)
       return cooked

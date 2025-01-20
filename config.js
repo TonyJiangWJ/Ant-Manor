@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2025-01-17 11:08:55
+ * @Last Modified time: 2025-01-20 11:18:52
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -17,6 +17,8 @@ var default_config = {
   timeout_findOne: 1000,
   timeout_unlock: 1000,
   password: '',
+  // 静音执行
+  mute_exec: false,
   infinite_retry_unlock: false,
   is_alipay_locked: false,
   alipay_lock_password: '',
@@ -38,7 +40,7 @@ var default_config = {
       'hungry_chicken', 'item', 'kick-out', 'no_food', 'not_ready', 'operation_booth', 'plz-go',
       'punish_booth', 'punish_btn', 'signboard', 'sleep', 'speedup', 'sports', 'stopped_booth',
       'thief_chicken', 'close_btn', 'collect_muck', 'confirm_btn', 'working_chicken', 'bring_back',
-      'leave_msg', 'speedup_eating',],
+      'leave_msg', 'speedup_eating', 'close_icon', 'family', 'feed_expand'],
   enable_visual_helper: false,
   console_log_maximum_size: 1500,
   webview_loging: false,
@@ -195,6 +197,44 @@ var default_config = {
   clear_webview_cache: false,
 }
 
+// YOLO训练数据保存用的key值和描述信息
+let yolo_save_list = [
+  ['check_failed', 'YOLO识别失败'],
+  ['low_predict', '低可信度'],
+  ['friend_home_yolo_failed', '好友界面失败'],
+  ['close_icon_failed', '关闭按钮图标失败'],
+  ['open_village_failed', '打开新村失败'],
+  ['empty_booth_failed', '识别空摊位失败'],
+  ['confirm_btn_fail', '查找确认或关闭失败'],
+  ['feed_expand_failed', '查找展开饲料失败'],
+  ['thief_chicken_check_failed', '偷吃野鸡识别失败'],
+  ['sleep_entry', '去睡觉入口'],
+  ['sleep_bed', '睡觉床'],
+  ['signboard', '主界面外出|睡觉牌子'],
+  ['confirm_btn', '确认或关闭'],
+  ['friend_home_failed', '小鸡不在好友家'],
+  ['chick_out', '小鸡外出'],
+  ['thief_chicken', '有小偷鸡'],
+  ['no_thief_chicken', '没小偷鸡'],
+  ['eating_chicken', '小鸡吃饭中'],
+  ['hungry_chicken', '小鸡没饭吃'],
+  ['close_icon', '关闭按钮图标'],
+  ['pick_shit', '有屎可以捡'],
+  ['execute_pick_shit', '执行捡屎'],
+  ['collect_muck', '收集饲料按钮'],
+  ['speedup_eating', '加速吃饭中'],
+  ['operate_booth', '可操作摊位'],
+  ['empty_booth', '有空摊位'],
+  ['no_empty_booth', '无空摊位'],
+  ['booth_btn', '摆摊赚币按钮'],
+  ['village_speedup', '加速产币按钮'],
+  ['do_booth_btn', '去摆摊按钮'],
+  ['table', '小屋茶几'],
+  ['farm_collect', '领取农场食材'],
+]
+// default_config中初始化key 默认都设置为false
+yolo_save_list.forEach(item => default_config['yolo_save_' + item[0]] = false)
+
 // 配置缓存的key值
 let CONFIG_STORAGE_NAME = 'chick_config_version'
 let PROJECT_NAME = '蚂蚁庄园'
@@ -223,6 +263,8 @@ if (!storageConfig.contains('password')) {
     }
   })
 }
+// yolo_save_list 覆盖storageConfig中的值
+config.yolo_save_list = yolo_save_list
 // 覆写配置信息
 config.overwrite = (key, value) => {
   let storage_name = CONFIG_STORAGE_NAME
@@ -303,7 +345,7 @@ config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_
 config.ai_type = config.fodder_config.ai_type
 config.kimi_api_key = config.fodder_config.kimi_api_key
 config.chatgml_api_key = config.fodder_config.chatgml_api_key
-config.code_version = 'v1.3.4.1'
+config.code_version = 'v1.3.5'
 if (!isRunningMode) {
   module.exports = function (__runtime__, scope) {
     if (typeof scope.config_instance === 'undefined') {
