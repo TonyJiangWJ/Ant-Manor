@@ -11,6 +11,7 @@ let LogFloaty = singletonRequire('LogFloaty')
 let YoloDetection = singletonRequire('YoloDetectionUtil')
 let NotificationHelper = singletonRequire('Notification')
 let AiUtil = require('../lib/AIRequestUtil.js')
+let yoloTrainHelper = singletonRequire('YoloTrainHelper')
 
 function Collector () {
   let _this = this
@@ -23,24 +24,40 @@ function Collector () {
   this.imageConfig = config.fodder_config
 
   this.exec = function () {
+    if (this.openCollectFood()) {
+      sleep(1000)
+      this.doDailyTasks()
+      LogFloaty.pushLog('每日任务执行完毕，开始收集可收取饲料')
+      this.collectAllIfExists()
+      sleep(1000)
+    } else {
+      LogFloaty.pushWarningLog('未能找到领饲料入口')
+      warnInfo(['未能找到领饲料入口'], true)
+    }
+  }
+
+  this.openCollectFood = function (recheck) {
     let screen = commonFunctions.captureScreen()
     if (screen) {
       LogFloaty.pushLog('查找领饲料入口')
       let matchResult = this.findCollectEntry(screen)
       if (matchResult) {
         LogFloaty.pushLog('已找到领饲料入口')
-        toastLog('找到了领饲料位置' + JSON.stringify(matchResult))
+        debugInfo('找到了领饲料位置' + JSON.stringify(matchResult))
         automator.click(matchResult.centerX(), matchResult.centerY())
         sleep(1000)
-        this.doDailyTasks()
-        LogFloaty.pushLog('每日任务执行完毕，开始收集可收取饲料')
-        this.collectAllIfExists()
-        sleep(1000)
-      } else {
-        LogFloaty.pushWarningLog('未能找到领饲料入口')
-        warnInfo(['未能找到领饲料入口'], true)
+        if (!widgetUtils.widgetGetOne('第.*天', 2000)) {
+          LogFloaty.pushLog('未能找到领饲料界面信息, 可能并没有打开领饲料界面')
+          if (!recheck) {
+            return this.openCollectFood(true)
+          }
+        }
+        // 没找到关闭按钮的话也至少点击了两次 当做打开了吧
+        return true
       }
-      screen.recycle()
+    } else {
+      LogFloaty.pushErrorLog('截图失败，无法校验领饲料按钮')
+      return false
     }
   }
 
@@ -75,11 +92,13 @@ function Collector () {
       // 尝试
       matchResult = OpenCvUtil.findBySIFTBase64(screen, this.imageConfig.fodder_btn)
       this.useSimpleForMatchCollect = false
-      logUtils.debugInfo(['找到目标：「{},{}」[{},{}]', matchResult.roundX(), matchResult.roundY(), matchResult.width(), matchResult.height()])
-      let template_img_for_collect = images.toBase64(images.clip(originScreen, matchResult.roundX(), matchResult.roundY(), matchResult.width(), matchResult.height()))
-      config.overwrite('fodder.fodder_btn', template_img_for_collect)
-      logUtils.debugInfo('自动更新图片配置 fodder.fodder_btn')
-      logUtils.debugForDev(['自动保存匹配图片：{}', template_img_for_collect])
+      if (matchResult) {
+        logUtils.debugInfo(['找到目标：「{},{}」[{},{}]', matchResult.roundX(), matchResult.roundY(), matchResult.width(), matchResult.height()])
+        let template_img_for_collect = images.toBase64(images.clip(originScreen, matchResult.roundX(), matchResult.roundY(), matchResult.width(), matchResult.height()))
+        config.overwrite('fodder.fodder_btn', template_img_for_collect)
+        logUtils.debugInfo('自动更新图片配置 fodder.fodder_btn')
+        logUtils.debugForDev(['自动保存匹配图片：{}', template_img_for_collect])
+      }
     }
     if (matchResult) {
       toastLog('找到了领饲料位置' + JSON.stringify(matchResult))
@@ -173,6 +192,19 @@ function Collector () {
           LogFloaty.replaceLastLog('去杂货铺逛一逛 等待倒计时结束 剩余：' + limit + 's')
           if (limit % 2 == 0) {
             automator.randomScrollDown()
+          }
+        }
+        if (!widgetUtils.widgetGetOne('已完成 可领饲料', 1000)) {
+          LogFloaty.pushLog('去杂货铺逛一逛结束，但未找到完成控件，重新向上滑动')
+          let limit = 11
+          while (limit-- > 0) {
+            LogFloaty.replaceLastLog('去杂货铺逛一逛 等待倒计时结束 剩余：' + limit + 's')
+            if (limit % 2 == 0) {
+              automator.randomScrollUp()
+            }
+            if (widgetUtils.widgetGetOne('已完成 可领饲料', 1000)) {
+              break
+            }
           }
         }
         automator.back()
@@ -297,7 +329,12 @@ function Collector () {
     }
   }
 
-  function collectCurrentVisible () {
+  function collectCurrentVisible (tryTime) {
+    tryTime = tryTime || 0
+    if (tryTime > 10) {
+      logUtils.warnInfo(['循环领取超过10次 可能页面卡死 直接退出'])
+      return false
+    }
     auto.clearCache && auto.clearCache()
     let visiableCollect = widgetUtils.widgetGetAll(collectBtnContetRegex) || []
     let originList = visiableCollect
@@ -307,6 +344,7 @@ function Collector () {
     if (visiableCollect.length > 0) {
       _this.collected = true
       logUtils.debugInfo(['点击领取'])
+      // TODO 确保按钮可见
       automator.clickCenter(visiableCollect[0])
       sleep(500)
       let full = widgetUtils.widgetGetOne(config.fodder_config.feed_package_full || '饲料袋.*满.*|知道了', 1000)
@@ -318,10 +356,17 @@ function Collector () {
         if (confirmBtn) {
           automator.clickCenter(confirmBtn)
           sleep(1000)
+          return false
+        }
+        let closeIcon = className('android.widget.Image').depth(18).findOne(1000)
+        if (closeIcon) {
+          yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '关闭按钮', 'close_icon')
+          automator.clickCenter(closeIcon)
+          sleep(1000)
         }
         return false
       }
-      return collectCurrentVisible()
+      return collectCurrentVisible(tryTime + 1)
     } else {
       _this.collected = false
       logUtils.debugInfo(['可领取控件均无效或不可见：{}', JSON.stringify((() => {

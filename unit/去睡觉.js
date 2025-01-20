@@ -80,7 +80,7 @@ function exec () {
 
 function goToBed () {
   let clickPosition = null
-  yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '睡觉入口', 'sleep_entry', _config.save_sleep_train_data)
+  yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '睡觉入口', 'sleep_entry')
   if (YoloDetection.enabled) {
     let toSleep = manorRunner.yoloCheck('去睡觉', { confidence: 0.7, labelRegex: 'sleep' })
     if (toSleep) {
@@ -100,7 +100,7 @@ function goToBed () {
   automator.click(clickPosition.x, clickPosition.y)
   // 训练，找到床
   sleep(2000)
-  yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '小鸡睡觉床', 'sleep_bed', _config.save_sleep_train_data)
+  yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '小鸡睡觉床', 'sleep_bed')
   automator.click(config.to_sleep_bed.x || 200, config.to_sleep_bed.y || 740)
   sleep(2000)
   let yesSleepBtn = widgetUtils.widgetGetOne('去睡觉')

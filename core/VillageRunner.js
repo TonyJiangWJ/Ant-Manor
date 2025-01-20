@@ -540,24 +540,76 @@ function VillageRunner () {
     }
   }
 
+  function getButtonInVision (getter, region) {
+    let btn = getter()
+    if (!btn) {
+      return null
+    }
+    WarningFloaty.addRectangle('可视范围', region)
+    function checkCenterInVision (boundsInfo) {
+      let centerPointY = boundsInfo.centerY()
+      if (centerPointY > region[1] && centerPointY < region[1] + region[3]) {
+        return true
+      }
+      return false
+    }
+
+    function isUponVision (boundsInfo) {
+      return boundsInfo.centerY() < region[1]
+    }
+    let limit = 4
+    while (btn && !checkCenterInVision(btn.bounds()) && limit-- > 0) {
+      if (!isUponVision(btn.bounds())) {
+        let startY = region[3] - 10
+        let endY = region[3] - (btn.bounds().centerY() - region[3])
+        LogFloaty.pushLog('去摆摊不可见，滑动界面')
+        automator.gestureDown(startY, endY)
+        btn = getter()
+      } else {
+        LogFloaty.pushLog('划过头了')
+        let startY = region[1] + 10
+        let endY = region[1] + (region[1] - btn.bounds().centerY())
+        LogFloaty.pushLog('去摆摊不可见，滑动界面')
+        automator.gestureUp(startY, endY)
+        btn = getter()
+      }
+    }
+    sleep(1000)
+    WarningFloaty.clearAll()
+    return btn
+  }
+
   /**
    * 闲置摊位摆放
    */
   function setupBooth () {
     if (villageConfig.setup_by_income_weight) {
-      let button = widgetUtils.widgetGetOne('去摆摊')
+      let button = getButtonInVision(() => widgetUtils.widgetGetOne('.*去摆摊'),
+        [0, config.device_height * 0.3, config.device_width, config.device_height * 0.6])
       if (button) {
-        button.click()
-        checkFriendsVillage()
+        if (localOcr.enabled) {
+          let img = commonFunctions.captureScreen()
+          let results = localOcr.recognizeWithBounds(img, null, '去摆摊')
+          if (results && results.length > 0) {
+            yoloTrainHelper.saveImage(img, '去摆摊', 'do_booth_btn')
+            let btn = results[0].bounds
+            automator.click(btn.centerX(), btn.centerY())
+            // automator.clickCenter(button)
+            checkFriendsVillage()
+            return
+          }
+        }
       }
-    } else {
-      // 随机摆摊
-      LogFloaty.pushLog('查找随机摆摊')
-      let randomSetup = widgetUtils.widgetGetOne('随机摆摊')
-      if (randomSetup) {
-        sleep(1000)
-        randomSetup.click()
-      }
+    }
+    if (villageConfig.setup_by_income_weight) {
+      LogFloaty.pushErrorLog('控件查找 去摆摊 失败 使用随机摆摊')
+    }
+    // 随机摆摊
+    LogFloaty.pushLog('查找随机摆摊')
+    let randomSetup = widgetUtils.widgetGetOne('随机摆摊')
+    if (randomSetup) {
+      sleep(1000)
+      randomSetup.click()
     }
   }
 
@@ -654,7 +706,7 @@ function VillageRunner () {
       sleep(1000)
       var r = new org.opencv.core.Rect(region[0], region[1], region[2], region[3])
       automator.click(r.x + r.width / 2, r.y + r.height * 0.2)
-      widgetUtils.widgetWaiting('收摊|去摆摊', null, 3000)
+      widgetUtils.widgetWaiting('.*(收摊|去摆摊)', null, 3000)
       sleep(1500)
       return doSetupBooth()
     } else {
@@ -676,20 +728,24 @@ function VillageRunner () {
    * @returns 是否继续摆摊
    */
   function doSetupBooth () {
-    let setupped = widgetUtils.widgetGetAll('收摊', 1000)
+    let setupped = widgetUtils.widgetGetAll('.*收摊', 1000)
     if (setupped) {
       currentBoothSetted = setupped.length
     }
     logInfo('当前已摆摊数量：' + currentBoothSetted)
     let full = currentBoothSetted >= 3
-
-    let setupBtn = widgetUtils.widgetGetOne('去摆摊')
+    let img = commonFunctions.captureScreen()
+    let results = localOcr.recognizeWithBounds(img, null, '去摆摊')
+    let setupBtn = null
+    if (results && results.length > 0) {
+      setupBtn = results[0].bounds
+      yoloTrainHelper.saveImage(img, '去摆摊', 'do_booth_btn')
+    }
     if (setupBtn) {
-      let point = setupBtn.bounds()
+      let point = setupBtn
       FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '去摆摊')
       sleep(500)
-      // automator.click(point.centerX(), point.centerY())
-      setupBtn.click()
+      automator.click(point.centerX(), point.centerY())
       currentBoothSetted += 1
       sleep(500)
       automator.back()
@@ -970,7 +1026,7 @@ function answerQuestion () {
   automator.back()
 }
 
-function browseAds() {
+function browseAds () {
   LogFloaty.pushLog('准备逛杂货铺')
   sleep(1000)
   let limit = 35
