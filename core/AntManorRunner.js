@@ -642,6 +642,7 @@ function AntManorRunner () {
               click(target.x, target.y)
               feed = true
               sleep(1000)
+              this._had_feed = true
             } else {
               this.pushErrorLog('OCR查找饲料位置失败 无法执行饲料展开后的投喂操作')
             }
@@ -708,9 +709,12 @@ function AntManorRunner () {
     if (retryTime >= 5) {
       return false
     }
+    if (retryTime > 1) {
+      yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '重试喂食第' + retryTime + '次', 'feed_failed_too_much', true)
+    }
     if (this.doFeed()) {
       sleep(1000)
-      return this.checkFeedSuccess(retryTime++)
+      return this.checkFeedSuccess(retryTime + 1)
     }
   }
 
@@ -1166,9 +1170,9 @@ function AntManorRunner () {
   YoloChecker.prototype.checkThief = function () {
     let kicked = false
     this.mainExecutor.pushLog('准备校验是否有偷吃野鸡')
-    let findThiefLeft = this.mainExecutor.yoloCheck('偷吃野鸡', { confidence: 0.7, labelRegex: 'thief_chicken', filter: (result) => result.x < config.device_width / 2 })
+    let findThiefLeft = this.mainExecutor.yoloCheck('偷吃野鸡', { confidence: 0.7, labelRegex: 'thief_chicken|thief_eye_band', filter: (result) => result.x < config.device_width / 2 })
     kicked |= this.driveThief(findThiefLeft)
-    let findThiefRight = this.mainExecutor.yoloCheck('偷吃野鸡', { confidence: 0.7, labelRegex: 'thief_chicken', filter: (result) => result.x > config.device_width / 2 })
+    let findThiefRight = this.mainExecutor.yoloCheck('偷吃野鸡', { confidence: 0.7, labelRegex: 'thief_chicken|thief_eye_band', filter: (result) => result.x > config.device_width / 2 })
     kicked |= this.driveThief(findThiefRight)
 
     let findFoodInCenter = this.mainExecutor.yoloCheck('中间食盆位置', { confidence: 0.7, labelRegex: 'has_food', filter: result => result.x - (result.width / 2) < config.device_width / 2 /* x坐标位置在中心点左边，代表有野鸡存在而yolo识别失败了 */ })

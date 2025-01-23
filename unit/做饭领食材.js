@@ -235,7 +235,7 @@ function cookFood() {
       LogFloaty.pushLog('食材不够了，不再继续做饭')
       cooked = false
     }
-    let close = widgetUtils.widgetGetOne('关闭|返回厨房', 1000)
+    let close = widgetUtils.widgetGetOne('关闭|返回厨房', 2000)
     if (close) {
       automator.clickCenter(close)
       return cooked
@@ -247,6 +247,12 @@ function cookFood() {
 }
 
 function collectFarmByImg() {
+  let farmFood = manorRunner.yoloCheck('农场领取', { labelRegex: 'collect_farm_food' })
+  if (farmFood) {
+    LogFloaty.pushLog('通过YOLO找到了农场领取')
+    automator.click(farmFood.x, farmFood.y)
+    return true
+  }
   LogFloaty.pushLog('通过图片查找是否有 领取食材')
   let screen = commonFunctions.captureScreen()
   if (screen) {

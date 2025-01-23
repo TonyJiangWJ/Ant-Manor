@@ -9,6 +9,8 @@ let commonFunctions = singletonRequire('CommonFunction')
 let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
 let YoloDetection = singletonRequire('YoloDetectionUtil')
 let TouchController = require('../lib/TouchController.js')
+let hijack = require('../lib/WebsocketCaptureHijack.js')
+hijack(commonFunctions)
 let logFloaty = singletonRequire('LogFloaty')
 logFloaty.fontSize = 30
 let warningFloaty = singletonRequire('WarningFloaty')
