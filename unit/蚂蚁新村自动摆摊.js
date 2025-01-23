@@ -41,7 +41,7 @@ unlocker.exec()
 commonFunctions.showCommonDialogAndWait('蚂蚁新村自动摆摊')
 commonFunctions.listenDelayStart()
 commonFunctions.requestScreenCaptureOrRestart(true)
-
+require('../lib/WebsocketCaptureHijack.js')()
 villageRunner.exec()
 
 commonFunctions.minimize()

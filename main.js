@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2024-03-18 13:36:06
+ * @Last Modified time: 2025-01-22 17:32:34
  * @Description: 
  */
 let { config, storage_name } = require('./config.js')(runtime, this)
@@ -111,6 +111,7 @@ if (!FloatyInstance.init()) {
 }
 // 自动设置刘海偏移量
 commonFunctions.autoSetUpBangOffset()
+require('./lib/WebsocketCaptureHijack.js')()
 /************************
  * 主程序
  ***********************/

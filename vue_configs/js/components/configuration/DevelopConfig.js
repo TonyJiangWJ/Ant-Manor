@@ -13,6 +13,7 @@
         enable_visual_helper: true,
         auto_check_update: true,
         clear_webview_cache: true,
+        enable_websocket_hijack: true,
         yolo_save_list: [
           // 网页调试时使用，AutoJS运行时读取config.js中的配置 后续可以不去修改
           ['check_failed', 'YOLO识别失败'],
@@ -73,6 +74,7 @@
     <switch-cell title="是否自动检测更新" v-model="configs.auto_check_update" />
     <switch-cell title="是否显示VConsole" v-model="showVConsole" />
     <switch-cell title="下次打开配置时清空缓存" v-model="configs.clear_webview_cache" />
+    <switch-cell title="是否开启websocket监控" v-model="configs.enable_websocket_hijack" />
     <switch-cell title="是否启用开发模式" v-model="configs.develop_mode" />
     <template v-if="configs.develop_mode">
       <tip-block>脚本执行时保存图片等数据，未启用开发模式时依旧有效，请不要随意开启。部分功能需要下载master分支才能使用，release分支代码开启后可能无法正常运行</tip-block>

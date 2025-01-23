@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2025-01-20 11:18:52
+ * @Last Modified time: 2025-01-23 10:41:40
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -12,6 +12,7 @@ let is_pro = !!Object.prototype.toString.call(com.stardust.autojs.core.timing.Ti
 
 // 执行配置
 var default_config = {
+  enable_websocket_hijack: false,
   unlock_device_flag: 'normal',
   timeout_existing: 6000,
   timeout_findOne: 1000,
@@ -345,7 +346,7 @@ config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_
 config.ai_type = config.fodder_config.ai_type
 config.kimi_api_key = config.fodder_config.kimi_api_key
 config.chatgml_api_key = config.fodder_config.chatgml_api_key
-config.code_version = 'v1.3.5'
+config.code_version = 'v1.3.5.1'
 if (!isRunningMode) {
   module.exports = function (__runtime__, scope) {
     if (typeof scope.config_instance === 'undefined') {

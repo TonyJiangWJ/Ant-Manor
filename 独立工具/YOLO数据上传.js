@@ -285,6 +285,7 @@ function DataUploader () {
         .build();
       let formBody = new MultipartBody.Builder()
         .setType(MultipartBody.FORM)
+        .addFormDataPart('appType', 'manor')
         .addFormDataPart('deviceId', deviceId)
         .addFormDataPart('subPath', 'manor/' + subPath)
         .addFormDataPart("file", file.getName(),

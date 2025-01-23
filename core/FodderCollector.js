@@ -333,6 +333,7 @@ function Collector () {
     tryTime = tryTime || 0
     if (tryTime > 10) {
       logUtils.warnInfo(['循环领取超过10次 可能页面卡死 直接退出'])
+      _this.collected = false
       return false
     }
     auto.clearCache && auto.clearCache()
