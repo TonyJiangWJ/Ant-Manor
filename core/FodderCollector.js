@@ -15,7 +15,7 @@ let yoloTrainHelper = singletonRequire('YoloTrainHelper')
 
 function Collector () {
   let _this = this
-  let collectBtnContetRegex = /^(x\d+g)领取$/
+  let collectBtnContetRegex = /.*领取\d+克饲料.*/
   this.useSimpleForMatchCollect = true
   this.useSimpleForCloseCollect = true
 
@@ -121,9 +121,22 @@ function Collector () {
     this.browseHelpFarm()
   }
 
+  function checkAndEnter (targetWidget, targetText) {
+    if (!targetWidget) {
+      return null
+    }
+    targetText = targetText || '去完成'
+    let widgetText = targetWidget.text() || ''
+    if (widgetText.indexOf(targetText) > -1) {
+      targetWidget.click()
+      return true
+    }
+    return false
+  }
+
   this.answerQuestion = function () {
     LogFloaty.pushLog('查找答题')
-    let toAnswer = widgetUtils.widgetGetOne('去答题', 2000)
+    let toAnswer = widgetUtils.widgetGetOne('.*去答题.*', 2000)
     let ai_type = config.ai_type || 'kimi'
     let kimi_api_key = config.kimi_api_key
     let chatgml_api_key = config.chatgml_api_key
@@ -155,11 +168,8 @@ function Collector () {
 
   this.watchVideo = function () {
     LogFloaty.pushLog('查找看视频')
-    let videoTitle = widgetUtils.widgetGetOne('庄园小视频', 2000)
-    if (videoTitle) {
-      let btnText = videoTitle.parent().child(2).text()
-      if (btnText === '去完成') {
-        videoTitle.parent().child(2).click()
+    findAndOpenTaskPage('.*庄园小视频.*', null, ({ enter }) => {
+      if (enter) {
         sleep(1000)
         LogFloaty.pushLog('看视频 等待倒计时结束')
         let limit = 20
@@ -169,21 +179,18 @@ function Collector () {
         }
         automator.back()
       } else {
-        LogFloaty.pushLog('今日视频已观看：' + btnText)
+        LogFloaty.pushLog('今日视频已观看')
       }
-    } else {
-      LogFloaty.pushWarningLog('未找到看视频入口')
-    }
+    }, () => {
+      LogFloaty.pushErrorLog('未找到看视频入口')
+    })
   }
+
 
   this.browseAds = function () {
     LogFloaty.pushLog('准备逛杂货铺')
-
-    let adsTitle = widgetUtils.widgetGetOne('去杂货铺逛一逛', 2000)
-    if (adsTitle) {
-      let btnText = adsTitle.parent().child(2).text()
-      if (btnText === '去完成') {
-        adsTitle.parent().child(2).click()
+    findAndOpenTaskPage('.*去杂货铺逛一逛.*', null, ({ enter }) => {
+      if (enter) {
         sleep(1000)
         LogFloaty.pushLog('去杂货铺逛一逛 等待倒计时结束')
         let limit = 15
@@ -209,21 +216,18 @@ function Collector () {
         }
         automator.back()
       } else {
-        LogFloaty.pushLog('今日广告逛完：' + btnText)
+        LogFloaty.pushLog('今日广告逛完')
       }
-    } else {
-      LogFloaty.pushWarningLog('未找到去杂货铺逛一逛入口')
-    }
+    }, () => {
+      LogFloaty.pushErrorLog('未找到杂货铺入口')
+    })
+
   }
 
   this.luckyDraw = function () {
     LogFloaty.pushLog('准备抽奖')
-
-    let luckyTitle = widgetUtils.widgetGetOne('.*抽抽乐.*', 2000)
-    if (luckyTitle) {
-      let btnText = luckyTitle.parent().child(2).text()
-      if (btnText === '去完成') {
-        luckyTitle.parent().child(2).click()
+    findAndOpenTaskPage('.*抽抽乐.*', null, ({ enter }) => {
+      if (enter) {
         sleep(1000)
         LogFloaty.pushLog('抽抽乐 查找领取')
         let collect = widgetUtils.widgetGetOne('领取')
@@ -239,21 +243,17 @@ function Collector () {
         }
         automator.back()
       } else {
-        LogFloaty.pushLog('今日抽奖已完成：' + btnText)
+        LogFloaty.pushLog('今日抽奖已完成')
       }
-    } else {
-      LogFloaty.pushWarningLog('未找到抽抽乐入口')
-    }
+    }, () => {
+      LogFloaty.pushErrorLog('未找到抽抽乐入口')
+    })
   }
 
   this.farmFertilize = function () {
     LogFloaty.pushLog('准备施肥')
-
-    let farmTitle = widgetUtils.widgetGetOne('去芭芭农场.*', 2000)
-    if (farmTitle) {
-      let btnText = farmTitle.parent().child(2).text()
-      if (btnText === '去完成') {
-        farmTitle.parent().child(2).click()
+    findAndOpenTaskPage('.*庄园小视频.*', null, ({ enter }) => {
+      if (enter) {
         sleep(1000)
         LogFloaty.pushLog('等待进入芭芭农场')
         widgetUtils.widgetWaiting('任务列表')
@@ -269,35 +269,19 @@ function Collector () {
         }
         automator.back()
       } else {
-        LogFloaty.pushLog('今日施肥已完成：' + btnText)
+        LogFloaty.pushLog('今日施肥已完成')
       }
-    } else {
-      LogFloaty.pushWarningLog('未找到施肥入口')
-    }
+    }, () => {
+      LogFloaty.pushErrorLog('未找到施肥入口')
+    })
+
+
   }
 
   this.browseHelpFarm = function () {
     LogFloaty.pushLog('准备逛一逛助农专场')
-    // let title = widgetUtils.widgetGetOne('逛一逛.*助农专场', 2000)
-    // if (title) {
-    //   let btnText = title.parent().child(2).text()
-    //   if (btnText === '去完成') {
-    //     title.parent().child(2).click()
-    //     sleep(1000)
-    //     LogFloaty.pushLog('等待进入助农专场')
-    //     widgetUtils.widgetWaiting('点击或滑动浏览得肥料')
-    //     sleep(1000)
-    //     LogFloaty.pushLog('啥也不用干 直接返回')
-    //     automator.back()
-    //   } else {
-    //     LogFloaty.pushLog('今日逛一逛助农专场已完成：' + btnText)
-    //   }
-    // } else {
-    //   LogFloaty.pushWarningLog('未找到逛一逛助农专场入口')
-    // }
-    findAndOpenTaskPage('逛一逛.*助农专场', null, result => {
+    findAndOpenTaskPage('.*逛一逛.*助农专场.*', null, result => {
       let enter = result.enter
-      let btnText = result.btnText
       if (enter) {
         LogFloaty.pushLog('等待进入助农专场')
         widgetUtils.widgetWaiting('点击或滑动浏览得肥料')
@@ -305,7 +289,7 @@ function Collector () {
         LogFloaty.pushLog('啥也不用干 直接返回')
         automator.back()
       } else {
-        LogFloaty.pushLog('今日逛一逛助农专场已完成：' + btnText)
+        LogFloaty.pushLog('今日逛一逛助农专场已完成')
       }
     }, e => {
       LogFloaty.pushWarningLog('未找到逛一逛助农专场入口: ' + e)
@@ -315,17 +299,16 @@ function Collector () {
   function findAndOpenTaskPage (titleRegex, btnText, callback, errorCallback) {
     btnText = btnText || '去完成'
     let title = widgetUtils.widgetGetOne(titleRegex, 2000)
-    if (title) {
-      let entryText = title.parent().child(2).text()
-      if (entryText === btnText) {
-        title.parent().child(2).click()
-        sleep(1000)
-        return callback({ enter: true, btnText })
-      } else {
-        return callback({ enter: false, btnText: entryText })
-      }
+    let checkResult = checkAndEnter(title, btnText)
+    if (checkResult) {
+      sleep(1000)
+      return callback({ enter: true })
     } else {
-      errorCallback('未能找到：' + titleRegex)
+      if (checkResult == null) {
+        errorCallback('未能找到：' + titleRegex)
+      } else {
+        callback({ enter: false })
+      }
     }
   }
 

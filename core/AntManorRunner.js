@@ -8,7 +8,7 @@ let alipayUnlocker = singletonRequire('AlipayUnlocker')
 let widgetUtils = singletonRequire('WidgetUtils')
 let WarningFloaty = singletonRequire('WarningFloaty')
 let LogFloaty = singletonRequire('LogFloaty')
-let { logInfo, errorInfo, warnInfo, debugInfo, infoLog } = singletonRequire('LogUtils')
+let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev } = singletonRequire('LogUtils')
 let _FloatyInstance = singletonRequire('FloatyUtil')
 let yoloTrainHelper = singletonRequire('YoloTrainHelper')
 let YoloDetection = singletonRequire('YoloDetectionUtil')
@@ -122,12 +122,13 @@ function AntManorRunner () {
    * yolo查找所有匹配的对象
    * @param {string} desc 描述信息
    * @param {object} filter 过滤配置 可信度 label 等等
+   * @param {number} tryTime 重试次数 默认三次 间隔400ms
    * @return {array}
    */
-  this.yoloCheckAll = function (desc, filter) {
+  this.yoloCheckAll = function (desc, filter, tryTime) {
     let img = null
     let results = []
-    let tryTime = 5
+    tryTime = tryTime || 3
     WarningFloaty.clearAll()
     debugInfo(['通过YOLO查找：{} props: {}', desc, JSON.stringify(filter)])
     do {
@@ -154,8 +155,8 @@ function AntManorRunner () {
     return null
   }
 
-  this.yoloCheck = function (desc, filter) {
-    let results = this.yoloCheckAll(desc, filter)
+  this.yoloCheck = function (desc, filter, tryTime) {
+    let results = this.yoloCheckAll(desc, filter, tryTime)
     if (results && results.length > 0) {
       return results[0]
     }
@@ -182,7 +183,7 @@ function AntManorRunner () {
    */
   this.waitForOwn = function (keepAlive) {
     if (typeof keepAlive == 'undefined') {
-      keepAlive = this.isKeepAlive 
+      keepAlive = this.isKeepAlive
     }
     let findColor = false
     if (YoloDetection.enabled) {
@@ -246,7 +247,7 @@ function AntManorRunner () {
     }
     let img = _commonFunctions.captureScreen()
     if (!findColor) {
-      this.pushErrLog('进入好友界面失败 需要重启脚本')
+      this.pushErrorLog('进入好友界面失败 需要重启脚本')
       yoloTrainHelper.saveImage(img, '进入好友界面失败', 'friend_home_failed')
       this.setFloatyTextColor('#ff0000')
       this.setFloatyInfo(null, CONTENT.friend_home + '失败，检测超时')
@@ -327,10 +328,17 @@ function AntManorRunner () {
         yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '小鸡外出', 'signboard')
         this.setFloatyInfo(signboard, '小鸡外出不在家')
         this.pushLog('小鸡外出了')
-        // 需要点击上半部分
-        click(signboard.x, signboard.y - signboard.height / 2)
-        sleep(1000)
-        this.checkAndBringBack()
+        let feedBtn = this.yoloCheck('喂饭按钮', { confidence: 0.7, labelRegex: 'feed_btn' })
+        if (feedBtn) {
+          click(feedBtn.x, feedBtn.y)
+          sleep(1000)
+          return this.checkIfChikenOut()
+        } else {
+          // 找不到喂饭按钮 需要点击上半部分
+          click(signboard.x, signboard.y - signboard.height / 3)
+          sleep(1000)
+          this.checkAndBringBack()
+        }
       }
     } else {
       WarningFloaty.addRectangle('校验是否外出', config.OUT_REGION)
@@ -1170,12 +1178,14 @@ function AntManorRunner () {
   YoloChecker.prototype.checkThief = function () {
     let kicked = false
     this.mainExecutor.pushLog('准备校验是否有偷吃野鸡')
-    let findThiefLeft = this.mainExecutor.yoloCheck('偷吃野鸡', { confidence: 0.7, labelRegex: 'thief_chicken|thief_eye_band', filter: (result) => result.x < config.device_width / 2 })
+    let findThiefLeft = this.mainExecutor.yoloCheck('偷吃野鸡', { confidence: 0.7, labelRegex: 'thief_chicken|thief_eye_band', filter: (result) => result.x < config.device_width / 2 }, 2)
     kicked |= this.driveThief(findThiefLeft)
-    let findThiefRight = this.mainExecutor.yoloCheck('偷吃野鸡', { confidence: 0.7, labelRegex: 'thief_chicken|thief_eye_band', filter: (result) => result.x > config.device_width / 2 })
+    let findThiefRight = this.mainExecutor.yoloCheck('偷吃野鸡', { confidence: 0.7, labelRegex: 'thief_chicken|thief_eye_band', filter: (result) => result.x > config.device_width / 2 }, 2)
     kicked |= this.driveThief(findThiefRight)
 
-    let findFoodInCenter = this.mainExecutor.yoloCheck('中间食盆位置', { confidence: 0.7, labelRegex: 'has_food', filter: result => result.x - (result.width / 2) < config.device_width / 2 /* x坐标位置在中心点左边，代表有野鸡存在而yolo识别失败了 */ })
+    let findFoodInCenter = this.mainExecutor.yoloCheck('中间食盆位置',
+      /* x坐标位置在中心点左边，代表有野鸡存在而yolo识别失败了 */
+      { confidence: 0.7, labelRegex: 'has_food', filter: result => result.x - (result.width / 2) < config.device_width / 2 }, 1)
     if (findFoodInCenter) {
       warnInfo(['食盆位置在中间，而野鸡驱赶失败，记录数据'])
       yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '偷吃野鸡识别失败', 'thief_chicken_check_failed')
