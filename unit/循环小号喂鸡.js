@@ -95,7 +95,7 @@ if (config.accounts && config.accounts.length > 1) {
       }
       sleep(1000)
       // 先领饲料
-      collector.exec()
+      collector.exec(3)
       if (!ManorRunner.waitForOwn(true)) {
         LogFloaty.pushErrorLog('校验失败，重新打开个人界面')
         if (!ManorRunner.launchApp(true, true)) {
@@ -117,8 +117,9 @@ if (config.accounts && config.accounts.length > 1) {
         if (ManorRunner.checkIfChikenOut()) {
           ManorRunner.doFeed()
         }
-        // 喂过鸡 再领取一遍饲料
-        collector.exec()
+        if (ManorRunner.checkIfNoMoreFood()) {
+          return
+        }
       }
       if (!ManorRunner.waitForOwn(true)) {
         LogFloaty.pushErrorLog('校验失败，重新打开个人界面')

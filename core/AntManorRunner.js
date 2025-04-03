@@ -17,6 +17,7 @@ _FloatyInstance.enableLog()
 let fodderCollector = require('./FodderCollector.js')
 let BaiduOcrUtil = require('../lib/BaiduOcrUtil.js')
 let localOcr = require('../lib/LocalOcrUtil.js')
+let formatDate = require('../lib/DateUtil.js')
 let contentDefine = {
   soft: {
     personal_home: '进入个人鸡儿页面',
@@ -476,6 +477,15 @@ function AntManorRunner () {
     return false
   }
 
+  this.checkIfNoMoreFood = function () {
+    let noMoreFood = widgetUtils.widgetGetOne('.*饲料不足', 1000)
+    if (noMoreFood) {
+      LogFloaty.pushLog('小鸡饲料不足，投喂失败')
+      return true
+    }
+    return false
+  }
+
   this.checkThiefLeft = function () {
     WarningFloaty.addRectangle('左侧小偷鸡检测区域', config.LEFT_THIEF_REGION, '#00ff00')
     sleep(500)
@@ -577,6 +587,18 @@ function AntManorRunner () {
     if (feed) {
       if (this.checkIfChikenOut()) {
         return this.checkAndFeed()
+      }
+      // 检查是否饲料不足
+      let noMoreFood = widgetUtils.widgetGetOne('剩余的饲料不足', 1000)
+      if (noMoreFood) {
+        let cancel = widgetUtils.widgetGetOne('取消', 1000)
+        if (cancel) automator.clickCenter(cancel)
+        let sleepTime = (23 - new Date().getHours()) * 60 + (61 - new Date().getMinutes())
+        this.pushLog('小鸡饲料不足，投喂失败 设置第二天再启动, 等待时间' + sleepTime + '分钟')
+        _commonFunctions.setUpAutoStart(sleepTime)
+        NotificationHelper.createNotification('小鸡饲料不足，投喂失败 设置第二天再启动',
+          '下次执行时间：' + formatDate(new Date(new Date().getTime() + sleepTime * 60000)), 'noMoreFood')
+        return
       }
       this.checkFeedSuccess()
       // 避免加速卡使用失败导致时间计算不正确的问题
@@ -774,15 +796,16 @@ function AntManorRunner () {
       if (!skipUse) {
         automator.clickCenter(speedupCard)
         sleep(1000)
-        let confirmUsing = widgetUtils.widgetGetOne('立即加速', 2000)
+        let confirmUsing = widgetUtils.widgetGetOne('.*立即加速', 2000)
         if (!confirmUsing) {
           warnInfo(['未找到使用按钮，可能是加速卡用完了'])
           this.pushErrorLog('未找到加速按钮 可能加速卡用完了')
+          automator.back()
         } else {
           this.pushLog('点击使用加速卡：立即加速')
           automator.clickCenter(confirmUsing)
           sleep(1000)
-          let closeIcon = className('android.widget.TextView').depth(18).clickable(true).findOne(1000)
+          let closeIcon = textContains('关闭').depth(18).clickable(true).findOne(1000)
           if (closeIcon) {
             yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '关闭按钮', 'close_icon')
             debugInfo(['通过控件关闭弹窗 {}', closeIcon.click()])
@@ -982,6 +1005,11 @@ function AntManorRunner () {
     }
     WarningFloaty.clearAll()
 
+    //  每天首次运行时领取饲料
+    if (_commonFunctions.checkDailyFirst()) {
+      fodderCollector.exec()
+      _commonFunctions.setTodayFeeded()
+    }
     sleep(1000)
     this.checkAndFeed()
     WarningFloaty.clearAll()

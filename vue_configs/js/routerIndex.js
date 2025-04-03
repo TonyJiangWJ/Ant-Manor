@@ -14,6 +14,7 @@ const router = new VueRouter({
     { path: '/basic/colorRegion', component: ColorRegionConfigs, meta: { index: 1 } },
     { path: '/basic/log', component: LogConfig, meta: { index: 1 } },
     { path: '/advance/skipPackage', component: SkipPackageConfig, meta: { index: 1 } },
+    { path: '/advance/videoPackage', component: VideoPackageConfig, meta: { index: 1, title: '视频应用设置' } },
     { path: '/advance/common', component: AdvanceCommonConfig, meta: { index: 1 } },
     { path: '/about', component: About, meta: { index: 1 } },
     { path: '/about/develop', component: DevelopConfig, meta: { index: 2, title: '开发模式' } },

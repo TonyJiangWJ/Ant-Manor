@@ -100,54 +100,95 @@ function exec () {
           limit = 0
         }
       } while (--limit > 0)
-      let cookLimit = 5
-      while (cookFood() && cookLimit-- > 0) {
-        sleep(1000)
-      }
-      // 领每日食材
-      let dailySuccess = collectWithOcr('领今日食材')
-      if (!dailySuccess) {
-        if (manorRunner.checkByOcr(null, '明日可领.*')) {
-          LogFloaty.pushLog('今日食材已领取')
-          dailySuccess = true
-        }
-      }
-      yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '农场食材领取之前', 'farm_collect')
-      let farmSuccess = collectWithOcr('领取.*') || collectFarmByImg()
-      if (!farmSuccess) {
-        // 尝试芭芭农场施肥
-        tryFarm()
-        yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '执行农场施肥后', 'farm_collect')
-        farmSuccess = collectWithOcr('领取.*') || collectFarmByImg()
-      }
-      if (!dailySuccess || !farmSuccess) {
-        NotificationHelper.createNotification('每日食材领取失败，请手动执行', '今日'
-          + (!dailySuccess ? '[每日食材]' : '')
-          + (!farmSuccess ? '[农场施肥食材]' : '') + '领取失败，请手动执行',
-          config.notificationId * 10 + 6)
-      }
-      if (collectWithOcr('爱心食材店')) {
-        failToExecute = false
-        let target = widgetUtils.widgetGetOne('领10g食材|已领取')
-        if (target) {
-          FloatyInstance.setFloatyInfo({ x: target.bounds().centerX(), y: target.bounds().centerY() }, target.text() || '领取食材')
-          if (target.text() != '已领取') {
-            automator.clickCenter(target)
-            sleep(1000)
-          }
-        } else {
-          LogFloaty.pushErrorLog('无法找到 领10g食材')
-        }
-      } else {
-        LogFloaty.pushErrorLog('无法找到 菜板，无法执行领取')
-      }
+      doCookAndCollect()
+    } else {
+      LogFloaty.pushErrorLog('无法找到 菜板，无法执行领取')
     }
   } else {
     LogFloaty.pushErrorLog('无法找到 做饭 入口')
   }
 }
 
-function tryFarm() {
+function checkAllAchievementDone() {
+  if (!config.fodder_config.disable_if_achievement_done) {
+    return false
+  }
+  let screen = commonFunctions.captureScreen()
+  if (screen) {
+    let resultList = localOcrUtil.recognizeWithBounds(screen)
+    if (resultList && resultList.length > 0) {
+      let doneList = resultList.filter(v => {
+        let label = v.label
+        let regex = /(\d+)\/(\d+)/
+        let checkResult = regex.exec(label)
+        if (checkResult) {
+          if (checkResult[1] == checkResult[2]) {
+            LogFloaty.pushWarningLog('当前周期任务成就已完成：' + (checkResult[1] + '/' + checkResult[2]))
+            return true
+          } else {
+            LogFloaty.pushWarningLog('当前周期任务成就进度：' + (checkResult[1] + '/' + checkResult[2]))
+          }
+        }
+        if (label.indexOf('截止时间')>-1) {
+          LogFloaty.pushLog('当前任务周期：' + label)
+        }
+      })
+      if (doneList.length > 0) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+function doCookAndCollect () {
+  if (checkAllAchievementDone()) {
+    LogFloaty.pushWarningLog('当期所有成就已完成，不再执行浪费饲料')
+    failToExecute = false
+    return
+  }
+  let cookLimit = 5
+  while (cookFood() && cookLimit-- > 0) {
+    sleep(1000)
+  }
+  // 领每日食材
+  let dailySuccess = collectWithOcr('领今日食材')
+  if (!dailySuccess) {
+    if (manorRunner.checkByOcr(null, '明日可领.*')) {
+      LogFloaty.pushLog('今日食材已领取')
+      dailySuccess = true
+    }
+  }
+  yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '农场食材领取之前', 'farm_collect')
+  let farmSuccess = collectWithOcr('领取.*') || collectFarmByImg()
+  if (!farmSuccess) {
+    // 尝试芭芭农场施肥
+    tryFarm()
+    yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '执行农场施肥后', 'farm_collect')
+    farmSuccess = collectWithOcr('领取.*') || collectFarmByImg()
+  }
+  if (!dailySuccess || !farmSuccess) {
+    NotificationHelper.createNotification('每日食材领取失败，请手动执行', '今日'
+      + (!dailySuccess ? '[每日食材]' : '')
+      + (!farmSuccess ? '[农场施肥食材]' : '') + '领取失败，请手动执行',
+      config.notificationId * 10 + 6)
+  }
+  if (collectWithOcr('爱心食材店')) {
+    failToExecute = false
+    let target = widgetUtils.widgetGetOne('领10g食材|已领取')
+    if (target) {
+      FloatyInstance.setFloatyInfo({ x: target.bounds().centerX(), y: target.bounds().centerY() }, target.text() || '领取食材')
+      if (target.text() != '已领取') {
+        automator.clickCenter(target)
+        sleep(1000)
+      }
+    } else {
+      LogFloaty.pushErrorLog('无法找到 领10g食材')
+    }
+  }
+}
+
+function tryFarm () {
   if (collectWithOcr('去施肥领食材.*')) {
     LogFloaty.pushLog('找到了去施肥，等待进入芭芭农场')
     sleep(1000)
@@ -227,7 +268,7 @@ function findChoppingBoard (limit) {
   return findChoppingBoard(limit - 1)
 }
 
-function cookFood() {
+function cookFood () {
   if (collectWithOcr('做美食', [0, config.device_height * 0.6, config.device_width, config.device_height * 0.4])) {
     let cooked = true
     let noMoreFoodMaterial = widgetUtils.widgetGetOne('食材不够.*', 2000)
@@ -246,7 +287,7 @@ function cookFood() {
   return false
 }
 
-function collectFarmByImg() {
+function collectFarmByImg () {
   let farmFood = manorRunner.yoloCheck('农场领取', { labelRegex: 'collect_farm_food' })
   if (farmFood) {
     LogFloaty.pushLog('通过YOLO找到了农场领取')

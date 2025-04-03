@@ -23,16 +23,34 @@ function Collector () {
 
   this.imageConfig = config.fodder_config
 
-  this.exec = function () {
-    if (this.openCollectFood()) {
-      sleep(1000)
-      this.doDailyTasks()
-      LogFloaty.pushLog('每日任务执行完毕，开始收集可收取饲料')
-      this.collectAllIfExists()
-      sleep(1000)
-    } else {
-      LogFloaty.pushWarningLog('未能找到领饲料入口')
-      warnInfo(['未能找到领饲料入口'], true)
+  this.exec = function (taskLimit) {
+    this.currentVolume = device.getMusicVolume()
+    LogFloaty.pushLog('当前音量：' + this.currentVolume + ' 设置为静音')
+    device.setMusicVolume(0)
+
+    function resetMusicVolume () {
+      if (_this.reseted) {
+        return
+      }
+      LogFloaty.pushLog('恢复音量：' + _this.currentVolume + ' 取消静音')
+      device.setMusicVolume(_this.currentVolume)
+      _this.reseted = true
+    }
+
+    commonFunctions.registerOnEngineRemoved(resetMusicVolume, 'reset_volume')
+    try {
+      if (this.openCollectFood()) {
+        sleep(1000)
+        this.doDailyTasks(taskLimit)
+        LogFloaty.pushLog('每日任务执行完毕，开始收集可收取饲料')
+        this.collectAllIfExists()
+        sleep(1000)
+      } else {
+        LogFloaty.pushWarningLog('未能找到领饲料入口')
+        warnInfo(['未能找到领饲料入口'], true)
+      }
+    } finally {
+      resetMusicVolume()
     }
   }
 
@@ -106,19 +124,38 @@ function Collector () {
     }
   }
 
-  this.doDailyTasks = function () {
-    // 答题
-    this.answerQuestion()
-    // 小视频
-    this.watchVideo()
-    // 逛一逛
-    this.browseAds()
-    // 抽抽乐
-    this.luckyDraw()
-    // 农场施肥
-    this.farmFertilize()
-    // 逛一逛助农专场
-    this.browseHelpFarm()
+  this.doDailyTasks = function (taskLimit) {
+    let taskCount = 0;
+    [
+      // 答题
+      () => this.answerQuestion(),
+      // 小视频
+      () => this.watchVideo(),
+      // 逛一逛
+      () => this.browseAds(),
+      // 抽抽乐
+      () => this.luckyDraw(),
+      // 农场逛一逛
+      () => this.farmHanging(),
+      // 鲸探
+      () => this.feedFish(),
+      // 扭蛋
+      () => this.openGashapon(),
+      // 做饭领食材，消耗60领90 不是很必要，可以通过做饭领食材完成
+      // 通用任务 通过正则表达式判断标题 正则由用户输入，可能导致任务失败
+      () => this.doCommonTaskByTitle(taskCount, taskLimit),
+    ].forEach(taskExecutor => {
+      if (taskLimit && taskLimit > 0) {
+        if (taskCount > taskLimit) {
+          return
+        }
+      }
+      if (taskExecutor()) {
+        taskCount++
+        LogFloaty.pushLog('当前执行成功的任务数量：' + taskCount)
+      }
+    })
+
   }
 
   function checkAndEnter (targetWidget, targetText) {
@@ -134,7 +171,128 @@ function Collector () {
     return false
   }
 
+  this.feedFish = function () {
+    LogFloaty.pushLog('检查鲸探喂鱼任务')
+    return findAndOpenTaskPage('.*鲸探喂鱼.*', '去喂鱼', (({ enter }) => {
+      if (enter) {
+        sleep(1000)
+        widgetUtils.widgetCheck('.*(喂鱼按钮|鱼食).*', 5000)
+        let feedBtn = widgetUtils.widgetGetOne('.*(喂鱼按钮).*', 1000)
+        if (feedBtn) {
+          automator.clickCenter(feedBtn)
+          LogFloaty.pushLog('点击喂食')
+          sleep(1000)
+          let confirm = widgetUtils.widgetGetOne('喂鱼', 2000)
+          if (confirm) {
+            LogFloaty.pushLog('点击喂鱼')
+            automator.clickCenter(confirm)
+            sleep(1000)
+          }
+          this.checkAndBack()
+          return true
+        } else {
+          LogFloaty.pushErrorLog('未能找到喂食按钮，任务执行失败')
+        }
+        this.checkAndBack()
+        return false
+      } else {
+        LogFloaty.pushWarningLog('未能进入鲸探')
+      }
+    }))
+  }
+
+  this.openGashapon = function () {
+    LogFloaty.pushLog('检查开扭蛋任务')
+    return findAndOpenTaskPage('.*开扭蛋.*', null, (({ enter }) => {
+      if (enter) {
+        let executeSuccess = false
+        sleep(1000)
+        widgetUtils.widgetCheck('每日签到', 5000)
+        let signBtn = widgetUtils.widgetGetOne('领取', 1000)
+        if (signBtn) {
+          automator.clickCenter(signBtn)
+          LogFloaty.pushLog('点击签到')
+          sleep(1000)
+        } else {
+          LogFloaty.pushErrorLog('未能找到签到按钮')
+        }
+        let executeBtn = widgetUtils.widgetGetOne('还有[1-9]+个', 1000)
+        if (executeBtn) {
+          automator.clickCenter(executeBtn)
+          LogFloaty.pushLog('执行抽扭蛋')
+          executeSuccess = true
+          sleep(1000)
+        } else {
+          LogFloaty.pushErrorLog('未找到抽扭蛋按钮')
+        }
+        this.checkAndBack()
+        return executeSuccess
+      }
+    }))
+  }
+
+  this.doCommonTaskByTitle = function (executedCount, executeLimit) {
+    let taskListStr = config.fodder_config.fodder_task_list || '信用卡账单|百度地图|快手|淘宝视频|今日头条极速版|淘宝特价版|闲鱼|菜鸟|支付宝运动|助农专场|淘宝芭芭农场'
+    let titleRegex = new RegExp('.*(' + taskListStr + ').*去完成.*')
+    let executed = false
+    let skipTitles = []
+    do {
+      if (executedCount >= executeLimit) {
+        return
+      }
+      executed = false
+      let taskSuccess = findAndOpenTaskPage(titleRegex, null, result => {
+        if (result.enter) {
+          LogFloaty.pushLog('等待进入通用任务界面:' + (result.title.text() || result.title.desc()))
+          skipTitles.push(result.title.text() || result.title.desc())
+          let limit = 20
+          LogFloaty.pushLog('等待界面加载' + limit + 's')
+          while (limit-- > 0) {
+            LogFloaty.replaceLastLog('等待界面加载' + limit + 's')
+            sleep(1000)
+          }
+          if (this.checkAndBack()) {
+            executed = true
+          } else {
+            LogFloaty.pushErrorLog('执行任务后无法成功打开领饲料界面，退出执行')
+          }
+        } else {
+          LogFloaty.pushLog('未能找到更多的通用任务')
+        }
+      }, e => {
+        LogFloaty.pushWarningLog('未能找到通用任务入口: ' + e)
+      }, skipTitles)
+      if (taskSuccess) {
+        executedCount++
+      }
+    } while (executed)
+  }
+
+  this.checkAndBack = function () {
+
+    LogFloaty.pushLog('返回领饲料界面')
+    automator.back()
+    sleep(1000)
+    let retry = 3
+    while (!widgetUtils.widgetCheck('饲料任务', 1000) && retry-- > 0) {
+      LogFloaty.pushWarningLog('未能找到关键控件，尝试返回')
+      automator.back()
+      sleep(1000)
+    }
+    if (!widgetUtils.widgetCheck('饲料任务', 3000)) {
+      LogFloaty.pushErrorLog('返回领饲料界面失败，尝试重新打开')
+      require('../core/AntManorRunner.js').launchApp()
+      if (this.openCollectFood()) {
+        return true
+      }
+    } else {
+      return true
+    }
+    return false
+  }
+
   this.answerQuestion = function () {
+    let executed = false
     LogFloaty.pushLog('查找答题')
     let toAnswer = widgetUtils.widgetGetOne('.*去答题.*', 2000)
     let ai_type = config.ai_type || 'kimi'
@@ -155,20 +313,22 @@ function Collector () {
         LogFloaty.pushLog('答案解释：' + result.describe)
         LogFloaty.pushLog('答案坐标：' + JSON.stringify(result.target))
         automator.click(result.target.x, result.target.y)
+        executed = true
       } else {
-        NotificationHelper.createNotification('蚂蚁庄园答题失败', '今日脚本自动答题失败，请手动处理', config.notificationId * 10 + 3)
+        NotificationHelper.createNotification('蚂蚁庄园答题失败', '今日脚本自动答题失败，请手动处理')
       }
       sleep(1000)
       // TODO 随机答题
-      automator.back()
+      this.checkAndBack()
     } else {
       LogFloaty.pushWarningLog('未找到答题入口')
     }
+    return executed
   }
 
   this.watchVideo = function () {
     LogFloaty.pushLog('查找看视频')
-    findAndOpenTaskPage('.*庄园小视频.*', null, ({ enter }) => {
+    return findAndOpenTaskPage('.*庄园小视频.*', null, ({ enter }) => {
       if (enter) {
         sleep(1000)
         LogFloaty.pushLog('看视频 等待倒计时结束')
@@ -177,10 +337,12 @@ function Collector () {
           sleep(1000)
           LogFloaty.replaceLastLog('看视频 等待倒计时结束 剩余：' + limit + 's')
         }
-        automator.back()
+        this.checkAndBack()
+        return true
       } else {
         LogFloaty.pushLog('今日视频已观看')
       }
+      return false
     }, () => {
       LogFloaty.pushErrorLog('未找到看视频入口')
     })
@@ -189,7 +351,7 @@ function Collector () {
 
   this.browseAds = function () {
     LogFloaty.pushLog('准备逛杂货铺')
-    findAndOpenTaskPage('.*去杂货铺逛一逛.*', null, ({ enter }) => {
+    return findAndOpenTaskPage('.*去杂货铺逛一逛.*', null, ({ enter }) => {
       if (enter) {
         sleep(1000)
         LogFloaty.pushLog('去杂货铺逛一逛 等待倒计时结束')
@@ -199,6 +361,8 @@ function Collector () {
           LogFloaty.replaceLastLog('去杂货铺逛一逛 等待倒计时结束 剩余：' + limit + 's')
           if (limit % 2 == 0) {
             automator.randomScrollDown()
+          } else {
+            automator.randomScrollUp()
           }
         }
         if (!widgetUtils.widgetGetOne('已完成 可领饲料', 1000)) {
@@ -208,25 +372,27 @@ function Collector () {
             LogFloaty.replaceLastLog('去杂货铺逛一逛 等待倒计时结束 剩余：' + limit + 's')
             if (limit % 2 == 0) {
               automator.randomScrollUp()
+            } else {
+              automator.randomScrollDown()
             }
             if (widgetUtils.widgetGetOne('已完成 可领饲料', 1000)) {
               break
             }
           }
         }
-        automator.back()
+        this.checkAndBack()
+        return true
       } else {
         LogFloaty.pushLog('今日广告逛完')
       }
     }, () => {
       LogFloaty.pushErrorLog('未找到杂货铺入口')
     })
-
   }
 
   this.luckyDraw = function () {
     LogFloaty.pushLog('准备抽奖')
-    findAndOpenTaskPage('.*抽抽乐.*', null, ({ enter }) => {
+    return findAndOpenTaskPage('.*抽抽乐.*', null, ({ enter }) => {
       if (enter) {
         sleep(1000)
         LogFloaty.pushLog('抽抽乐 查找领取')
@@ -241,7 +407,8 @@ function Collector () {
             sleep(3000)
           }
         }
-        automator.back()
+        this.checkAndBack()
+        return true
       } else {
         LogFloaty.pushLog('今日抽奖已完成')
       }
@@ -250,68 +417,60 @@ function Collector () {
     })
   }
 
-  this.farmFertilize = function () {
-    LogFloaty.pushLog('准备施肥')
-    findAndOpenTaskPage('.*庄园小视频.*', null, ({ enter }) => {
+
+  this.farmHanging = function () {
+    LogFloaty.pushLog('准备芭芭农场逛一逛')
+    return findAndOpenTaskPage('.*去芭芭农场逛一逛.*', null, ({ enter }) => {
       if (enter) {
         sleep(1000)
         LogFloaty.pushLog('等待进入芭芭农场')
         widgetUtils.widgetWaiting('任务列表')
         sleep(1000)
-        LogFloaty.pushLog('查找 施肥 按钮')
-        let result = localOcr.recognizeWithBounds(commonFunctions.captureScreen(), null, '肥料.*\\d+')
-        if (result && result.length > 0) {
-          let bounds = result[0].bounds
-          LogFloaty.pushLog('施肥按钮位置：' + JSON.stringify({ x: bounds.centerX(), y: bounds.centerY() }))
-          automator.click(bounds.centerX(), bounds.centerY())
-        } else {
-          LogFloaty.pushLog('未找到施肥按钮')
-        }
-        automator.back()
+        this.checkAndBack()
+        return true
       } else {
-        LogFloaty.pushLog('今日施肥已完成')
+        LogFloaty.pushLog('今日芭芭农场逛一逛已完成')
       }
     }, () => {
-      LogFloaty.pushErrorLog('未找到施肥入口')
-    })
-
-
-  }
-
-  this.browseHelpFarm = function () {
-    LogFloaty.pushLog('准备逛一逛助农专场')
-    findAndOpenTaskPage('.*逛一逛.*助农专场.*', null, result => {
-      let enter = result.enter
-      if (enter) {
-        LogFloaty.pushLog('等待进入助农专场')
-        widgetUtils.widgetWaiting('点击或滑动浏览得肥料')
-        sleep(1000)
-        LogFloaty.pushLog('啥也不用干 直接返回')
-        automator.back()
-      } else {
-        LogFloaty.pushLog('今日逛一逛助农专场已完成')
-      }
-    }, e => {
-      LogFloaty.pushWarningLog('未找到逛一逛助农专场入口: ' + e)
+      LogFloaty.pushErrorLog('未找到芭芭农场逛一逛入口')
     })
   }
 
-  function findAndOpenTaskPage (titleRegex, btnText, callback, errorCallback) {
+  function findAndOpenTaskPage (titleRegex, btnText, callback, errorCallback, skipTitles) {
     btnText = btnText || '去完成'
-    let title = widgetUtils.widgetGetOne(titleRegex, 2000)
+    let title = widgetUtils.widgetGetOne(titleRegex, 2000, null, null, matcher => {
+      // 避免单个任务重复
+      if (skipTitles && skipTitles.length > 0) {
+        return matcher.filter(node => !!node && skipTitles.indexOf(node.desc() || node.text()) < 0)
+      } else {
+        return matcher
+      }
+    })
     let checkResult = checkAndEnter(title, btnText)
     if (checkResult) {
       sleep(1000)
-      return callback({ enter: true })
+      return callback({ enter: true, title: title })
     } else {
       if (checkResult == null) {
-        errorCallback('未能找到：' + titleRegex)
+        if (typeof errorCallback == 'function') {
+          errorCallback('未能找到：' + titleRegex)
+        } else {
+          LogFloaty.pushErrorLog('未能找到：' + titleRegex)
+        }
       } else {
         callback({ enter: false })
       }
+      return false
     }
   }
 
+  /**
+   * 
+   * @deprecated 当前直接通过clickable控件点击即可
+   * 点击当前可见的领取控件，直到领取完成
+   * @param {number} tryTime - 尝试次数
+   * @returns {boolean} 是否成功领取
+   */
   function collectCurrentVisible (tryTime) {
     tryTime = tryTime || 0
     if (tryTime > 10) {
@@ -365,35 +524,41 @@ function Collector () {
     return allCollect && allCollect.length > 0
   }
 
-  this.collectAllIfExists = function (lastTotal, findTime) {
-    if (findTime >= 5) {
-      LogFloaty.pushWarningLog('超过5次未找到可收取控件，退出查找')
-      this.closeFoodCollection()
-      return
-    }
+  this.collectAllIfExists = function () {
     LogFloaty.pushLog('查找 领取 按钮')
     let allCollect = widgetUtils.widgetGetAll(collectBtnContetRegex)
     if (allCollect && allCollect.length > 0) {
-      let total = allCollect.length
-      if (collectCurrentVisible()) {
-        logUtils.logInfo(['滑动下一页查找目标'], true)
-        let startY = config.device_height - config.device_height * 0.15
-        let endY = startY - config.device_height * 0.3
-        automator.gestureDown(startY, endY)
-      } else if (this.food_is_full) {
-        this.closeFoodCollection()
-        return
+      for (let i = 0; i < allCollect.length; i++) {
+        allCollect[i].click()
+        if (this.checkIsFull()) {
+          break
+        }
       }
-      sleep(500)
-      if (!this.collected) {
-        findTime = findTime ? findTime : 1
-      } else {
-        findTime = null
-      }
-      this.collectAllIfExists(total, findTime ? findTime + 1 : null)
-    } else {
-      this.closeFoodCollection()
     }
+    this.closeFoodCollection()
+  }
+
+  this.checkIsFull = function () {
+    let full = widgetUtils.widgetGetOne(config.fodder_config.feed_package_full || '饲料袋.*满.*|知道了', 1000)
+    if (full) {
+      LogFloaty.pushWarningLog('饲料袋已满')
+      logUtils.warnInfo(['饲料袋已满'], true)
+      _this.food_is_full = true
+      let confirmBtn = widgetUtils.widgetGetOne('知道了', 1000)
+      if (confirmBtn) {
+        automator.clickCenter(confirmBtn)
+        sleep(1000)
+        return true
+      }
+      let closeIcon = className('android.widget.Image').depth(18).findOne(1000)
+      if (closeIcon) {
+        yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '关闭按钮', 'close_icon')
+        automator.clickCenter(closeIcon)
+        sleep(1000)
+      }
+      return true
+    }
+    return false
   }
 
   this.closeFoodCollection = function () {
