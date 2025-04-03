@@ -215,7 +215,7 @@ config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_
 config.ai_type = config.fodder_config.ai_type
 config.kimi_api_key = config.fodder_config.kimi_api_key
 config.chatgml_api_key = config.fodder_config.chatgml_api_key
-config.code_version = 'v1.3.5.2'
+config.code_version = 'v1.3.6.0'
 
 
 function convertDefaultData(default_config, config_storage_name) {
