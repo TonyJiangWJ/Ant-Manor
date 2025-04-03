@@ -44,7 +44,7 @@ function VillageRunner () {
       let sleepTime = villageConfig.interval_time || 120
       commonFunctions.setUpAutoStart(sleepTime)
       NotificationHelper.createNotification('新村摆摊已完成，等待' + sleepTime + '分钟后自动启动',
-        '下次执行时间：' + formatDate(new Date(new Date().getTime() + sleepTime * 60000)), config.notificationId * 10 + 2)
+        '下次执行时间：' + formatDate(new Date(new Date().getTime() + sleepTime * 60000)))
     } catch (e) {
       errorInfo('执行异常 五分钟后重试' + e)
       commonFunctions.setUpAutoStart(5)
@@ -1019,7 +1019,7 @@ function answerQuestion () {
     LogFloaty.pushLog('答案坐标：' + JSON.stringify(result.target))
     automator.click(result.target.x, result.target.y)
   } else {
-    NotificationHelper.createNotification('蚂蚁新村答题失败', '今日脚本自动答题失败，请手动处理', config.notificationId * 10 + 4)
+    NotificationHelper.createNotification('蚂蚁新村答题失败', '今日脚本自动答题失败，请手动处理')
   }
   sleep(1000)
   // TODO 随机答题

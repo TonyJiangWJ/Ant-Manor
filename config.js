@@ -2,37 +2,15 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2025-02-21 11:24:01
+ * @Last Modified time: 2025-04-03 15:26:13
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
-let currentEngine = engines.myEngine().getSource() + ''
-let isRunningMode = currentEngine.endsWith('/config.js') && typeof module === 'undefined'
-let is_pro = !!Object.prototype.toString.call(com.stardust.autojs.core.timing.TimedTask.Companion).match(/Java(Class|Object)/)
-
 // 执行配置
 var default_config = {
-  enable_websocket_hijack: false,
-  unlock_device_flag: 'normal',
-  timeout_existing: 6000,
-  timeout_findOne: 1000,
-  timeout_unlock: 1000,
-  password: '',
-  // 静音执行
-  mute_exec: false,
-  infinite_retry_unlock: false,
   is_alipay_locked: false,
   alipay_lock_password: '',
   color_offset: 20,
-  // 是否显示调试日志信息
-  show_debug_log: true,
-  // 是否toast调试日志
-  toast_debug_info: false,
-  show_engine_id: false,
-  develop_mode: false,
-  // 是否保存YOLO训练用图片数据
-  save_yolo_train_data: false,
-  detect_by_yolo: false,
   yolo_shape_size: 480,
   yolo_confidence_threshold: 0.5,
   yolo_model_path: '/config_data/manor_lite.onnx',
@@ -42,18 +20,7 @@ var default_config = {
       'punish_booth', 'punish_btn', 'signboard', 'sleep', 'speedup', 'sports', 'stopped_booth',
       'thief_chicken', 'close_btn', 'collect_muck', 'confirm_btn', 'working_chicken', 'bring_back',
       'leave_msg', 'speedup_eating', 'close_icon', 'family', 'feed_expand'],
-  enable_visual_helper: false,
-  console_log_maximum_size: 1500,
-  webview_loging: false,
-  noneed_resolve_dex: false,
-  // 是否保存日志文件，如果设置为保存，则日志文件会按时间分片备份在logback/文件夹下
-  save_log_file: true,
-  // 日志保留天数
-  log_saved_days: 3,
-  // 异步写入日志文件
-  async_save_log_file: true,
-  back_size: '100',
-  enable_call_state_control: false,
+  
   // 完成后通过手势kill支付宝应用，目前只支持MIUI全面屏手势 默认关闭
   killAppWithGesture: false,
   // 是否使用加速卡 默认为true
@@ -62,35 +29,10 @@ var default_config = {
   // 倒计时结束 等待的窗口时间
   windowTime: 5,
   recheckTime: 5,
-  device_width: device.width,
-  device_height: device.height,
-  auto_lock: false,
-  lock_x: 150,
-  lock_y: 970,
-  // 锁屏启动关闭提示框
-  dismiss_dialog_if_locked: true,
-  // 佛系模式
-  buddha_like_mode: false,
   // 多设备可信登录
   multi_device_login: false,
-  // 单脚本模式 是否只运行一个脚本 不会同时使用其他的 开启单脚本模式 会取消任务队列的功能。
-  // 比如同时使用其他脚本 则保持默认 false 否则设置为true 无视其他运行中的脚本
-  single_script: false,
-  auto_restart_when_crashed: true,
-  // 延迟启动时延 5秒 悬浮窗中进行的倒计时时间
-  delayStartTime: 5,
-  // 是否是AutoJS Pro  需要屏蔽部分功能，暂时无法实现：生命周期监听等 包括通话监听
-  is_pro: is_pro,
   // 是否捡屎
   pick_shit: false,
-  request_capture_permission: true,
-  capture_permission_button: 'START NOW|立即开始|允许',
-  auto_set_bang_offset: true,
-  bang_offset: 0,
-  async_waiting_capture: true,
-  capture_waiting_time: 500,
-  // 本地ocr优先级
-  local_ocr_priority: 'auto',
   apiKey: '0dGhhIf529lp1bB7vdH5vYFe',
   secretKey: 'Pk2M9CKcwsx0075Cslso0lUfIp8D5Lut',
   // 自动更新后需要强制执行的标记
@@ -98,22 +40,9 @@ var default_config = {
   converted_custom_configs: false,
   thread_name_prefix: 'antmanor_',
   package_name: 'com.eg.android.AlipayGphone',
-  check_device_posture: false,
-  check_distance: false,
-  posture_threshold_z: 6,
   // 蚂蚁新村多账号配置
   main_account: '',
   accounts: [],
-  // 电量保护，低于该值延迟60分钟执行脚本
-  battery_keep_threshold: 20,
-  // 锁屏启动时自动设置最低亮度
-  auto_set_brightness: false,
-  skip_running_packages: [],
-  // 视频app，当前app前台时先退出到桌面再打开支付宝 避免小窗执行
-  video_packages: [{ packageName: 'tv.danmaku.bili', appName: '哔哩哔哩' }],
-  warn_skipped_ignore_package: false,
-  warn_skipped_too_much: false,
-  auto_check_update: false,
   not_lingering_float_window: true,
   github_url: 'https://github.com/TonyJiangWJ/Ant-Manor',
   // github release url 用于检测更新状态
@@ -121,7 +50,6 @@ var default_config = {
   history_tag_url: 'https://api.github.com/repos/TonyJiangWJ/Ant-Manor/tags',
   feed_cycle_time: 300,
   speeded_feed_cycle_time: 240,
-  other_accessisibility_services: '',
   // 小鸡睡觉配置
   to_sleep_entry: {
     x: 860,
@@ -139,7 +67,6 @@ var default_config = {
   notificationId: 143,
   notificationChannelId: 'ant_manor_channel_id',
   notificationChannel: '蚂蚁庄园通知',
-  show_summary_notice: true,
   // 区域信息配置
   CHECK_APP_COLOR: '#f1381a',         // 校验蚂蚁庄园是否打开成功的颜色
   CHECK_FRIENDS_COLOR: '#fad082',     // 校验是否成功进入好友首页的颜色
@@ -191,11 +118,6 @@ var default_config = {
   COLLECT_SHIT_CHECK_REGION: [220, 1210, 80, 40],
   PICK_SHIT_GRAY_COLOR: '#111111',
   COLLECT_SHIT_GRAY_COLOR: '#535353',
-  // 找图缓存
-  // template_img_for_collect: '',
-  // template_img_for_close_collect: ''
-  // 标记是否清除webview缓存
-  clear_webview_cache: false,
 }
 
 // YOLO训练数据保存用的key值和描述信息
@@ -239,70 +161,15 @@ yolo_save_list.forEach(item => default_config['yolo_save_' + item[0]] = false)
 // 配置缓存的key值
 let CONFIG_STORAGE_NAME = 'chick_config_version'
 let PROJECT_NAME = '蚂蚁庄园'
-var storageConfig = storages.create(CONFIG_STORAGE_NAME)
-let securityFields = ['password', 'alipay_lock_password']
-let AesUtil = require('./lib/AesUtil.js')
-let aesKey = device.getAndroidId()
-var config = {}
-if (!storageConfig.contains('password')) {
-  toastLog('使用默认配置')
-  // 存储默认配置到本地
-  Object.keys(default_config).forEach(key => {
-    storageConfig.put(key, default_config[key])
-  })
-  config = default_config
-} else {
-  Object.keys(default_config).forEach(key => {
-    let storedVal = storageConfig.get(key)
-    if (typeof storedVal !== 'undefined') {
-      if (securityFields.indexOf(key) > -1) {
-        storedVal = AesUtil.decrypt(storedVal, aesKey) || storedVal
-      }
-      config[key] = storedVal
-    } else {
-      config[key] = default_config[key]
-    }
-  })
-}
+
+// 公共扩展
+let config = require('./config_ex.js')(default_config, CONFIG_STORAGE_NAME, PROJECT_NAME)
+config.exportIfNeeded(module, null)
+
 // yolo_save_list 覆盖storageConfig中的值
 config.yolo_save_list = yolo_save_list
-// 覆写配置信息
-config.overwrite = (key, value) => {
-  let storage_name = CONFIG_STORAGE_NAME
-  let config_key = key
-  if (key.indexOf('.') > -1) {
-    let keyPair = key.split('.')
-    storage_name = CONFIG_STORAGE_NAME + '_' + keyPair[0]
-    key = keyPair[1]
-    config_key = keyPair[0] + '_config'
-    if (!config.hasOwnProperty(config_key) || !config[config_key].hasOwnProperty(key)) {
-      return
-    }
-    config[config_key][key] = value
-  } else {
-    if (!config.hasOwnProperty(config_key)) {
-      return
-    }
-    config[config_key] = value
-  }
-  console.verbose('覆写配置', storage_name, key)
-  storages.create(storage_name).put(key, value)
-}
 
-config.scaleRate = (() => {
-  let width = config.device_width
-  if (width >= 1440) {
-    return 1440 / 1080
-  } else if (width < 1000) {
-    return 720 / 1080
-  } else {
-    if (config.device_width * config.device_height > 3000000) {
-      // K50U 1.5k屏幕
-      return config.device_width / 1080
-    }
-    return 1
-  }
-})()
+
 // 扩展配置
 let workpath = getCurrentWorkPath()
 let configDataPath = workpath + '/config_data/'
@@ -340,41 +207,16 @@ let default_fodder_config = {
   ai_type: 'kimi',// kimi、chatgml or empty
   kimi_api_key: '',
   chatgml_api_key: '',
+  disable_if_achievement_done: true,
+  fodder_task_list: '信用卡账单|百度地图|快手|淘宝视频|淘金币小镇|今日头条极速版|淘宝特价版|闲鱼|菜鸟|支付宝运动|助农专场|淘宝芭芭农场',
 }
 default_config.fodder_config = default_fodder_config
 config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_NAME + '_fodder')
 config.ai_type = config.fodder_config.ai_type
 config.kimi_api_key = config.fodder_config.kimi_api_key
 config.chatgml_api_key = config.fodder_config.chatgml_api_key
-config.code_version = 'v1.3.5.2'
-if (!isRunningMode) {
-  module.exports = function (__runtime__, scope) {
-    if (typeof scope.config_instance === 'undefined') {
-      scope.config_instance = {
-        config: config,
-        default_config: default_config,
-        storage_name: CONFIG_STORAGE_NAME,
-        securityFields: securityFields,
-        project_name: PROJECT_NAME
-      }
-      events.broadcast.on(CONFIG_STORAGE_NAME + 'config_changed', function (params) {
-        let newConfig = params.config
-        let currentId = engines.myEngine().id
-        let senderId = params.id
-        if (currentId !== senderId) {
-          console.verbose(currentId + ' 获取从' + senderId + '得到的新的配置信息' + JSON.stringify(newConfig))
-          Object.assign(scope.config_instance.config, newConfig)
-        }
-      })
-    }
-    return scope.config_instance
-  }
+config.code_version = 'v1.3.6.0'
 
-} else {
-  setTimeout(function () {
-    engines.execScriptFile(files.cwd() + "/可视化配置.js", { path: files.cwd() })
-  }, 30)
-}
 
 function convertDefaultData(default_config, config_storage_name) {
   let config_storage = storages.create(config_storage_name)

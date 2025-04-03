@@ -16,8 +16,9 @@ let storageFactory = singletonRequire('StorageFactory')
 let { logInfo, errorInfo, warnInfo, debugInfo, infoLog } = singletonRequire('LogUtils')
 
 let localOcr = require('../lib/LocalOcrUtil.js')
-let ManorRunner = require('../core/AntManorRunner.js')
-let collector = require('../core/FodderCollector.js')
+let DAILY_TASK_DONE = "DAILY_TASK_DONE"
+storageFactory.initFactoryByKey(DAILY_TASK_DONE, { executed: {} })
+let FamilySignRunner = require('../core/FamilySignRunner.js')
 runningQueueDispatcher.addRunningTask()
 // 注册自动移除运行中任务
 commonFunctions.registerOnEngineRemoved(function () {
@@ -53,85 +54,56 @@ if (!floatyInstance.init()) {
   exit()
 }
 floatyInstance.enableLog()
-commonFunctions.showCommonDialogAndWait('切换小号执行喂鸡')
+commonFunctions.showCommonDialogAndWait('切换小号执行家庭签到')
 commonFunctions.listenDelayStart()
+
 // 实时监控截图内容
 require('../lib/WebsocketCaptureHijack.js')()
 
 let currentRunningAccount = ''
-let countdownList = []
 
-// 设置当前脚本默认保持活跃 避免设置定时任务重启
-ManorRunner.setKeepAlive()
+
 if (config.accounts && config.accounts.length > 1) {
 
   // 循环执行签到任务
   config.accounts.forEach((accountInfo, idx) => {
     let { account } = accountInfo
-    if (account == config.main_account) {
-      LogFloaty.pushLog('跳过主账号：' + account)
+    if (storageFactory.getValueByKey(DAILY_TASK_DONE).executed[account]) {
+      LogFloaty.pushLog('账号' + account + '已执行，跳过')
       return
     }
+
     currentRunningAccount = account
     floatyInstance.setFloatyText('准备切换账号为：' + account)
     sleep(1000)
     accountChange(account)
     floatyInstance.setFloatyText('切换完毕')
     sleep(500)
-    floatyInstance.setFloatyText('开始执行喂鸡')
+    floatyInstance.setFloatyText('开始执行签到')
     try {
       // 打开首页
-      if (!ManorRunner.launchApp(false, true)) {
-        LogFloaty.pushErrorLog('打开小鸡界面失败，跳过执行')
+      if (!FamilySignRunner.enterFamily(config.main_account == account)) {
+        errorInfo(['{} 进入家庭失败', account])
         return
       }
       sleep(1000)
-      if (!ManorRunner.waitForOwn(true)) {
-        LogFloaty.pushErrorLog('等待个人界面失败，重新打开')
-        if (!ManorRunner.launchApp(true, true)) {
-          LogFloaty.pushErrorLog('重新打开小鸡界面失败，跳过执行')
+      if (FamilySignRunner.haveNotBeenEnteredAnyFamily()) {
+        return
+      }
+      FamilySignRunner.execSign()
+      FamilySignRunner.openDrawer()
+      if (FamilySignRunner.donateEgg()) {
+        LogFloaty.pushLog('执行了捐蛋 需要重新进入家庭')
+        // 打开首页
+        if (!FamilySignRunner.enterFamily(true)) {
+          errorInfo(['{} 进入家庭失败', account])
           return
         }
       }
-      sleep(1000)
-      // 先领饲料
-      collector.exec(3)
-      if (!ManorRunner.waitForOwn(true)) {
-        LogFloaty.pushErrorLog('校验失败，重新打开个人界面')
-        if (!ManorRunner.launchApp(true, true)) {
-          LogFloaty.pushErrorLog('重新打开小鸡界面失败，跳过执行')
-          return
-        }
-      }
-      // 初始化检测器
-      ManorRunner.prepareChecker()
-      // 捡鸡蛋
-      ManorRunner.collectReadyEgg()
-      // 检查小鸡是否外出
-      ManorRunner.checkIsOut()
-      // 驱赶野鸡
-      ManorRunner.checker.checkThief()
-      // 执行喂鸡
-      if (ManorRunner.doFeed()) {
-        // 存在弹窗 将小鸡领回
-        if (ManorRunner.checkIfChikenOut()) {
-          ManorRunner.doFeed()
-        }
-        if (ManorRunner.checkIfNoMoreFood()) {
-          return
-        }
-      }
-      if (!ManorRunner.waitForOwn(true)) {
-        LogFloaty.pushErrorLog('校验失败，重新打开个人界面')
-        if (!ManorRunner.launchApp(true, true)) {
-          LogFloaty.pushErrorLog('重新打开小鸡界面失败，跳过执行')
-          return
-        }
-      }
-      // 统计倒计时
-      let countdown = ManorRunner.recognizeCountdownByOcr()
-      LogFloaty.pushLog('识别倒计时：' + countdown)
-      countdownList.push(countdown)
+      FamilySignRunner.openDrawer()
+      FamilySignRunner.donateSport()
+      // todo 如果有失败的 不要设置为已完成
+      setExecuted()
       floatyInstance.setFloatyText('切换下一个账号')
       sleep(500)
     } catch (e) {
@@ -139,12 +111,7 @@ if (config.accounts && config.accounts.length > 1) {
       floatyInstance.setFloatyText('领取异常 进行下一个')
     }
   })
-  floatyInstance.setFloatyText('全部账号执行完毕切换回主账号')
-  let maxCountdown = Math.max.apply(Math, countdownList)
-  if (maxCountdown > 0) {
-    LogFloaty.pushLog('统计最大倒计时为：' + maxCountdown)
-    commonFunctions.setUpAutoStart(maxCountdown)
-  }
+  floatyInstance.setFloatyText('全部账号签到完毕切换回主账号')
   sleep(1000)
   ensureMainAccount()
   sleep(500)
@@ -154,11 +121,18 @@ if (config.accounts && config.accounts.length > 1) {
 commonFunctions.minimize()
 exit()
 
-function ensureMainAccount () {
+function ensureMainAccount() {
   try {
     accountChange(config.main_account || config.accounts[0])
   } catch (e) {
     LogFloaty.pushErrorLog('切换主账号异常' + e)
     ensureMainAccount()
   }
+}
+
+
+function setExecuted () {
+  let currentStorage = storageFactory.getValueByKey(DAILY_TASK_DONE)
+  currentStorage.executed[currentRunningAccount] = true
+  storageFactory.updateValueByKey(DAILY_TASK_DONE, currentStorage)
 }

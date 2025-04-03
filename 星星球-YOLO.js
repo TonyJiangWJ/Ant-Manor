@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2024-06-08 23:07:35
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2024-09-13 14:55:43
+ * @Last Modified time: 2025-04-03 16:55:43
  * @Description: 星星球自动游玩
  */
 
@@ -52,7 +52,7 @@ setTimeout(() => {
       confThreshold: 0.6,
       // 模型标签，必须和模型匹配
       labels: [
-        "chick", "ball", "boom",
+        "ball", "chick", "boom",
       ]
     })
     if (onnxInit) {
@@ -187,7 +187,7 @@ function Player () {
             }
           })
         }
-        _this.drawer.drawText((device.getAvailMem()/1024/1024).toFixed(2) + 'MB', {x: 100, y: 100}, '#00ff00', 30)
+        _this.drawer.drawText((device.getAvailMem() / 1024 / 1024).toFixed(2) + 'MB', { x: 100, y: 100 }, '#00ff00', 30)
       })
     })
   }
@@ -279,25 +279,6 @@ function Player () {
     this.forwardCount = 0
     this.forwardAvg = 0
     this.maxScore = 0
-    // this.floatyLock.lock()
-    // if (this.floatyWindow === null) {
-    //   this.floatyInitCondition.await()
-    // }
-    // this.floatyLock.unlock()
-
-
-    // this.chickRegion = this.checkRegionByChick()
-    // if (this.chickRegion != null) {
-    //   let chickTop = this.chickRegion.top
-    //   let chickBottom = this.chickRegion.bottom
-    //   let chickHeight = chickBottom - chickTop
-
-    //   if (chickTop > 0) {
-    //     this.ballRegion = [0, chickTop - chickHeight * 0.5, WIDTH, chickHeight * 2]
-    //     this.setRectangle('星星球区域', this.ballRegion)
-    //   }
-    // }
-
     let countdownLatch = new java.util.concurrent.CountDownLatch(1)
     this.threadPool.execute(function () {
       let lastScore = 0
@@ -330,9 +311,11 @@ function Player () {
           if (points && points.length > 0) {
             let point = points.filter(p => p.label === 'ball')
             if (point && point.length > 0) {
+              console.verbose('过滤后结果：', JSON.stringify(point))
               point = point[0]
+              console.info('点击位置：', point.bounds.centerX(), point.bounds.centerY())
               // 点击底部
-              click(point.bounds.centerX(), point.bounds.bottom + point.bounds.height() / 2)
+              click(point.bounds.centerX(), point.bounds.centerY())
               clickCount++
               self.drawBall = {
                 type: 'rect',
@@ -356,8 +339,7 @@ function Player () {
         let restart = textContains('再来一局').findOne(1000)
         if (restart) {
           currentScore = 0
-          let bounds = restart.bounds()
-          click(bounds.centerX(), bounds.centerY())
+          restart.click()
         }
         sleep(5000)
       }

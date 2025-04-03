@@ -93,7 +93,7 @@ function doDonateEgg () {
   }
   sleep(2000)
   WarningFloaty.clearAll()
-  let donateEgg = findByWidgetAndRecheckByOcr('去捐蛋')
+  let donateEgg = findByWidgetAndRecheckByOcr('.*去捐蛋.*')
   if (donateEgg) {
     displayFloaty(donateEgg, '去捐蛋')
     automator.clickCenter(donateEgg)
