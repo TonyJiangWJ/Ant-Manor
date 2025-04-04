@@ -16,6 +16,8 @@ let localOcrUtil = require('../lib/LocalOcrUtil.js')
 let yoloTrainHelper = singletonRequire('YoloTrainHelper')
 let YoloDetection = singletonRequire('YoloDetectionUtil')
 
+let NotificationHelper = singletonRequire('Notification')
+let LogFloaty = singletonRequire('LogFloaty')
 let FloatyInstance = singletonRequire('FloatyUtil')
 FloatyInstance.enableLog()
 
@@ -72,9 +74,15 @@ function exec () {
   goToBed()
   manorRunner.waitForOwn(true)
   if (!manorRunner.checkIsSleeping(true)) {
+    if (commonFunctions.increaseSleepFailed() > 3) {
+      errorInfo(['重复睡觉失败多次，不再尝试'])
+      NotificationHelper.createNotification('睡觉失败多次', '睡觉失败多次，不再尝试睡觉')
+      return
+    }
     // 睡觉失败 五分钟后重试
     commonFunctions.setUpAutoStart(5)
     warnInfo(['睡觉失败 五分钟后重试'])
+    NotificationHelper.createNotification('睡觉失败', '小鸡睡觉失败，请检查页面状态')
   }
 }
 
@@ -103,13 +111,15 @@ function goToBed () {
   yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '小鸡睡觉床', 'sleep_bed')
   automator.click(config.to_sleep_bed.x || 200, config.to_sleep_bed.y || 740)
   sleep(2000)
-  let yesSleepBtn = widgetUtils.widgetGetOne('去睡觉')
+  let yesSleepBtn = widgetUtils.widgetGetOne(config.to_sleep_position ? '家庭别墅.*' : '爱心小屋')
   if (yesSleepBtn) {
     let bounds = yesSleepBtn.bounds()
     debugInfo(['btn: {}', bounds])
     FloatyInstance.setFloatyInfo({ x: bounds.centerX(), y: bounds.centerY() }, '去睡觉')
     sleep(1000)
     automator.click(bounds.centerX(), bounds.centerY())
+  } else {
+    LogFloaty.pushWarningLog('未找到指定按钮 可能没有饲料 或者睡觉中')
   }
   back()
 }

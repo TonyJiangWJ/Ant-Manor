@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2025-04-03 15:26:13
+ * @Last Modified time: 2025-04-04 11:32:06
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -51,6 +51,7 @@ var default_config = {
   feed_cycle_time: 300,
   speeded_feed_cycle_time: 240,
   // 小鸡睡觉配置
+  to_sleep_position: true,
   to_sleep_entry: {
     x: 860,
     y: 1220
@@ -215,7 +216,7 @@ config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_
 config.ai_type = config.fodder_config.ai_type
 config.kimi_api_key = config.fodder_config.kimi_api_key
 config.chatgml_api_key = config.fodder_config.chatgml_api_key
-config.code_version = 'v1.3.6.0'
+config.code_version = 'v1.3.6.1'
 
 
 function convertDefaultData(default_config, config_storage_name) {
