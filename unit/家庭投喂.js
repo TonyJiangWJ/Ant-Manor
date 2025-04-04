@@ -57,24 +57,30 @@ require('../lib/WebsocketCaptureHijack.js')()
 let failToExecute = true
 try {
   if (familySinger.enterFamily()) {
-
+    familySinger.execSign()
     familySinger.openDrawer()
     familySinger.feedFamily()
-    familySinger.feedOne()
-    familySinger.assignDuties()
     familySinger.openDrawer()
-    let nextFeedTime = widgetUtils.widgetGetOne('\\d+点后 可来请客', 1000)
-    if (nextFeedTime) {
-      let label = nextFeedTime.text() || nextFeedTime.desc()
-      let checkResult = /(\d+)点.*/.exec(label)
-      if (checkResult) {
-        let remainTime = (parseInt(checkResult[1]) - new Date().getHours() - 1) * 60 + 1
-        let timestamp = new Date().getTime() + remainTime * 3600
-        commonFunctions.setUpAutoStart(remainTime)
-        NotificationHelper.createNotification('投喂完毕，等待下一次投喂', '下一次投喂时间：' + remainTime + '分钟后：' + dateFormat(new Date(timestamp)))
+    familySinger.feedOne()
+    familySinger.openDrawer()
+    familySinger.assignDuties()
+    if (familySinger.openDrawer()) {
+      let nextFeedTime = widgetUtils.widgetGetOne('\\d+点后 可来请客', 1000)
+      if (nextFeedTime) {
+        let label = nextFeedTime.text() || nextFeedTime.desc()
+        let checkResult = /(\d+)点.*/.exec(label)
+        if (checkResult) {
+          let remainTime = (parseInt(checkResult[1]) - new Date().getHours()) * 60 + 1
+          let timestamp = new Date().getTime() + remainTime * 60 * 1000
+          commonFunctions.setUpAutoStart(remainTime)
+          NotificationHelper.createNotification('投喂完毕，等待下一次投喂', '下一次投喂时间：' + remainTime + '分钟后：' + dateFormat(new Date(timestamp)))
+        }
+      } else {
+        NotificationHelper.createNotification('蚂蚁庄园今日投喂完毕', '蚂蚁庄园家庭投喂完毕，明天再来')
       }
     } else {
-      NotificationHelper.createNotification('蚂蚁庄园今日投喂完毕', '蚂蚁庄园家庭投喂完毕，明天再来')
+      NotificationHelper.createNotification('蚂蚁庄园今日投喂执行异常', '蚂蚁庄园家庭投喂失败，十分钟后再试')
+      commonFunctions.setUpAutoStart(10)
     }
     failToExecute = false
   }

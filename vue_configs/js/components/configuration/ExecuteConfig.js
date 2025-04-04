@@ -25,6 +25,7 @@
         // 本地ocr优先级
         local_ocr_priority: 'auto',
         // 小鸡睡觉配置
+        to_sleep_position: true,
         to_sleep_entry: {
           x: 860,
           y: 1220
@@ -77,6 +78,9 @@
     <tip-block>可以每天晚上八点到早上六点自动去睡觉，对 unit/去睡觉.js 创建每天晚上八点后的定时任务即可</tip-block>
     <position-input-field v-model="configs.to_sleep_entry" label="小鸡睡觉入口" label-width="12em" />
     <position-input-field v-model="configs.to_sleep_bed" label="小鸡床的位置" label-width="12em" />
+    <van-cell center title="是否去家庭别墅睡觉" title-width="14rem" >
+      <van-switch v-model="configs.to_sleep_position" size="1.24rem" />
+    </van-cell>
     <tip-block>自动捐蛋配置，配置捐蛋按钮位置 对 unit/自动捐蛋.js 创建每天的定时任务即可</tip-block>
     <position-input-field v-model="configs.donate_egg" label="捐蛋按钮位置" label-width="12em" />
   </div>`
