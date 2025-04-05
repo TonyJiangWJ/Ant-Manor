@@ -75,7 +75,7 @@ const MutualHelp = {
   template: `
   <div style="padding-top: 2rem">
     <van-cell-group>
-      <tip-block>复制以下互助码，然后打开支付宝，等待弹窗。如果没有响应，将互助码复制到支付宝搜索框后点击搜索，然后根据提示点击进入即可。</tip-block>
+      <tip-block>复制以下互助码，然后打开支付宝，等待弹窗。如果没有响应，将互助码复制到支付宝搜索框后点击搜索，然后根据提示点击进入即可。如果是https链接的，需要通过浏览器打开获取到互助码，否则直接进入支付宝会没有响应。</tip-block>
       <tip-block>当前总数：{{total}}</tip-block>
       <van-field
         v-model="getText"
@@ -88,7 +88,7 @@ const MutualHelp = {
       <div style="display:grid;padding:1rem;text-align=center;">
         <van-button plain type="info" style="margin:0.5rem 1rem;" @click="randomGet" :loading="loading">随机获取一个互助码</van-button>
       </div>
-      <tip-block>打开扭蛋活动，点击送扭蛋的去邀请按钮，然后点击去粘贴给好友，跳转微信后互助码就在剪贴板了，回到当前页面粘贴到下面进行上传即可。后续其他人可以通过这个功能获取到你的互助码，这样就能互相助力了。互助码会随机下发，参与人数越多越容易达到当日最大值。</tip-block>
+      <tip-block>打开扭蛋活动，点击送扭蛋的去邀请按钮，然后点击去粘贴给好友，跳转微信后互助码就在剪贴板了，这时复制的是https的链接，需要通过浏览器打开，然后得到真实的互助码，复制后回到当前页面粘贴到下面进行上传即可。后续其他人可以通过这个功能获取到你的互助码，这样就能互相助力了。互助码会随机下发，参与人数越多越容易达到当日最大值。</tip-block>
       <van-field
         v-model="text"
         rows="1"
