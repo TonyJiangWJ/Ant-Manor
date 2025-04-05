@@ -22,6 +22,7 @@ const router = new VueRouter({
     { path: '/village/villageConfig', component: VillageConfig, meta: { index: 1 } },
     { path: '/village/share', component: AccountManager, meta: { index: 1 } },
     { path: '/fodder/fodderConfig', component: FodderConfig, meta: { index: 1 } },
+    { path: '/mutual/help', component: MutualHelp, meta: { index: 1 }, title: '扭蛋互助' },
     { path: '/QA', component: QuestionAnswer, meta: { index: 1, title: '常见问题' } },
     { path: '/readme', component: Readme, meta: { index: 1, title: '脚本说明README' } },
   ]

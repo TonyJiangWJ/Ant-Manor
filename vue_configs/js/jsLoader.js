@@ -14,6 +14,7 @@ const loadJsList = [
   './js/components/configuration/VillageConfig.js',
   './js/components/configuration/QuestionAnswer.js',
   './js/components/configuration/AccountManage.js',
+  './js/components/configuration/MutualHelp.js',
   './js/components/Index.js',
 ]
 
