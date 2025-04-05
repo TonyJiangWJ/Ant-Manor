@@ -44,6 +44,10 @@ let Index = {
           link: '/village/share'
         },
         {
+          title: '扭蛋互助',
+          link: '/mutual/help'
+        },
+        {
           title: '关于项目',
           link: '/about'
         },
