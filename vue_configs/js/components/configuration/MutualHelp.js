@@ -17,6 +17,7 @@ const MutualHelp = {
       loading: false,
       uploading: false,
       showAnnouncementDialog: false,
+      doNotAsk: false,
       announcement: '',
       announcedAt: '',
     }
@@ -60,6 +61,12 @@ const MutualHelp = {
         }
       }).catch(e => { })
     },
+    openByAlipay: function () {
+      if (!this.getText) {
+        return
+      }
+      $nativeApi.request('copyAndOpen', { text: this.getText, urlSchema: 'alipays://platformapi/startapp?appId=20001003&keyword=' + encodeURI(this.getText) + '&v2=true', packageName: 'com.eg.android.AlipayGphone' })
+    },
     randomGet () {
       this.loading = true
       API.get(this.url + '/random', {
@@ -75,8 +82,14 @@ const MutualHelp = {
           if (resp.record) {
             this.getText = resp.record.text
             this.total = resp.total
-            vant.Toast.success('互助码获取成功，已复制到剪切板')
-            $nativeApi.request('copyText', { text: this.getText })
+            this.$dialog.confirm({
+              message: '是否通过支付宝打开？'
+            }).then(() => {
+              this.openByAlipay()
+            }).catch(() => {
+              $nativeApi.request('copyText', { text: this.getText })
+              vant.Toast.success('互助码获取成功，已复制到剪切板')
+            })
             return
           }
         }
@@ -108,14 +121,26 @@ const MutualHelp = {
         if (resp.announcement) {
           let data = resp.announcement
           this.announcedAt = data.updatedAt
+          if (localStorage.getItem(this.localStorageKey)) {
+            return
+          }
           this.announcement = data.text
           this.showAnnouncementDialog = true
         }
-      }).catch(e => {})
+      }).catch(e => { })
     },
   },
   watch: {
     showAnnouncementDialog: function () {
+      if (this.doNotAsk) {
+        for (let i = 0; i < localStorage.length; i++) {
+          let key = localStorage.key(i);
+          if (key.startsWith('doNotShowMutualAnnounce')) {
+            localStorage.removeItem(key)
+          }
+        }
+        localStorage.setItem(this.localStorageKey, true)
+      }
       if (!this.showAnnouncementDialog) {
         sessionStorage.setItem('doNotShowMutualAnn', true)
       }
@@ -125,6 +150,9 @@ const MutualHelp = {
     hasUploaded: function () {
       console.log('check has uploaded', !!this.myText)
       return !!this.myText
+    },
+    localStorageKey: function () {
+      return 'doNotShowAnnounce' + this.announcedAt
     }
   },
   mounted () {
@@ -134,7 +162,7 @@ const MutualHelp = {
   template: `
   <div>
     <van-cell-group>
-      <tip-block>复制以下互助码，然后打开支付宝，等待弹窗。如果没有响应，将互助码复制到支付宝搜索框后点击搜索，然后根据提示点击进入即可。如果是https链接的，需要通过浏览器打开获取到互助码，否则直接进入支付宝会没有响应。</tip-block>
+      <tip-block>处理过的口令码可以在获取后直接通过支付宝打开。如果是https链接的，需要通过浏览器打开获取到互助码，再去支付宝搜索，否则直接进入支付宝会没有响应。</tip-block>
       <tip-block>每天只能帮他人助力一次，且一个口令72小时内只能被同一个人助力一次，所以如果当前获取的口令无效，请重新获取另一个</tip-block>
       <tip-block v-if="getText">当前总数：{{total}}</tip-block>
       <van-field
@@ -147,6 +175,7 @@ const MutualHelp = {
       />
       <div style="display:grid;padding:1rem;text-align=center;">
         <van-button plain type="info" style="margin:0.5rem 1rem;" @click="randomGet" :loading="loading">随机获取一个互助码</van-button>
+        <van-button plain type="primary" v-if="!!this.getText" style="margin:0.5rem 1rem;" @click="openByAlipay" :loading="loading">通过支付宝打开</van-button>
       </div>
       <tip-block>打开扭蛋活动，点击送扭蛋的去邀请按钮，然后点击去粘贴给好友，跳转微信后互助码就在剪贴板了，这时复制的是https的链接，需要通过浏览器打开，然后得到真实的互助码，复制后回到当前页面粘贴到下面进行上传即可。后续其他人可以通过这个功能获取到你的互助码，这样就能互相助力了。互助码会随机下发，参与人数越多越容易达到当日最大值。</tip-block>
       <tip-block>口令有效期只有三天，所以上传完之后，三天内没有更新的会被删除，请不定期更新一下自己的口令码，新上传的将自动覆盖旧口令。</tip-block>
@@ -175,6 +204,9 @@ const MutualHelp = {
           <div style="padding: 1rem;font-size:0.4rem;color: gray;">发布时间：{{announcedAt}}</div>
           <div style="padding: 0rem 1rem 1rem 1rem;" >{{announcement}}</div>
         </van-cell-group>
+      </div>
+      <div style="padding: 0 1rem 1rem;">
+        <van-checkbox v-model="doNotAsk" shape="square" style="padding-top: 1rem;">不再提示</van-checkbox>
       </div>
     </van-dialog>
   </div>
