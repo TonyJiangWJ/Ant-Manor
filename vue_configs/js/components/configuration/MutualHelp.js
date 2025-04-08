@@ -12,6 +12,7 @@ const MutualHelp = {
       getText: '',
       myText: '',
       updatedAt: '',
+      dailyCount: 0,
       total: 0,
       url: 'https://tonyjiang.hatimi.top/mutual-help',
       loading: false,
@@ -46,6 +47,26 @@ const MutualHelp = {
         vant.Toast.fail('上传失败，请稍后重试')
       })
     },
+    confirmUsed () {
+      this.$dialog.confirm({
+        title: '是否确认已使用过',
+        message: '确认的话将在三天内不再显示这个好友的互助码'
+      }).then(() => {
+        API.post(this.url + '/used', {
+          category: this.category,
+          deviceId: this.deviceId,
+          text: this.getText,
+        }).then(resp => {
+          this.getText = ''
+        }).catch(e => {
+          if (e.response && e.response.data && e.response.error) {
+            vant.Toast.fail("操作失败：" + e.response.error)
+            return
+          }
+          vant.Toast.faild('标记失败，请稍后重试')
+        })
+      })
+    },
     getMine () {
       API.get(this.url + "/mine", {
         params: {
@@ -58,6 +79,7 @@ const MutualHelp = {
         if (record) {
           this.myText = record.text
           this.updatedAt = record.updatedAt
+          this.dailyCount = record.dailyCount
         }
       }).catch(e => { })
     },
@@ -72,7 +94,7 @@ const MutualHelp = {
       API.get(this.url + '/random', {
         params: {
           deviceId: this.deviceId,
-          category: this.category
+          category: this.category,
         }
       }).then(resp => {
 
@@ -156,6 +178,11 @@ const MutualHelp = {
     }
   },
   mounted () {
+    if ($app.mock) {
+      this.url = 'http://localhost:4324'
+      this.getText = '送你庄园扭蛋，有机会获得小鸡【好事花生】钥匙扣和限定小盲盒哦！'
+      this.getMine()
+    }
     this.getDeviceId()
     this.getAnnouncement()
   },
@@ -163,7 +190,8 @@ const MutualHelp = {
   <div>
     <van-cell-group>
       <tip-block>处理过的口令码可以在获取后直接通过支付宝打开。如果是https链接的，需要通过浏览器打开获取到互助码，再去支付宝搜索，否则直接进入支付宝会没有响应。</tip-block>
-      <tip-block>每天只能帮他人助力一次，且一个口令72小时内只能被同一个人助力一次，所以如果当前获取的口令无效，请重新获取另一个</tip-block>
+      <tip-block>每天只能帮他人助力一次，且一个口令72小时内只能被同一个人助力一次，所以如果当前获取的口令无效，请重新获取另一个。</tip-block>
+      <tip-block>支付宝规则很坑，基本达不到最大，完全看拉人头，即便100人参与也只有4个人可以拿满50次。当前系统互助码会随机下发，能有几个人助力就看运气了。</tip-block>
       <tip-block v-if="getText">当前总数：{{total}}</tip-block>
       <van-field
         v-model="getText"
@@ -173,11 +201,12 @@ const MutualHelp = {
         type="textarea"
         readonly
       />
-      <div style="display:grid;padding:1rem;text-align=center;">
-        <van-button plain type="info" style="margin:0.5rem 1rem;" @click="randomGet" :loading="loading">随机获取一个互助码</van-button>
-        <van-button plain type="primary" v-if="!!this.getText" style="margin:0.5rem 1rem;" @click="openByAlipay" :loading="loading">通过支付宝打开</van-button>
+      <div style="display: flex;padding: 1rem;flex-direction: column;justify-content: center;gap: 0.5rem;">
+        <van-button plain type="info" @click="randomGet" :loading="loading">随机获取一个互助码</van-button>
+        <van-button plain type="primary" v-if="!!this.getText" @click="openByAlipay" :loading="loading">通过支付宝打开</van-button>
+        <van-button plain type="warning" confirmUsed v-if="!!this.getText" @click="confirmUsed" :loading="loading">我已使用</van-button>
       </div>
-      <tip-block>打开扭蛋活动，点击送扭蛋的去邀请按钮，然后点击去粘贴给好友，跳转微信后互助码就在剪贴板了，这时复制的是https的链接，需要通过浏览器打开，然后得到真实的互助码，复制后回到当前页面粘贴到下面进行上传即可。后续其他人可以通过这个功能获取到你的互助码，这样就能互相助力了。互助码会随机下发，参与人数越多越容易达到当日最大值。</tip-block>
+      <tip-block>打开扭蛋活动，点击送扭蛋的去邀请按钮，然后点击去粘贴给好友，跳转微信后互助码就在剪贴板了，这时复制的是https的链接，需要通过浏览器打开，然后得到真实的互助码，复制后回到当前页面粘贴到下面进行上传即可。后续其他人可以通过这个功能获取到你的互助码，这样就能互相助力了。</tip-block>
       <tip-block>口令有效期只有三天，所以上传完之后，三天内没有更新的会被删除，请不定期更新一下自己的口令码，新上传的将自动覆盖旧口令。</tip-block>
       <van-field
         v-model="text"
@@ -193,7 +222,9 @@ const MutualHelp = {
       </div>
       <div v-if="hasUploaded">
         <van-field readonly autosize rows="1" label="我的口令" type="textarea" v-model="myText"/>
-        <van-field readonly autosize rows="1" label="最后更新时间" type="textarea" v-model="updatedAt"/>
+        <van-field readonly autosize rows="1" label-width="7rem" label="最后更新时间" type="textarea" v-model="updatedAt"/>
+        <tip-block>被获取了不一定被使用，这里仅供参考。</tip-block>
+        <van-field readonly autosize rows="1" label-width="7rem" label="当日被获取次数" type="textarea" v-model="dailyCount"/>
       </div>
 
     </van-cell-group>
