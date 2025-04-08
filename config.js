@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2025-04-05 11:52:39
+ * @Last Modified time: 2025-04-08 12:31:43
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -15,12 +15,12 @@ var default_config = {
   yolo_confidence_threshold: 0.5,
   yolo_model_path: '/config_data/manor_lite.onnx',
   yolo_labels: ['booth_btn', 'collect_coin', 'collect_egg', 'collect_food', 'cook', 'countdown', 'donate',
-      'eating_chicken', 'employ', 'empty_booth', 'feed_btn', 'friend_btn', 'has_food', 'has_shit',
-      'hungry_chicken', 'item', 'kick-out', 'no_food', 'not_ready', 'operation_booth', 'plz-go',
-      'punish_booth', 'punish_btn', 'signboard', 'sleep', 'speedup', 'sports', 'stopped_booth',
-      'thief_chicken', 'close_btn', 'collect_muck', 'confirm_btn', 'working_chicken', 'bring_back',
-      'leave_msg', 'speedup_eating', 'close_icon', 'family', 'feed_expand'],
-  
+    'eating_chicken', 'employ', 'empty_booth', 'feed_btn', 'friend_btn', 'has_food', 'has_shit',
+    'hungry_chicken', 'item', 'kick-out', 'no_food', 'not_ready', 'operation_booth', 'plz-go',
+    'punish_booth', 'punish_btn', 'signboard', 'sleep', 'speedup', 'sports', 'stopped_booth',
+    'thief_chicken', 'close_btn', 'collect_muck', 'confirm_btn', 'working_chicken', 'bring_back',
+    'leave_msg', 'speedup_eating', 'close_icon', 'family', 'feed_expand'],
+
   // 完成后通过手势kill支付宝应用，目前只支持MIUI全面屏手势 默认关闭
   killAppWithGesture: false,
   // 是否使用加速卡 默认为true
@@ -172,7 +172,7 @@ config.yolo_save_list = yolo_save_list
 
 
 // 扩展配置
-let workpath = getCurrentWorkPath()
+let workpath = config.getCurrentWorkPath()
 let configDataPath = workpath + '/config_data/'
 // 蚂蚁新村识图配置
 let default_village_config = {
@@ -196,8 +196,8 @@ let default_village_config = {
 }
 default_config.village_config = default_village_config
 // 兼容旧版本
-let tempConfig = convertDefaultData(default_village_config, CONFIG_STORAGE_NAME + '_viliage')
-config.village_config = convertDefaultData(tempConfig, CONFIG_STORAGE_NAME + '_village')
+let tempConfig = config.convertDefaultData(default_village_config, CONFIG_STORAGE_NAME + '_viliage')
+config.village_config = config.convertDefaultData(tempConfig, CONFIG_STORAGE_NAME + '_village')
 // 领饲料配置
 let default_fodder_config = {
   fodder_btn: files.read(configDataPath + 'fodder/fodder_btn.data'),
@@ -212,38 +212,8 @@ let default_fodder_config = {
   fodder_task_list: '信用卡账单|百度地图|快手|淘宝视频|淘金币小镇|今日头条极速版|淘宝特价版|闲鱼|菜鸟|支付宝运动|助农专场|淘宝芭芭农场',
 }
 default_config.fodder_config = default_fodder_config
-config.fodder_config = convertDefaultData(default_fodder_config, CONFIG_STORAGE_NAME + '_fodder')
+config.fodder_config = config.convertDefaultData(default_fodder_config, CONFIG_STORAGE_NAME + '_fodder')
 config.ai_type = config.fodder_config.ai_type
 config.kimi_api_key = config.fodder_config.kimi_api_key
 config.chatgml_api_key = config.fodder_config.chatgml_api_key
-config.code_version = 'v1.3.6.5'
-
-
-function convertDefaultData(default_config, config_storage_name) {
-  let config_storage = storages.create(config_storage_name)
-  let configData = {}
-  Object.keys(default_config).forEach(key => {
-    let storageValue = config_storage.get(key, default_config[key])
-    if (storageValue == '') {
-      storageValue = default_config[key]
-    }
-    configData[key] = storageValue
-  })
-  return configData
-}
-
-function getCurrentWorkPath() {
-  let currentPath = files.cwd()
-  if (files.exists(currentPath + '/main.js')) {
-    return currentPath
-  }
-  let paths = currentPath.split('/')
-
-  do {
-    paths = paths.slice(0, paths.length - 1)
-    currentPath = paths.reduce((a, b) => a += '/' + b)
-  } while (!files.exists(currentPath + '/main.js') && paths.length > 0)
-  if (paths.length > 0) {
-    return currentPath
-  }
-}
+config.code_version = 'v1.3.6.6'

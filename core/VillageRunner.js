@@ -632,7 +632,7 @@ function VillageRunner () {
         let nameContainerWidth = container.child(1).bounds().width()
         let parentWidth = container.bounds().width()
         let widthRate = nameContainerWidth / parentWidth
-        debugInfo(['名称控件宽度占比：{}', widthRate.toFixed(2)])
+        // debugInfo(['名称控件宽度占比：{}', widthRate.toFixed(2)])
         let incomeRateWeight = parseInt(/(\d+)\/时/.exec(incomeRate.text())[1])
         return {
           valid: _this.visited_friends.indexOf(friendName) < 0 && widthRate < 0.6 && (incomeRate.indexInParent() == 4 || incomeRate.indexInParent() == 2),
