@@ -137,6 +137,7 @@ function LuckyDrawRunner () {
       if (!hasWidget) {
         return false
       }
+      /* 活动已结束，这段校验有问题，暂时移除 等下次有活动了再优化
       if (this.executeMode == 'event') {
         let tabCheck = selector().clickable().depth(15).indexInParent(1).findOne(1000)
         if (tabCheck) {
@@ -158,6 +159,7 @@ function LuckyDrawRunner () {
           LogFloaty.pushLog('当前无活动页面')
         }
       }
+      */
       return true
     }
     return false
