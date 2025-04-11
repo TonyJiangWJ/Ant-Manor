@@ -128,11 +128,14 @@ function FamilySinger () {
       feedBtn.click()
       LogFloaty.pushLog('找到了 去指派')
       // 等待
-      sleep(1000)
+      sleep(2000)
       let confirm = widgetUtils.widgetGetOne('确认.*', 1000)
       if (confirm) {
         confirm.click()
+        LogFloaty.pushLog('点击确认按钮')
         sleep(500)
+      } else {
+        LogFloaty.pushErrorLog('未能找到 确认 按钮')
       }
       return true
     } else {

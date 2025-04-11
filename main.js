@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2025-01-22 17:32:34
+ * @Last Modified time: 2025-04-11 10:36:59
  * @Description: 
  */
 let { config, storage_name } = require('./config.js')(runtime, this)
@@ -71,10 +71,19 @@ if (files.exists('version.json')) {
 }
 logInfo(['AutoJS version: {}', app.autojs.versionName])
 logInfo(['device info: {} {} {}', device.brand, device.product, device.release])
-
+logInfo(['脚本版本：{}', config.code_version])
 logInfo(['设备分辨率：[{}, {}]', config.device_width, config.device_height])
-logInfo(['Yolo支持：{}', YoloDetection.enabled])
-YoloDetection.validLabels()
+logInfo(['Yolo开关：{}', config.detect_by_yolo])
+if (config.detect_by_yolo) {
+  logInfo(['Yolo支持：{}', YoloDetection.enabled])
+  YoloDetection.validLabels()
+  if (!YoloDetection.enabled) {
+    logInfo(['当前版本AutoJS不支持YOLO，请阅读README获取安装受支持的版本'])
+  }
+} else {
+  warnInfo(['强烈建议开启YOLO识别，否则脚本执行容易异常，且需要配置大量配置项'])
+}
+
 logInfo('======解锁======')
 try {
   unlocker.exec()

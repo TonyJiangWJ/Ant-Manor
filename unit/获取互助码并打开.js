@@ -23,6 +23,7 @@ let disposable = threads.disposable()
 http.get('https://tonyjiang.hatimi.top/mutual-help/random?category=gashapon&deviceId=' + device.getAndroidId(), {}, (res, err) => {
   if (err) {
     console.error('请求异常', err)
+    disposable.setAndNotify({ success: false, erorr: '请求异常'})
     return
   }
   if (res.body) {
