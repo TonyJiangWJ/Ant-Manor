@@ -1,7 +1,7 @@
 let tipDisposable = threads.disposable()
 let showTipDialog = dialogs.build({
-  title: '在线获取互助码',
-  content: '此工具用于便携获取互助码。上传、标记作废互助码、查看自己的互助码等功能，请通过 可视化配置-扭蛋互助 菜单进行操作。互助码有效期短，请定期上传更新自己的互助码',
+  title: '在线获取红包口令码',
+  content: '此工具用于便携获取红包码，使用红包后作者每一个大概能获取一分钱收益。赞助作者，让作者更有动力开发。',
   positive: '确认获取',
   positiveColor: '#f9a01c',
   negative: '取消',
@@ -20,10 +20,11 @@ if (!response.continue) {
 }
 toastLog('请求服务接口获取中，请稍后')
 let disposable = threads.disposable()
-http.get('https://tonyjiang.hatimi.top/mutual-help/random?category=gashapon&deviceId=' + device.getAndroidId(), {}, (res, err) => {
+let defaultCode = 'g:/NabWAyj54mL 或.復-置此消息打开支付宝，鸿抱天天有，好上添好  Q:/L MU5958 2020/04/11'
+http.get('https://tonyjiang.hatimi.top/mutual-help/announcement?category=hongbao&deviceId=' + device.getAndroidId(), {}, (res, err) => {
   if (err) {
     console.error('请求异常', err)
-    disposable.setAndNotify({ success: false, erorr: '请求异常'})
+    disposable.setAndNotify({ success: false, error: '请求异常' + err })
     return
   }
   if (res.body) {
@@ -31,9 +32,9 @@ http.get('https://tonyjiang.hatimi.top/mutual-help/random?category=gashapon&devi
     console.log('获取响应：', responseStr)
     try {
       let data = JSON.parse(responseStr)
-      if (data.record) {
-        console.log('互助码：' + data.record.text)
-        disposable.setAndNotify({ success: true, text: data.record.text })
+      if (data.announcement) {
+        console.log('红包口令码：' + data.announcement.text)
+        disposable.setAndNotify({ success: true, text: data.announcement.text })
       } else if (data.error) {
         toastLog(data.error)
         disposable.setAndNotify({ success: false, erorr: data.error })
@@ -49,7 +50,7 @@ let result = disposable.blockedGet()
 if (result.success) {
 
   let confirmDialog = dialogs.build({
-    title: '获取到互助码，是否打开？',
+    title: '获取到红包口令码，是否打开？',
     content: '' + result.text,
     positive: '确认',
     positiveColor: '#f9a01c',
@@ -72,13 +73,24 @@ if (result.success) {
     .show()
 } else {
   let confirmDialog = dialogs.build({
-    title: '获取互助码失败',
-    content: '' + result.error,
-    positive: '知道了',
+    title: '获取红包口令码失败',
+    content: '是否使用默认口令打开（可能失效）？失败原因：' + result.error,
+    positive: '使用默认口令',
     positiveColor: '#f9a01c',
+    negative: '取消',
+    negativeColor: 'red',
     cancelable: false
   })
     .on('positive', () => {
+      setClip(defaultCode)
+      app.startActivity({
+        action: 'VIEW',
+        data: 'alipays://platformapi/startapp?appId=20001003&keyword=' + encodeURI(defaultCode) + '&v2=true',
+        packageName: 'com.eg.android.AlipayGphone'
+      })
+      confirmDialog.dismiss()
+    })
+    .on('negative', () => {
       confirmDialog.dismiss()
     })
     .show()

@@ -2,12 +2,14 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2025-04-08 12:31:43
+ * @Last Modified time: 2025-04-11 11:09:03
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
 // 执行配置
 var default_config = {
+  // 默认开启yolo识别
+  detect_by_yolo: true,
   is_alipay_locked: false,
   alipay_lock_password: '',
   color_offset: 20,
@@ -164,7 +166,7 @@ let CONFIG_STORAGE_NAME = 'chick_config_version'
 let PROJECT_NAME = '蚂蚁庄园'
 
 // 公共扩展
-let config = require('./config_ex.js')(default_config, CONFIG_STORAGE_NAME, PROJECT_NAME)
+let config = require('./config_ex.js')(default_config, { CONFIG_STORAGE_NAME, PROJECT_NAME })
 config.exportIfNeeded(module, null)
 
 // yolo_save_list 覆盖storageConfig中的值
@@ -216,4 +218,4 @@ config.fodder_config = config.convertDefaultData(default_fodder_config, CONFIG_S
 config.ai_type = config.fodder_config.ai_type
 config.kimi_api_key = config.fodder_config.kimi_api_key
 config.chatgml_api_key = config.fodder_config.chatgml_api_key
-config.code_version = 'v1.3.6.7'
+config.code_version = 'v1.3.6.8'

@@ -127,6 +127,9 @@ function AntManorRunner () {
    * @return {array}
    */
   this.yoloCheckAll = function (desc, filter, tryTime) {
+    if (!YoloDetection.enabled) {
+      return null
+    }
     let img = null
     let results = []
     tryTime = tryTime || 3
@@ -972,6 +975,10 @@ function AntManorRunner () {
   }
 
   this.collectReadyEgg = function () {
+    if (!YoloDetection.enabled) {
+      LogFloaty.pushLog('未开启YOLO，跳过收集鸡蛋')
+      return
+    }
     LogFloaty.pushLog('查找是否存在可收集的鸡蛋')
     let collect = this.yoloCheck('成熟的鸡蛋', { labelRegex: 'collect_egg' })
     if (collect) {
