@@ -25,18 +25,11 @@ function Collector () {
 
   this.exec = function (taskLimit) {
     this.currentVolume = device.getMusicVolume()
+    // 标记需要重置音量
+    this.reseted = false
     LogFloaty.pushLog('当前音量：' + this.currentVolume + ' 设置为静音')
     device.setMusicVolume(0)
-
-    function resetMusicVolume () {
-      if (_this.reseted) {
-        return
-      }
-      LogFloaty.pushLog('恢复音量：' + _this.currentVolume + ' 取消静音')
-      device.setMusicVolume(_this.currentVolume)
-      _this.reseted = true
-    }
-
+    // 注册脚本退出时重置音量
     commonFunctions.registerOnEngineRemoved(resetMusicVolume, 'reset_volume')
     try {
       if (this.openCollectFood()) {
@@ -52,6 +45,15 @@ function Collector () {
     } finally {
       resetMusicVolume()
     }
+    function resetMusicVolume () {
+      if (_this.reseted) {
+        return
+      }
+      LogFloaty.pushLog('恢复音量：' + _this.currentVolume + ' 取消静音')
+      device.setMusicVolume(_this.currentVolume)
+      _this.reseted = true
+    }
+
   }
 
   this.openCollectFood = function (recheck) {
