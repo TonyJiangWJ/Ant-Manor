@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2025-04-11 11:09:03
+ * @Last Modified time: 2025-04-17 16:12:42
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -171,7 +171,10 @@ config.exportIfNeeded(module, null)
 
 // yolo_save_list 覆盖storageConfig中的值
 config.yolo_save_list = yolo_save_list
-
+// 图片配置相关key值
+config.prepareImageConfig([
+  'main_account_avatar'
+])
 
 // 扩展配置
 let workpath = config.getCurrentWorkPath()
