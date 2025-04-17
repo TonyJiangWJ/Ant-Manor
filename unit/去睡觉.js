@@ -108,6 +108,8 @@ function goToBed () {
   automator.click(clickPosition.x, clickPosition.y)
   // 训练，找到床
   sleep(2000)
+  // todo wait for bed
+  waitForBed()
   yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '小鸡睡觉床', 'sleep_bed')
   automator.click(config.to_sleep_bed.x || 200, config.to_sleep_bed.y || 740)
   sleep(2000)
@@ -122,4 +124,23 @@ function goToBed () {
     LogFloaty.pushWarningLog('未找到指定按钮 可能没有饲料 或者睡觉中')
   }
   back()
+}
+
+function waitForBed () {
+  if (!localOcrUtil.enabled) {
+    LogFloaty.pushWarningLog('请使用支持OCR的AutoJS版本')
+    sleep(5000)
+    return
+  }
+  LogFloaty.pushLog('ocr查找元素中')
+  let limit = 5
+  while (limit-- > 0) {
+    let results = localOcrUtil.recognizeWithBounds(commonFunctions.captureScreen(), null, '公仔|装扮小屋')
+    if (results && results.length > 0) {
+      LogFloaty.pushLog('找到目标元素 进入睡觉界面成功')
+      return true
+    }
+    sleep(1000)
+  }
+  LogFloaty.pushWarningLog('ocr无法找到小屋内元素')
 }

@@ -85,7 +85,8 @@ function FamilySinger () {
       let confirm = widgetUtils.widgetGetOne('确认.*', 1000)
       if (confirm) {
         confirm.click()
-        sleep(500)
+        LogFloaty.pushLog('等待喂食动画结束')
+        sleep(5000)
       }
       return true
     } else {

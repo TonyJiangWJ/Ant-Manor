@@ -9,7 +9,8 @@ const AccountManager = {
           // 多个账号就多设置几个
           // account 是多账号切换界面脱敏文本，shareUrl 分享链接获取，可以是https开头的原始链接 也可以是处理后的 
           { account: '189***24', shareUrl: 'alipays://platformapi/startapp?appId=68687809&backgroundColor=16505470&ttb=always&url=%2Fwww%2Fgame.html%3FshareId%3DMjA4ODMwMjEwNzU4MzU0MDFoc3hmeUFOVFNUQUxMX1AyUF9TSEFSRVI=%26shareCoinDisplayAmount=100&source=hyyaoqing&chInfo=hyyaoqing&fxzjshareChinfo=ch_share__chsub_CopyLink&apshareid=c0c75eb5-268e-4341-b13a-d253e51aefa5&shareBizType=ztokenV0_GRuRWlSG' },
-        ]
+        ],
+        main_account_avatar: '',
       },
       showAddAccountDialog: false,
       isEdit: false,
@@ -24,7 +25,7 @@ const AccountManager = {
       if (url.startsWith('http')) {
         return url
       }
-      let result = url.split('&').filter(v=> v.startsWith('apshareid=')).map(v => v.split('apshareid=')[1])
+      let result = url.split('&').filter(v => v.startsWith('apshareid=')).map(v => v.split('apshareid=')[1])
       return result[0]
     },
     addAccount: function () {
@@ -83,6 +84,34 @@ const AccountManager = {
     changeMainAccount: function (idx) {
       this.configs.main_account = this.configs.accounts[idx].account
     },
+    onConfigLoad (config) {
+      this.configs.main_account_avatar = config.image_config.main_account_avatar
+    },
+    doSaveConfigs (deleteFields) {
+      console.log('执行保存配置')
+      let newConfigs = this.filterErrorFields(this.configs)
+      if (deleteFields && deleteFields.length > 0) {
+        deleteFields.forEach(key => {
+          newConfigs[key] = ''
+        })
+      }
+      $app.invoke('saveConfigs', newConfigs)
+      if (this.configs.main_account_avatar) {
+        // 保存图片扩展配置
+        $app.invoke('saveExtendConfigs', { configs: { main_account_avatar: this.configs.main_account_avatar }, prepend: 'image' })
+      }
+    },
+    getAvatar: function () {
+      $nativeApi.request('getAvatar', {}).then(resp => {
+        $app.invoke('loadConfigs', {}, config => {
+          this.configs.main_account_avatar = config.image_config.main_account_avatar
+        })
+      })
+    },
+    changeAccount: function () {
+      this.doSaveConfigs()
+      $app.invoke('changeAlipayAccount', { account: this.configs.main_account })
+    },
   },
   template: `
   <div>
@@ -100,6 +129,14 @@ const AccountManager = {
       <van-button style="margin-left: 0.4rem" plain hairline type="primary" size="mini" @click="addAccount">增加</van-button>
     </van-divider>
     <tip-block>配置账号切换界面的脱敏账号和昵称并勾选一个主账号</tip-block>
+    <tip-block>当多个账号的名称匹配相同时，需要通过头像来区分主账号，不过还是建议使用邮箱登录来增加区分度而不是手机号登录。</tip-block>
+    <van-cell title="主账号" :value="configs.main_account" >
+      <template #right-icon v-if="configs.main_account">
+        <van-button style="margin-left: 0.4rem" plain hairline type="primary" size="mini" @click="changeAccount">切换账号</van-button>
+        <van-button style="margin-left: 0.4rem" plain hairline type="primary" size="mini" @click="getAvatar">自动提取头像</van-button>
+      </template>
+    </van-cell>
+    <base64-image-viewer title="主账号头像" v-model="configs.main_account_avatar"/>
     <tip-block>配置每个账号的昵称和对应的分享链接，运行‘蚂蚁新村大小号助力.js’后将按顺序自动给其他账号进行助力，例如配置了三个账号A助力BC,B助力AC,C助力AB。各个账号助力完成后将自动完成加速产豆中的通用任务，全部执行完毕后将切换回主账号</tip-block>
     <tip-block>打开蚂蚁新村，加速产币中选择邀请好友助力，弹窗中左滑复制链接链接即可获取永久助力链接，可以直接使用https开头的链接，也可以在浏览器中获取schemeUrl。
     推荐手动解析一下schemeUrl，避免调用系统浏览器打开http链接失败。schemeUrl参考：alipays://platformapi/startapp?appId=68687809&backgroundColor=...</tip-block>
