@@ -23,7 +23,7 @@ function Collector () {
 
   this.imageConfig = config.fodder_config
 
-  this.exec = function (taskLimit) {
+  this.exec = function (taskLimit, skipMainAccountTask) {
     this.currentVolume = device.getMusicVolume()
     // 标记需要重置音量
     this.reseted = false
@@ -34,7 +34,7 @@ function Collector () {
     try {
       if (this.openCollectFood()) {
         sleep(1000)
-        this.doDailyTasks(taskLimit)
+        this.doDailyTasks(taskLimit, skipMainAccountTask)
         LogFloaty.pushLog('每日任务执行完毕，开始收集可收取饲料')
         this.collectAllIfExists()
         sleep(1000)
@@ -126,7 +126,7 @@ function Collector () {
     }
   }
 
-  this.doDailyTasks = function (taskLimit) {
+  this.doDailyTasks = function (taskLimit, skipMainAccountTask) {
     let taskCount = 0;
     [
       // 答题
@@ -139,8 +139,8 @@ function Collector () {
       () => this.luckyDraw(),
       // 农场逛一逛
       () => this.farmHanging(),
-      // 鲸探
-      () => this.feedFish(),
+      // 鲸探 小号需要实名认证 跳过
+      () => !skipMainAccountTask && this.feedFish(),
       // 扭蛋
       () => this.openGashapon(),
       // 做饭领食材，消耗60领90 不是很必要，可以通过做饭领食材完成

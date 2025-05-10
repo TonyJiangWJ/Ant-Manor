@@ -1,7 +1,7 @@
 
 let { config } = require('../config.js')(runtime, this)
 let singletonRequire = require('../lib/SingletonRequirer.js')(runtime, this)
-let accountChange = require('../lib/AlipayAccountManage.js').changeAccount
+let { changeAccount, ensureMainAccount } = require('../lib/AlipayAccountManage.js')
 let logUtils = singletonRequire('LogUtils')
 let floatyInstance = singletonRequire('FloatyUtil')
 let commonFunctions = singletonRequire('CommonFunction')
@@ -73,12 +73,12 @@ if (config.accounts && config.accounts.length > 1) {
       return
     }
     currentRunningAccount = account
-    floatyInstance.setFloatyText('准备切换账号为：' + account)
+    LogFloaty.pushLog('准备切换账号为：' + account)
     sleep(1000)
-    accountChange(account)
-    floatyInstance.setFloatyText('切换完毕')
+    changeAccount(account)
+    LogFloaty.pushLog('切换完毕')
     sleep(500)
-    floatyInstance.setFloatyText('开始执行喂鸡')
+    LogFloaty.pushLog('开始执行喂鸡')
     try {
       // 打开首页
       if (!ManorRunner.launchApp(false, true)) {
@@ -95,7 +95,7 @@ if (config.accounts && config.accounts.length > 1) {
       }
       sleep(1000)
       // 先领饲料
-      collector.exec(3)
+      collector.exec(3, true)
       if (!ManorRunner.waitForOwn(true)) {
         LogFloaty.pushErrorLog('校验失败，重新打开个人界面')
         if (!ManorRunner.launchApp(true, true)) {
@@ -106,11 +106,13 @@ if (config.accounts && config.accounts.length > 1) {
       // 初始化检测器
       ManorRunner.prepareChecker()
       // 捡鸡蛋
-      ManorRunner.collectReadyEgg()
+      ManorRunner.collectReadyEgg(true)
       // 检查小鸡是否外出
       ManorRunner.checkIsOut()
-      // 驱赶野鸡
-      ManorRunner.checker.checkThief()
+      if (!config.dont_kick_thief_sub_account) {
+        // 驱赶野鸡
+        ManorRunner.checker.checkThief() 
+      }
       // 执行喂鸡
       if (ManorRunner.doFeed()) {
         // 存在弹窗 将小鸡领回
@@ -132,14 +134,14 @@ if (config.accounts && config.accounts.length > 1) {
       let countdown = ManorRunner.recognizeCountdownByOcr()
       LogFloaty.pushLog('识别倒计时：' + countdown)
       countdownList.push(countdown)
-      floatyInstance.setFloatyText('切换下一个账号')
+      LogFloaty.pushLog('切换下一个账号')
       sleep(500)
     } catch (e) {
       logUtils.errorInfo('执行异常：' + e)
-      floatyInstance.setFloatyText('领取异常 进行下一个')
+      LogFloaty.pushLog('领取异常 进行下一个')
     }
   })
-  floatyInstance.setFloatyText('全部账号执行完毕切换回主账号')
+  LogFloaty.pushLog('全部账号执行完毕切换回主账号')
   let maxCountdown = Math.max.apply(Math, countdownList)
   if (maxCountdown > 0) {
     LogFloaty.pushLog('统计最大倒计时为：' + maxCountdown)
@@ -153,12 +155,3 @@ if (config.accounts && config.accounts.length > 1) {
 }
 commonFunctions.minimize()
 exit()
-
-function ensureMainAccount () {
-  try {
-    accountChange(config.main_account || config.accounts[0])
-  } catch (e) {
-    LogFloaty.pushErrorLog('切换主账号异常' + e)
-    ensureMainAccount()
-  }
-}

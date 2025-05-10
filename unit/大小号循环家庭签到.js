@@ -1,7 +1,7 @@
 
 let { config } = require('../config.js')(runtime, this)
 let singletonRequire = require('../lib/SingletonRequirer.js')(runtime, this)
-let accountChange = require('../lib/AlipayAccountManage.js').changeAccount
+let { changeAccount, ensureMainAccount } = require('../lib/AlipayAccountManage.js')
 let logUtils = singletonRequire('LogUtils')
 let floatyInstance = singletonRequire('FloatyUtil')
 let commonFunctions = singletonRequire('CommonFunction')
@@ -74,16 +74,22 @@ if (config.accounts && config.accounts.length > 1) {
     }
 
     currentRunningAccount = account
-    floatyInstance.setFloatyText('准备切换账号为：' + account)
+    LogFloaty.pushLog('准备切换账号为：' + account)
     sleep(1000)
-    accountChange(account)
-    floatyInstance.setFloatyText('切换完毕')
+    changeAccount(account)
+    LogFloaty.pushLog('切换完毕')
     sleep(500)
-    floatyInstance.setFloatyText('开始执行签到')
+    LogFloaty.pushLog('开始执行签到')
     try {
       // 打开首页
       if (!FamilySignRunner.enterFamily(config.main_account == account)) {
         errorInfo(['{} 进入家庭失败', account])
+        commonFunctions.minimize(config.package_name)
+        sleep(1000)
+        if (!FamilySignRunner.enterFamily(config.main_account == account)) {
+          LogFloaty.pushErrorLog('进入家庭界面失败，退出执行')
+          return
+        }
         return
       }
       sleep(1000)
@@ -104,14 +110,14 @@ if (config.accounts && config.accounts.length > 1) {
       FamilySignRunner.donateSport()
       // todo 如果有失败的 不要设置为已完成
       setExecuted()
-      floatyInstance.setFloatyText('切换下一个账号')
+      LogFloaty.pushLog('切换下一个账号')
       sleep(500)
     } catch (e) {
       logUtils.errorInfo('执行异常：' + e)
-      floatyInstance.setFloatyText('领取异常 进行下一个')
+      LogFloaty.pushLog('领取异常 进行下一个')
     }
   })
-  floatyInstance.setFloatyText('全部账号签到完毕切换回主账号')
+  LogFloaty.pushLog('全部账号签到完毕切换回主账号')
   sleep(1000)
   ensureMainAccount()
   sleep(500)
@@ -120,15 +126,6 @@ if (config.accounts && config.accounts.length > 1) {
 }
 commonFunctions.minimize()
 exit()
-
-function ensureMainAccount() {
-  try {
-    accountChange(config.main_account || config.accounts[0])
-  } catch (e) {
-    LogFloaty.pushErrorLog('切换主账号异常' + e)
-    ensureMainAccount()
-  }
-}
 
 
 function setExecuted () {

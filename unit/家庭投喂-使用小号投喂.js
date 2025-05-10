@@ -15,6 +15,8 @@ let automator = singletonRequire('Automator')
 let LogFloaty = singletonRequire('LogFloaty')
 let FloatyInstance = singletonRequire('FloatyUtil')
 let NotificationHelper = singletonRequire('Notification')
+
+let { changeAccount, ensureMainAccount } = require('../lib/AlipayAccountManage.js')
 FloatyInstance.enableLog()
 let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile, flushAllLogs } = singletonRequire('LogUtils')
 if (!localOcrUtil.enabled) {
@@ -47,7 +49,7 @@ if (!commonFunctions.ensureAccessibilityEnabled()) {
 
 unlocker.exec()
 
-commonFunctions.showCommonDialogAndWait('蚂蚁庄园家庭投喂')
+commonFunctions.showCommonDialogAndWait('蚂蚁庄园家庭投喂-小号投喂')
 commonFunctions.listenDelayStart()
 commonFunctions.requestScreenCaptureOrRestart(true)
 NotificationHelper.cancelNotice()
@@ -56,6 +58,7 @@ require('../lib/WebsocketCaptureHijack.js')()
 // 执行领取饲料
 let failToExecute = true
 try {
+  changeToSubAccount()
   if (familySinger.enterFamily()) {
     familySinger.execSign()
     familySinger.openDrawer()
@@ -104,6 +107,8 @@ try {
   }
 } catch (e) {
   LogFloaty.pushErrorLog('脚本执行异常' + e)
+} finally {
+  ensureMainAccount()
 }
 if (failToExecute) {
   LogFloaty.pushErrorLog('当前执行失败，设置五分钟后重试')
@@ -121,3 +126,15 @@ if (config.auto_lock === true && unlocker.needRelock() === true) {
 runningQueueDispatcher.removeRunningTask(true)
 
 exit()
+
+function changeToSubAccount () {
+  if (config.accounts && config.accounts.length > 1) {
+    let targetAccount = config.accounts.filter(info => info.account != config.main_account)[0].account
+    LogFloaty.pushLog('准备切换到小号：' + targetAccount)
+    changeAccount(targetAccount)
+    LogFloaty.pushLog('小号切换完毕，等待执行')
+    sleep(1000)
+  } else {
+    warnInfo(['当前未配置小号，直接执行'])
+  }
+}

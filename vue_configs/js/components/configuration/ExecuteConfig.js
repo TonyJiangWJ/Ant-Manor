@@ -16,6 +16,14 @@
         // 是否使用加速卡 默认为true
         useSpeedCard: true,
         pick_shit: true,
+        // 是否不驱赶野鸡
+        dont_kick_thief: false,
+        // 是否主动雇佣好友小鸡
+        employ_friend_chick: false,
+        // 小号喂鸡时是否不驱赶野鸡
+        dont_kick_thief_sub_account: false,
+        // 是否强制校验野鸡
+        force_check_thief: true,
         starBallScore: 205,
         // 倒计时结束 等待的窗口时间
         windowTime: 5,
@@ -47,6 +55,14 @@
   template: `<div>
     <switch-cell title="是否使用加速卡" v-model="configs.useSpeedCard" />
     <switch-cell title="是否捡屎" v-model="configs.pick_shit" />
+    <tip-block>不驱赶野鸡只推荐在开启YOLO识别后开启，开启后将在喂鸡后直接OCR识别倒计时来设置定时任务，不再20分钟后开始轮询。建议直接使用亲情卡拉两只不玩的小鸡过来吃。</tip-block>
+    <switch-cell title="是否不驱赶野鸡" v-model="configs.dont_kick_thief" />
+    <template v-if="configs.dont_kick_thief">
+      <tip-block>当有好友小鸡存在时，是否雇佣它，雇佣消耗50g饲料，持续8小时，如果使用了亲情卡，雇佣结束后将不会回家。除非好友主动将小鸡领回家。</tip-block>
+      <switch-cell title="是否雇佣好友小鸡" v-model="configs.employ_friend_chick" />
+    </template>
+    <switch-cell v-if="!configs.dont_kick_thief" title="是否在YOLO识别失败后尝试强制驱赶野鸡" v-model="configs.force_check_thief" />
+    <switch-cell title="小号喂鸡时是否不驱赶野鸡" v-model="configs.dont_kick_thief_sub_account" />
     <tip-block>当前OCR的机制是 如果已安装mlkitOcr插件则自动使用mlkit，未安装则尝试PaddleOCR（需要修改版AutoJS支持），AutoJS不支持则使用百度在线OCR，百度OCR有次数限制仅获取倒计时使用百度OCR，蚂蚁新村将无法使用</tip-block>
     <van-cell title="本地OCR优先级">
       <template #right-icon>
