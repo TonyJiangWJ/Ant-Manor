@@ -52,6 +52,33 @@ function VillageRunner () {
     }
   }
 
+  this.tryOpenVillageByHomeWidget = function (reopen) {
+    LogFloaty.pushLog('通过支付宝首页打开蚂蚁新村，以便每日获取奖励')
+    commonFunctions.backHomeIfInVideoPackage()
+    app.launch('com.eg.android.AlipayGphone')
+    FloatyInstance.setFloatyInfo({ x: config.device_width / 2, y: config.device_height / 2 }, "查找是否有'打开'对话框")
+    let confirm = widgetUtils.widgetGetOne(/^打开$/, 1000)
+    if (confirm) {
+      automator.clickCenter(confirm)
+    }
+    sleep(1000)
+    if (openAlipayMultiLogin(reopen)) {
+      return this.tryOpenVillageByHomeWidget(true)
+    }
+    if (config.is_alipay_locked) {
+      sleep(1000)
+      alipayUnlocker.unlockAlipay()
+    }
+    let entry = widgetUtils.widgetGetOne('蚂蚁新村')
+    if (entry) {
+      LogFloaty.pushLog('找到蚂蚁新村入口')
+      automator.clickCenter(entry)
+      return waitForLoading()
+    } else {
+      LogFloaty.pushWarningLog('未能找到蚂蚁新村入口，放弃查找')
+    }
+  }
+
   function openMyVillage (reopen, retry) {
     commonFunctions.backHomeIfInVideoPackage()
     LogFloaty.pushLog('准备打开蚂蚁新村')
@@ -153,6 +180,7 @@ function VillageRunner () {
    */
   function checkAnyEmptyBooth () {
     LogFloaty.pushLog('准备查找是否有超时摊位')
+    NotificationHelper.cancelNotice('drive_out_booth_warn')
     sleep(1000)
     FloatyInstance.hide()
     if (YoloDetection.enabled) {
@@ -164,16 +192,21 @@ function VillageRunner () {
         yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '无法正确校验空摊位', 'empty_booth', config.yolo_save_empty_booth_failed)
       }
     }
-    let haveDriveOut = false
     let screen = commonFunctions.captureScreen()
     FloatyInstance.restore()
     // 移除超过一定时间的好友摊位
-    haveDriveOut |= !!doCheckAndDriveOut(screen, villageConfig.booth_position_left)
-    haveDriveOut |= !!doCheckAndDriveOut(screen, villageConfig.booth_position_right)
-    if (haveDriveOut) {
+    let count = 0
+    count += !!doCheckAndDriveOut(screen, villageConfig.booth_position_left) ? 1 : 0
+    count += !!doCheckAndDriveOut(screen, villageConfig.booth_position_right) ? 1 : 0
+    if (count > 0) {
       yoloTrainHelper.saveImage(screen, '有可以驱离的好友', 'operate_booth')
       LogFloaty.pushLog('成功驱离了好友的摊位')
       sleep(1000)
+      if (count < 2) {
+        NotificationHelper.createNotification('只驱赶了一个好友摊位，请注意实际界面信息', formatDate(new Date()) + '当前只驱赶了一个好友，需要关注是否正常', 'drive_out_booth_warn')
+      }
+    } else {
+      NotificationHelper.createNotification('未驱赶超时好友，请注意实际界面信息', formatDate(new Date()) + '当前没有超时好友，无法驱离，需要关注是否正常', 'drive_out_booth_warn')
     }
     LogFloaty.pushLog('准备查找是否有空位')
     sleep(1000)
@@ -210,9 +243,17 @@ function VillageRunner () {
     let findOperationBooth = yoloCheckAll('可操作摊位', { labelRegex: 'operation_booth' })
     if (findOperationBooth && findOperationBooth.length > 0) {
       let screen = commonFunctions.captureScreen()
+      let count = 0
       findOperationBooth.forEach(ocrPosition => {
-        doCheckAndDriveOut(screen, [ocrPosition.left, ocrPosition.top, ocrPosition.width, ocrPosition.height])
+        count += doCheckAndDriveOut(screen, [ocrPosition.left, ocrPosition.top, ocrPosition.width, ocrPosition.height]) ? 1 : 0
       })
+      if (count > 0) {
+        if (count < 2) {
+          NotificationHelper.createNotification('只驱赶了一个好友摊位，请注意实际界面信息', formatDate(new Date()) + '当前只驱赶了一个好友，需要关注是否正常', 'drive_out_booth_warn')
+        }
+      } else {
+        NotificationHelper.createNotification('未驱赶超时好友，请注意实际界面信息', formatDate(new Date()) + '当前没有超时好友，无法驱离，需要关注是否正常', 'drive_out_booth_warn')
+      }
     }
     // 检测空摊位并邀请
     let findEmptyBooth = yoloCheckAll('空摊位', { labelRegex: 'empty_booth' })
@@ -759,16 +800,24 @@ function VillageRunner () {
   /**
    * 加速产币
    */
-  function speedAward (force) {
+  function speedAward (force, reopen) {
     if (!force && commonFunctions.checkSpeedUpCollected()) {
       debugInfo('今日已经完成加速，不继续查找加速产币 答题等请手动执行')
-      return
+      return true
     }
+    let hasOpenAwardSuccess = false
     if (clickSpeedAward()) {
       sleep(1000)
       doneList = []
       // 执行每日任务
       doTask(force)
+      // 确保打开了加速产币抽屉
+      if (!checkIsAwardOpened()) {
+        LogFloaty.pushLog('准备重新打开蚂蚁新村，确保打开加速产币抽屉以便成功进行领取')
+        hasOpenAwardSuccess = reopenAndCheckSpeedAward()
+      } else {
+        hasOpenAwardSuccess = true
+      }
       let hadAward = false
       if (doCollectAll()) {
         LogFloaty.pushLog('全部领取点击完毕')
@@ -790,12 +839,21 @@ function VillageRunner () {
     } else {
       LogFloaty.pushLog('未找到加速产币')
       sleep(1000)
+      if (!reopen) {
+        LogFloaty.pushWarningLog('检查界面并尝试重新打开')
+        commonFunctions.minimize()
+        openMyVillage()
+        return speedAward(force, true)
+      } else {
+        LogFloaty.pushErrorLog('打开加速产币失败')
+      }
     }
     if (!waitForLoading()) {
       LogFloaty.pushLog('等待界面加载失败，尝试重新打开')
       commonFunctions.minimize()
       openMyVillage()
     }
+    return hasOpenAwardSuccess
   }
 
   function doCollectAll (hadAward, tryTime) {
@@ -839,7 +897,7 @@ function VillageRunner () {
       errorInfo('重新打开失败多次，跳过执行重新打开', true)
       return
     }
-    LogFloaty.pushLog('重新打开新村触发领取')
+    LogFloaty.pushLog('重新打开新村')
     app.startActivity({
       action: 'VIEW',
       data: 'alipays://platformapi/startapp?appId=68687809',
@@ -896,12 +954,12 @@ function VillageRunner () {
     }
   }
 
-  function clickSpeedAward () {
+  function clickSpeedAward (retry) {
     if (YoloDetection.enabled) {
       let speedupBtn = yoloCheck('加速产币', { confidence: 0.7, labelRegex: 'speedup' })
       if (speedupBtn) {
         automator.click(speedupBtn.x, speedupBtn.y)
-        return true
+        return checkIsAwardOpened()
       }
     }
 
@@ -920,8 +978,29 @@ function VillageRunner () {
       sleep(1000)
       automator.click(point.centerX(), point.centerY())
       sleep(1000)
-      return true
+      return checkIsAwardOpened()
     }
+    if (!retry) {
+      LogFloaty.pushWarningLog('未找到加速产币按钮，检查是否存在弹窗')
+      let dismiss = widgetUtils.widgetGetOne('.*拒绝且不再询问.*', 2000)
+      if (dismiss) {
+        automator.clickCenter(dismiss)
+        sleep(1000)
+        LogFloaty.pushLog('找到弹窗询问按钮，点击拒绝')
+        return clickSpeedAward(true)
+      }
+    }
+    LogFloaty.pushErrorLog('未能找到加速产币')
+    return false
+  }
+
+  function checkIsAwardOpened () {
+    LogFloaty.pushLog('检查是否正确打开了加速产币')
+    let result = widgetUtils.widgetCheck('.*(加速产币|木兰币|当前产速).*', 5000)
+    if (!result) {
+      LogFloaty.pushWarningLog('未能打开加速产币界面')
+    }
+    return result
   }
 
   let taskTitleList = ['会员签到', '芭芭农场', '饿了么', '余额宝', '喂小羊', '听听TA的故事', '神奇海洋', '蚂蚁庄园', '知识问答', '木兰市集']
@@ -961,7 +1040,7 @@ function VillageRunner () {
       LogFloaty.pushLog('等待界面加载')
       doneList.push(currnetType)
       if (justBackList.indexOf(currnetType) > -1) {
-        let limit = 5
+        let limit = 10
         while (--limit > 0) {
           LogFloaty.replaceLastLog('等待界面加载 剩余：' + limit + 's')
           sleep(1000)
@@ -977,12 +1056,14 @@ function VillageRunner () {
         browseAds()
         sleep(1000)
       } else {
-        // 通用任务，等待界面加载10秒自动结束
-        let limit = 10
+        // 通用任务，等待界面加载15秒自动结束
+        let limit = 15
         while (--limit > 0) {
           LogFloaty.replaceLastLog('等待界面加载 剩余：' + limit + 's')
           sleep(1000)
         }
+      }
+      if (!checkIsAwardOpened()) {
         commonFunctions.minimize()
         reopenAndCheckSpeedAward()
       }
@@ -1030,10 +1111,13 @@ function browseAds () {
   LogFloaty.pushLog('准备逛杂货铺')
   sleep(1000)
   let limit = 35
-  let startY = config.device_height - config.device_height * 0.15
-  let endY = startY - config.device_height * 0.3
   while (--limit > 0) {
-    automator.gestureDown(startY, endY, 1000)
+    if (limit % 2 == 0) {
+      automator.randomScrollDown()
+    } else {
+      automator.randomScrollUp()
+    }
+    sleep(1000)
     LogFloaty.replaceLastLog('逛杂货铺 剩余：' + limit + 's')
   }
   automator.back()

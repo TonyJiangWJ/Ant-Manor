@@ -145,7 +145,24 @@ function LuckyDrawRunner () {
           LogFloaty.pushLog('未找到 去抽装扮 直接点击中心点')
           automator.click(config.device_width / 2, config.device_height / 2)
         }
-        return this.checkIsEntered()
+        if (this.checkIsEntered()) {
+          return true
+        }
+        LogFloaty.pushLog('未能进入界面，二次校验入口')
+        results = localOcrUtil.recognizeWithBounds(commonFunctions.captureScreen(), null, '抽抽乐')
+        if (results && results.length > 0) {
+          LogFloaty.pushLog('ocr找到了任务入口')
+          targetBd = results[0].bounds
+          target = {
+            x: targetBd.centerX(),
+            y: targetBd.centerY()
+          }
+          automator.click(target.x, target.y)
+          sleep(1000)
+          return this.checkIsEntered()
+        }
+        LogFloaty.pushErrorLog('进入抽抽乐界面失败')
+        return false
       } else {
         LogFloaty.pushErrorLog('ocr未能找到入口')
       }
@@ -345,7 +362,7 @@ function LuckyDrawRunner () {
       } else {
         LogFloaty.pushLog('今日已经签到 ' + btnText)
       }
-      
+
     } else {
       if (tryLimit > 3) {
         LogFloaty.pushErrorLog('多次未找到签到控件 退出执行')

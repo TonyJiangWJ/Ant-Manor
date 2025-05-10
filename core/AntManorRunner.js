@@ -37,6 +37,7 @@ function getRegionCenter (region) {
   }
 }
 function AntManorRunner () {
+  const _this = this
   this.isKeepAlive = false
 
   this.setKeepAlive = function () {
@@ -195,6 +196,7 @@ function AntManorRunner () {
     } else {
       findColor = this.waitFor(config.CHECK_APP_COLOR, config.CHECK_APP_REGION, null, '小鸡主界面')
     }
+    this.closeDialogIfExist()
     if (findColor) {
       this.setFloatyInfo(null, CONTENT.personal_home + '成功')
       return true
@@ -210,8 +212,36 @@ function AntManorRunner () {
         this.killAndRestart()
       }
     }
-    this.closeDialogIfExistByYolo()
     return false
+  }
+
+  this.closeDialogIfExist = function () {
+    let closeBtn = widgetUtils.widgetGetOne('关闭', {
+      timeout: 2000, appendFilter: (matcher) => {
+        return matcher.filter(node => {
+          if (!node) {
+            return false
+          }
+          let boundsInfo = node.bounds()
+          let rate = boundsInfo.width() / boundsInfo.height()
+          // 比例接近1:1
+          if (!(rate > 0.95 && rate < 1.05)) {
+            return false
+          }
+          let centerX = boundsInfo.centerX(), centerY = boundsInfo.centerY()
+          // 位于正中间且属于底部范围
+          return centerX > config.device_width * 0.49 && centerX < config.device_width * 0.51
+            && centerY > config.device_height * 0.6
+        })
+      }
+    })
+    if (closeBtn) {
+      yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '关闭弹窗', 'close_icon')
+      WarningFloaty.addRectangle('关闭按钮', widgetUtils.boundsToRegion(closeBtn.bounds()))
+      closeBtn.click()
+    }
+
+    this.closeDialogIfExistByYolo()
   }
 
   this.closeDialogIfExistByYolo = function () {
@@ -245,6 +275,11 @@ function AntManorRunner () {
       } else {
         if (this.checkByOcr([0, 0, config.device_width * 0.2, config.device_height / 2], '给Ta留言')) {
           this.setFloatyInfo(null, CONTENT.friend_home + '成功')
+          return true
+        }
+        if (this.checkByOcr([0, config.device_height * 0.3, config.device_width, config.device_height * 0.5], '召回')) {
+          this.setFloatyInfo(null, CONTENT.friend_home + '成功')
+          yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '召回识别失败', 'friend_home_bringback_failed')
           return true
         }
       }
@@ -630,6 +665,10 @@ function AntManorRunner () {
         _commonFunctions.updateSleepTime(20 - feedPassedTime, false, ocrRestTime + feedPassedTime)
       }
     }
+    if (config.dont_kick_thief) {
+      // 设置已经揍过鸡 直接用当前识别的倒计时设置定时任务
+      _commonFunctions.setPunched()
+    }
     let sleepTime = _commonFunctions.getSleepTimeByOcr(ocrRestTime)
     this.setFloatyInfo(null, sleepTime + '分钟后来检查状况')
     this.pushLog(sleepTime + '分钟后来检查状况')
@@ -907,7 +946,6 @@ function AntManorRunner () {
   }
 
   this.setTimeoutExit = function () {
-    let _this = this
     setTimeout(function () {
       _this.setFloatyTextColor('#ff0000')
       _this.setFloatyInfo(null, '再见')
@@ -938,7 +976,7 @@ function AntManorRunner () {
     }
   }
 
-  this.checkByOcr = function (region, contentRegex) {
+  this.checkByOcr = function (region, contentRegex, getTarget) {
     if (!localOcr.enabled) {
       warnInfo(['请至少安装mlkit-ocr插件或者修改版AutoJS获取本地OCR能力'])
       return false
@@ -958,6 +996,9 @@ function AntManorRunner () {
           debugInfo(['ocr识别 {} 内容：{}', region ? '区域' + JSON.stringify(region) : '', contentRegex])
           let result = localOcr.recognizeWithBounds(screen, region, contentRegex, true)
           if (result && result.length > 0) {
+            if (getTarget) {
+              return wrapBoundsTarget(result[0])
+            }
             return true
           }
         }
@@ -970,22 +1011,108 @@ function AntManorRunner () {
     }
   }
 
+  function wrapBoundsTarget (ocrResult) {
+    if (!ocrResult) {
+      return null
+    }
+    let bounds = ocrResult.bounds
+    let result = Object.create(ocrResult)
+    result.target = {
+      bounds: () => bounds
+    }
+    return result
+  }
+
   this.prepareChecker = function () {
     this.checker = YoloDetection.enabled ? new YoloChecker(this) : new ColorChecker(this)
   }
 
-  this.collectReadyEgg = function () {
+  /**
+   * 收集可收取的鸡蛋，TODO 当前版本yolo模型准确度不够，直接当做可收取
+   * @param {boolean} skipOcr 是否跳过鸡蛋进度ocr识别，小号执行时无需记录
+   * @returns 
+   */
+  this.collectReadyEgg = function (skipOcr) {
     if (!YoloDetection.enabled) {
       LogFloaty.pushLog('未开启YOLO，跳过收集鸡蛋')
       return
     }
     LogFloaty.pushLog('查找是否存在可收集的鸡蛋')
-    let collect = this.yoloCheck('成熟的鸡蛋', { labelRegex: 'collect_egg' })
-    if (collect) {
+    let egg = this.yoloCheck('成熟或未成熟的鸡蛋', { labelRegex: 'collect_egg|not_ready' })
+    if (egg) {
+      /* TODO当前版本yolo模型准确度不够，直接当做可收取
+      if (egg.label == 'collet_egg') {
+        LogFloaty.pushLog('找到了可收集的鸡蛋')
+        automator.click(egg.x, egg.y)
+      } else {
+        LogFloaty.pushLog('未找到可收集的鸡蛋')
+      }
+      */
+      // 当前版本yolo模型准确度不够，直接当做可收取
       LogFloaty.pushLog('找到了可收集的鸡蛋')
-      automator.click(collect.x, collect.y)
+      automator.click(egg.x, egg.y)
+      sleep(500)
+      if (skipOcr) {
+        return
+      }
+      let result = '', checkNext = false
+      do {
+        let ocrRegion = [egg.left, egg.top + egg.height * 0.6, egg.width, egg.height * 0.6]
+        WarningFloaty.addRectangle('ocr识别进度', ocrRegion)
+        sleep(500)
+        // ocr记录当前鸡蛋进度
+        result = localOcr.recognize(_commonFunctions.captureScreen(), ocrRegion)
+        debugInfo(['识别进度文本信息：{}', result])
+        // 处理OCR识别的结果，去掉%和96
+        result = result.replace(/(96|%)$/, '')
+        checkNext = !/^\d{1,2}$/.test(result)
+        if (checkNext && /\d+/.test(result)) {
+          warnInfo(['识别进度信息不正确，当前识别结果为：{}', result])
+        }
+        if (checkNext) {
+          // 说明识别不到文字，可能鸡蛋可收取
+          debugInfo(['识别不到进度信息，重新收集：{}', result])
+          automator.click(egg.x, egg.y)
+          sleep(1000)
+        }
+      } while (checkNext)
+      LogFloaty.pushLog('当前鸡蛋进度：' + result)
+      infoLog(['记录当前鸡蛋进度：{}', result])
+      _commonFunctions.persistEggProcess(result)
     } else {
-      LogFloaty.pushLog('未找到可收集的鸡蛋')
+      LogFloaty.pushLog('未能找到鸡蛋')
+    }
+  }
+
+  this.viewDiary = function () {
+    if (_commonFunctions.checkDiary()) {
+      return
+    }
+    // TODO 每天执行一次
+    LogFloaty.pushLog('查找小鸡日记入口')
+    let entry = this.checkByOcr([0, 0, config.device_width * 0.3, config.device_height * 0.5], '小鸡日记', true)
+    if (entry) {
+      automator.clickCenter(entry.target)
+      LogFloaty.pushLog('等待进入小鸡日记')
+      let limit = 5
+      let sign = null
+      do {
+        sign = this.checkByOcr([0, config.device_height * 0.8, config.device_width, config.device_height * 0.2], '.*(贴贴|明日再来).*', true)
+        sleep(1000)
+      } while (!sign && limit-- > 0)
+      if (sign) {
+        if (sign.label == '明日再来') {
+          LogFloaty.pushLog('今日已经贴过小鸡')
+        } else {
+          LogFloaty.pushLog('找到了贴贴小鸡')
+          automator.clickCenter(sign.target)
+        }
+        _commonFunctions.setDiaryChecked()
+      } else {
+        LogFloaty.pushErrorLog('无法校验日记界面关键元素：贴贴小鸡|明日再来')
+      }
+    } else {
+      LogFloaty.pushWarningLog('无法找到小鸡日记')
     }
   }
 
@@ -997,6 +1124,31 @@ function AntManorRunner () {
     LogFloaty.pushErrorLog.apply(LogFloaty, arguments)
   }
 
+  this.forwardByYolo = function () {
+    if (!YoloDetection.enabled) {
+      warnInfo(['当前未开启YOLO 执行异常 请检查代码'], true)
+      return []
+    }
+    _commonFunctions.captureScreen()
+    let img = null, results = [], limit = 3
+    do {
+      if (limit < 3) {
+        sleep(300)
+      }
+      img = _commonFunctions.captureScreen()
+      results = YoloDetection.forward(img, filter)
+    } while (results.length <= 0 && limit-- > 0)
+    return results.map(result => {
+      let left = result.x, top = result.y
+      // 坐标转换，中心点
+      result.x = result.x + result.width / 2
+      result.y = result.y + result.height / 2
+      result.left = left
+      result.top = top
+      return result
+    })
+  }
+
   this.start = function () {
     this.prepareChecker()
     this.launchApp()
@@ -1005,10 +1157,19 @@ function AntManorRunner () {
     this.collectReadyEgg()
     this.checkIsSleeping()
     this.checkIsOut()
-    this.pushLog('检查是否有偷吃野鸡')
-    if (this.checker.checkThief()) {
-      // 揍过鸡
-      _commonFunctions.setPunched()
+    if (!config.dont_kick_thief) {
+      this.pushLog('检查是否有偷吃野鸡')
+      if (this.checker.checkThief()) {
+        // 揍过鸡
+        _commonFunctions.setPunched()
+      }
+    } else {
+      if (config.employ_friend_chick) {
+        this.checker.employFriendChick()
+      }
+      if (!YoloDetection.enabled) {
+        this.pushErrorLog('当前未开启YOLO，请勿开启不驱赶野鸡，取色识别容易出错')
+      }
     }
     WarningFloaty.clearAll()
 
@@ -1024,6 +1185,7 @@ function AntManorRunner () {
     if (config.pick_shit) {
       this.checkAndPickShit()
     }
+    this.viewDiary()
     sleep(2000)
     _commonFunctions.minimize()
     resourceMonitor.releaseAll()
@@ -1066,6 +1228,10 @@ function AntManorRunner () {
 
   ManorChecker.prototype.checkThief = () => {
     errorInfo('this function should be override checkThief')
+  }
+
+  ManorChecker.prototype.employFriendChick = () => {
+    errorInfo('雇佣好友小鸡功能仅限开启YOLO后支持')
   }
 
   function ColorChecker (mainExecutor) {
@@ -1169,11 +1335,13 @@ function AntManorRunner () {
   }
 
   YoloChecker.prototype.checkAndCollectMuck = function () {
-    let execPickMuck = this.mainExecutor.yoloCheck('执行收集饲料', { confidence: 0.7, labelRegex: 'collect_muck' })
-    if (execPickMuck) {
-      yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '收集饲料按钮', 'collect_muck')
-      this.mainExecutor.setFloatyInfo(execPickMuck, '收集饲料')
-      click(execPickMuck.x, execPickMuck.y)
+    let pickMucks = this.mainExecutor.yoloCheckAll('执行收集饲料', { confidence: 0.7, labelRegex: 'collect_muck' })
+    if (pickMucks && pickMucks.length > 0) {
+      pickMucks.forEach(execPickMuck => {
+        this.mainExecutor.setFloatyInfo(execPickMuck, '收集饲料')
+        click(execPickMuck.x, execPickMuck.y)
+        sleep(100)
+      })
     } else {
       warnInfo(['未能通过YOLO识别执行收集饲料的区域'])
     }
@@ -1211,27 +1379,134 @@ function AntManorRunner () {
   }
 
   YoloChecker.prototype.checkThief = function () {
-    let kicked = false
+    let kicked = false, tryTime = 2
     this.mainExecutor.pushLog('准备校验是否有偷吃野鸡')
-    let findThiefLeft = this.mainExecutor.yoloCheck('偷吃野鸡', { confidence: 0.7, labelRegex: 'thief_chicken|thief_eye_band', filter: (result) => result.x < config.device_width / 2 }, 2)
-    kicked |= this.driveThief(findThiefLeft)
-    let findThiefRight = this.mainExecutor.yoloCheck('偷吃野鸡', { confidence: 0.7, labelRegex: 'thief_chicken|thief_eye_band', filter: (result) => result.x > config.device_width / 2 }, 2)
-    kicked |= this.driveThief(findThiefRight)
-
-    let findFoodInCenter = this.mainExecutor.yoloCheck('中间食盆位置',
-      /* x坐标位置在中心点左边，代表有野鸡存在而yolo识别失败了 */
-      { confidence: 0.7, labelRegex: 'has_food', filter: result => result.x - (result.width / 2) < config.device_width / 2 }, 1)
-    if (findFoodInCenter) {
-      warnInfo(['食盆位置在中间，而野鸡驱赶失败，记录数据'])
-      yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '偷吃野鸡识别失败', 'thief_chicken_check_failed')
-      // 左右随便点击一下
-      kicked != this.driveThief({ x: findFoodInCenter.x - findFoodInCenter.width, y: findFoodInCenter.y }, '盲点左边野鸡坐标')
-      kicked != this.driveThief({ x: findFoodInCenter.x + findFoodInCenter.width * 2, y: findFoodInCenter.y }, '盲点右边野鸡坐标')
+    do {
+      if (tryTime < 2) {
+        sleep(500)
+      }
+      let results = this.mainExecutor.forwardByYolo()
+      let matches = results.filter(target => /thief_chicken|thief_eye_band/.test(target.label) && target.confidence > 0.7)
+      matches = reduceDuplicated(matches)
+      if (matches.length > 0) {
+        matches.forEach(thief => {
+          kicked |= this.driveThief(thief)
+        })
+      }
+    } while (!kicked && tryTime-- > 0)
+    // let findThiefLeft = this.mainExecutor.yoloCheck('偷吃野鸡', { confidence: 0.7, labelRegex: 'thief_chicken|thief_eye_band', filter: (result) => result.x < config.device_width / 2 }, 2)
+    // kicked |= this.driveThief(findThiefLeft)
+    // let findThiefRight = this.mainExecutor.yoloCheck('偷吃野鸡', { confidence: 0.7, labelRegex: 'thief_chicken|thief_eye_band', filter: (result) => result.x > config.device_width / 2 }, 2)
+    // kicked |= this.driveThief(findThiefRight)
+    if (config.force_check_thief) {
+      let findFoodInCenter = this.mainExecutor.yoloCheck('中间食盆位置',
+        /* x坐标位置在中心点左边，代表有野鸡存在而yolo识别失败了 */
+        { confidence: 0.7, labelRegex: 'has_food', filter: result => result.x - (result.width / 2) < config.device_width / 2 }, 1)
+      if (findFoodInCenter) {
+        warnInfo(['食盆位置在中间，而野鸡驱赶失败，记录数据'])
+        yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '偷吃野鸡识别失败', 'thief_chicken_check_failed')
+        // 左右随便点击一下
+        kicked != this.driveThief({ x: findFoodInCenter.x - findFoodInCenter.width, y: findFoodInCenter.y }, '盲点左边野鸡坐标')
+        kicked != this.driveThief({ x: findFoodInCenter.x + findFoodInCenter.width * 2, y: findFoodInCenter.y }, '盲点右边野鸡坐标')
+      }
     }
     if (!kicked) {
       this.mainExecutor.pushLog('未找到偷吃野鸡')
     }
     return kicked
+  }
+
+  YoloChecker.prototype.employFriendChick = function () {
+    let emploied = false, tryTime = 2
+    this.mainExecutor.pushLog('准备校验是否有好友小鸡')
+    do {
+      if (tryTime < 2) {
+        sleep(500)
+      }
+      let results = this.mainExecutor.forwardByYolo()
+      let matches = results.filter(target => /working_chicken|thief_chicken|thief_eye_band/.test(target.label) && target.confidence > 0.7)
+      matches = reduceDuplicated(matches)
+      if (matches.length > 0) {
+        matches.forEach(friendChick => {
+          emploied |= this.employChick(friendChick)
+        })
+      }
+    } while (!emploied && tryTime-- > 0)
+  }
+
+  function regionIn (targetA, targetB) {
+    if (targetA.x > targetB.left && targetA.x < targetB.left + targetB.width && targetA.y > targetB.top && targetA.y < targetB.top + targetB.height) {
+      return true
+    }
+    if (targetB.x > targetA.left && targetB.x < targetA.left + targetA.width && targetB.y > targetA.top && targetB.y < targetA.top + targetA.height) {
+      return true
+    }
+    return false
+  }
+
+
+  function reduceDuplicated (matches) {
+    let result = []
+    // 先按置信度升序排列
+    matches.sort((a, b) => a.confidence - b.confidence)
+    // 过滤中心点重复的，保留搞高置信度的
+    for (let i = 0; i < matches.length; i++) {
+      let match = matches[i]
+      let isDuplicated = false
+      for (let j = i + 1; j < matches.length; j++) {
+        let match2 = matches[j]
+        if (regionIn(match, match2)) {
+          isDuplicated = true
+          break
+        }
+      }
+      if (!isDuplicated) {
+        result.push(match)
+      }
+    }
+    return result
+  }
+
+  YoloChecker.prototype.employChick = function (friendChick) {
+    let desc = '找到了好友小鸡'
+    if (friendChick) {
+      debugInfo(['{}：{},{}', desc, friendChick.x, friendChick.y])
+      let ocrRegion = [friendChick.left - friendChick.width / 2, friendChick.top - friendChick.height / 2, friendChick.width, friendChick.height]
+      WarningFloaty.addRectangle('OCR识别区域', ocrRegion)
+      sleep(1000)
+      if (this.mainExecutor.checkByOcr(ocrRegion, '工作中')) {
+        LogFloaty.pushLog('当前小鸡正在工作中，跳过雇佣')
+        return true
+      }
+      automator.click(friendChick.x, friendChick.y)
+      sleep(1000)
+      let employ = this.mainExecutor.yoloCheck('雇佣', { confidence: 0.7, labelRegex: 'employ' })
+      if (employ) {
+        automator.click(employ.x, employ.y)
+        sleep(100)
+        if (widgetUtils.widgetCheck('解雇.*', 1000)) {
+          let cancelBtn = widgetUtils.widgetGetOne('取消', 1000)
+          if (cancelBtn) {
+            automator.clickCenter(cancelBtn)
+          }
+          return true
+        }
+        let confirmBtn = widgetUtils.widgetGetOne('确认雇佣', 2000)
+        if (confirmBtn) {
+          automator.clickCenter(confirmBtn)
+        } else {
+          this.mainExecutor.yoloClickConfirm(true)
+        }
+        sleep(1000)
+      } else {
+        warnInfo(['未能找到雇佣按钮 可能当前小鸡已经雇佣了'])
+        // 再次点击小鸡 关闭按钮
+        automator.click(friendChick.x, friendChick.y)
+      }
+      return true
+    }
+    // 此处和驱赶不同，只要确认找到了小鸡 就认为已经雇佣
+    return false
   }
 }
 

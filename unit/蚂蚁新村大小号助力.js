@@ -1,9 +1,10 @@
 
 let { config } = require('../config.js')(runtime, this)
 let singletonRequire = require('../lib/SingletonRequirer.js')(runtime, this)
-let accountChange = require('../lib/AlipayAccountManage.js').changeAccount
+let { changeAccount, ensureMainAccount } = require('../lib/AlipayAccountManage.js')
 let logUtils = singletonRequire('LogUtils')
 let floatyInstance = singletonRequire('FloatyUtil')
+let LogFloaty = singletonRequire('LogFloaty')
 let commonFunctions = singletonRequire('CommonFunction')
 let widgetUtils = singletonRequire('WidgetUtils')
 let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
@@ -80,6 +81,7 @@ threads.start(function () {
       toast.getPackageName().indexOf(config.package_name) >= 0
     ) {
       if (/.*已经帮助过.*/.test(text)) {
+        logUtils.debugInfo(['监听到toast，当前帮助过: {}', text])
         setExecuted()
       }
     }
@@ -97,73 +99,99 @@ if (config.accounts && config.accounts.length > 1) {
   config.accounts.forEach((accountInfo) => {
     let { account, accountName } = accountInfo
     currentRunningAccount = account
-    // if (account === config.main_account) {
-    //   return
-    // }
-    floatyInstance.setFloatyText('准备切换账号为：' + account)
+
+    // 检查是否已经全都助力过，是的话跳过本次切换处理
+    if (config.accounts.filter(other => {
+      if (other.account == account) {
+        return false
+      }
+      currentHelpAccount = other.account
+      if (storageFactory.getValueByKey(DAILY_HELPED).executed[currentRunningAccount + currentHelpAccount]) {
+        LogFloaty.pushLog('此账号已经被助力过，不再执行: ' + currentHelpAccount)
+        return false
+      }
+      return true
+    }).length == 0) {
+      LogFloaty.pushLog('所有账号都已经被助力过，不再执行当前账号的助力操作: ' + account)
+      return
+    }
+
+    LogFloaty.pushLog('准备切换账号为：' + account)
     sleep(1000)
-    accountChange(account)
-    floatyInstance.setFloatyText('切换完毕')
+    changeAccount(account)
+    LogFloaty.pushLog('切换完毕')
     sleep(500)
-    floatyInstance.setFloatyText('开始执行助力')
+    LogFloaty.pushLog('开始执行助力')
     try {
       let total = config.accounts.length
       config.accounts.filter(v => v.account != account).forEach((other, idx) => {
         currentHelpAccount = other.account
         if (storageFactory.getValueByKey(DAILY_HELPED).executed[currentRunningAccount + currentHelpAccount]) {
-          floatyInstance.setFloatyText('此账号已经被助力过，不再执行: ' + currentHelpAccount)
+          LogFloaty.pushLog('此账号已经被助力过，不再执行: ' + currentHelpAccount)
           return
         }
         // 打开助力
         openShareSupport(other.shareUrl)
-        setExecuted()
         floatyInstance.setFloatyInfo({ x: config.device_width / 2, y: config.device_height / 2 }, other.account + ' 助力完成 ')
         if (idx + 1 < total - 1) {
           commonFunctions.minimize()
-          floatyInstance.setFloatyText(other.account + ' 助力完成，等待几秒钟')
+          LogFloaty.pushLog(other.account + ' 助力完成，等待几秒钟')
           sleep(5000)
         }
       })
 
-      floatyInstance.setFloatyText('切换下一个账号')
+      LogFloaty.pushLog('切换下一个账号')
       sleep(500)
     } catch (e) {
       logUtils.errorInfo('执行异常：' + e)
-      floatyInstance.setFloatyText('助力异常 进行下一个')
+      LogFloaty.pushLog('助力异常 进行下一个')
     }
   })
+  let hasFailed = false
   // 领取加速收益和签到
-  // 先执行循环助力
   config.accounts.forEach((accountInfo, idx) => {
     let { account, accountName } = accountInfo
     // if (account === config.main_account) {
     //   return
     // }
-    floatyInstance.setFloatyText('准备切换账号为：' + account)
+    LogFloaty.pushLog('准备切换账号为：' + account)
     sleep(1000)
-    accountChange(account)
-    floatyInstance.setFloatyText('切换完毕')
+    changeAccount(account)
+    if (!widgetUtils.widgetCheck('首页', 2000)) {
+      LogFloaty.pushLog('切换完毕，返回桌面 以便正常打开首页')
+      commonFunctions.minimize()
+    } else {
+      LogFloaty.pushLog('切换完毕')
+    }
     sleep(500)
-    floatyInstance.setFloatyText('开始执行加速产豆')
+    LogFloaty.pushLog('开始执行加速产豆')
     try {
       // 打开首页
-      openMyVillage()
+      if (!VillageRunner.tryOpenVillageByHomeWidget()) {
+        openMyVillage()
+      }
       sleep(1000)
       // 自动点击自己的能量豆
       automator.click(villageConfig.village_reward_click_x, villageConfig.village_reward_click_y)
       // 签到
-      VillageRunner.speedAward(true)
-
-      floatyInstance.setFloatyText('切换下一个账号')
+      if (!VillageRunner.speedAward(true)) {
+        LogFloaty.pushLog('当前账号未能成功执行签到，需要延迟重试:' + account)
+        hasFailed = true
+      }
+      LogFloaty.pushLog('切换下一个账号')
       sleep(500)
     } catch (e) {
       logUtils.errorInfo('执行异常：' + e)
-      floatyInstance.setFloatyText('领取异常 进行下一个')
+      LogFloaty.pushLog('领取异常 进行下一个')
     }
   })
-  floatyInstance.setFloatyText('全部账号能量助力完毕切换回主账号')
+  if (hasFailed) {
+    LogFloaty.pushWarningLog('有账号执行失败，延迟5分钟重试')
+    commonFunctions.setUpAutoStart(5)
+  }
+  LogFloaty.pushLog('全部账号能量助力完毕切换回主账号')
   sleep(1000)
-  accountChange(config.main_account || config.accounts[0])
+  ensureMainAccount()
   sleep(500)
 } else {
   logUtils.errorInfo(['当前未配置多账号或账号只有一个，不进行切换'], true)
@@ -205,7 +233,7 @@ function openMyVillage (retry) {
 
   sleep(1500)
   if (!VillageRunner.waitForLoading() && !retry) {
-    floatyInstance.setFloatyText('打开蚂蚁新村失败，重新打开')
+    LogFloaty.pushLog('打开蚂蚁新村失败，重新打开')
     VillageRunner.killAlipay()
     sleep(3000)
     openMyVillage()

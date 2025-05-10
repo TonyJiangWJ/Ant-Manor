@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2025-04-17 16:12:42
+ * @Last Modified time: 2025-05-09 18:52:02
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -13,6 +13,14 @@ var default_config = {
   is_alipay_locked: false,
   alipay_lock_password: '',
   color_offset: 20,
+  // 是否不驱赶野鸡
+  dont_kick_thief: false,
+  // 是否主动雇佣好友小鸡
+  employ_friend_chick: false,
+  // 小号喂鸡时是否不驱赶野鸡
+  dont_kick_thief_sub_account: false,
+  // 是否强制校验野鸡
+  force_check_thief: true,
   yolo_shape_size: 480,
   yolo_confidence_threshold: 0.5,
   yolo_model_path: '/config_data/manor_lite.onnx',

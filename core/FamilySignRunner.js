@@ -177,13 +177,40 @@ function FamilySinger () {
     }
   }
 
+  function ensureVisible (getter, visibleRange, tryTime) {
+    tryTime = tryTime || 1
+    if (tryTime > 3) {
+      warnInfo(['查找目标多次，直接返回'])
+      return getter()
+    }
+    let target = getter()
+    if (target) {
+      let boundsInfo = target.bounds()
+      if (boundsInfo.top > visibleRange.top && boundsInfo.bottom <= visibleRange.bottom) {
+        return target
+      }
+      if (boundsInfo.top < visibleRange.top) {
+        let startY = visibleRange.top + 100, endY = startY + visibleRange.top - boundsInfo.top
+        debugInfo(['控件在可见范围顶部，向下滑动 {} => {}', startY, endY])
+        automator.gestureUp(startY, endY, 500)
+      } else if (boundsInfo.bottom > visibleRange.bottom) {
+        let startY = visibleRange.bottom - 200, endY = startY - (visibleRange.bottom - boundsInfo.bottom)
+        debugInfo(['控件在可见范围底部，向上滑动 {} => {}', startY, endY])
+        automator.gestureDown(startY, endY, 500)
+      }
+      return ensureVisible(getter, visibleRange, tryTime + 1)
+    } else {
+      errorInfo('未能找到目标控件')
+    }
+  }
+
   /**
    * 执行捐蛋 10贡献点
    */
   this.donateEgg = function () {
     LogFloaty.pushLog('查找去捐蛋')
     // TODO 使控件可见
-    let donateEggEntry = widgetUtils.widgetGetOne('.*去捐蛋.*')
+    let donateEggEntry = ensureVisible(() => widgetUtils.widgetGetOne('.*去捐蛋.*'), {top: config.device_height * 0.5, bottom: config.device_height - config.scaleRate * 300})
     if (donateEggEntry) {
       LogFloaty.pushLog('找到了去捐蛋')
       automator.clickCenter(donateEggEntry)
@@ -306,6 +333,8 @@ function FamilySinger () {
     // 等待页面加载完毕
     let limit = 3
     LogFloaty.pushLog('等待校验是否进入了家庭界面')
+    sleep(1000)
+    manorRunner.closeDialogIfExist()
     do {
       sleep(1000 * (4 - limit) * 1.5)
       if (manorRunner.checkByOcr(ocrRegion, '家庭管理|立即签到')) {
