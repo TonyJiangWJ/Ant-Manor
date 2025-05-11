@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2025-05-09 18:52:02
+ * @Last Modified time: 2025-05-12 07:09:09
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -21,6 +21,8 @@ var default_config = {
   dont_kick_thief_sub_account: false,
   // 是否强制校验野鸡
   force_check_thief: true,
+  // 是否记录鸡蛋进度
+  persist_egg_progress: false,
   yolo_shape_size: 480,
   yolo_confidence_threshold: 0.5,
   yolo_model_path: '/config_data/manor_lite.onnx',
@@ -229,4 +231,4 @@ config.fodder_config = config.convertDefaultData(default_fodder_config, CONFIG_S
 config.ai_type = config.fodder_config.ai_type
 config.kimi_api_key = config.fodder_config.kimi_api_key
 config.chatgml_api_key = config.fodder_config.chatgml_api_key
-config.code_version = 'v1.3.7'
+config.code_version = 'v1.3.7.1'
