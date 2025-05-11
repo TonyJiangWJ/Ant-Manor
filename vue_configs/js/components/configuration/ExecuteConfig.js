@@ -24,6 +24,8 @@
         dont_kick_thief_sub_account: false,
         // 是否强制校验野鸡
         force_check_thief: true,
+        // 是否记录鸡蛋进度
+        persist_egg_progress: true,
         starBallScore: 205,
         // 倒计时结束 等待的窗口时间
         windowTime: 5,
@@ -63,6 +65,8 @@
     </template>
     <switch-cell v-if="!configs.dont_kick_thief" title="是否在YOLO识别失败后尝试强制驱赶野鸡" v-model="configs.force_check_thief" />
     <switch-cell title="小号喂鸡时是否不驱赶野鸡" v-model="configs.dont_kick_thief_sub_account" />
+    <tip-block>记录鸡蛋进度依赖于PaddleOCR，mlkit可能无法准确识别信息，主要用于数据分析使用，可以不开启。</tip-block>
+    <switch-cell title="是否记录鸡蛋进度" v-model="configs.persist_egg_progress" />
     <tip-block>当前OCR的机制是 如果已安装mlkitOcr插件则自动使用mlkit，未安装则尝试PaddleOCR（需要修改版AutoJS支持），AutoJS不支持则使用百度在线OCR，百度OCR有次数限制仅获取倒计时使用百度OCR，蚂蚁新村将无法使用</tip-block>
     <van-cell title="本地OCR优先级">
       <template #right-icon>

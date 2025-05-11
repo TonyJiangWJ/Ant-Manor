@@ -1052,10 +1052,10 @@ function AntManorRunner () {
       LogFloaty.pushLog('找到了可收集的鸡蛋')
       automator.click(egg.x, egg.y)
       sleep(500)
-      if (skipOcr) {
+      if (skipOcr || !localOcr.enabled || !config.persist_egg_progress) {
         return
       }
-      let result = '', checkNext = false
+      let result = '', checkNext = false, limit = 3
       do {
         let ocrRegion = [egg.left, egg.top + egg.height * 0.6, egg.width, egg.height * 0.6]
         WarningFloaty.addRectangle('ocr识别进度', ocrRegion)
@@ -1075,10 +1075,14 @@ function AntManorRunner () {
           automator.click(egg.x, egg.y)
           sleep(1000)
         }
-      } while (checkNext)
-      LogFloaty.pushLog('当前鸡蛋进度：' + result)
-      infoLog(['记录当前鸡蛋进度：{}', result])
-      _commonFunctions.persistEggProcess(result)
+      } while (checkNext && --limit > 0)
+      if (result) {
+        LogFloaty.pushLog('当前鸡蛋进度：' + result)
+        infoLog(['记录当前鸡蛋进度：{}', result])
+        _commonFunctions.persistEggProcess(result)
+      } else {
+        LogFloaty.pushWarningLog('未能识别鸡蛋进度' + (config.local_ocr_priority == 'paddle' ? '，建议改用PaddleOCR' : ''))
+      }
     } else {
       LogFloaty.pushLog('未能找到鸡蛋')
     }
