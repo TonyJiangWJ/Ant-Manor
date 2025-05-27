@@ -60,16 +60,21 @@ let failToExecute = true
 let luckyDraw = new LuckyDrawRunner()
 try {
   if (luckyDraw.enterLuckDraw()) {
-    luckyDraw.doTasks()
-    luckyDraw.doDraw()
+    luckyDraw.checkIsEvent()
     if (luckyDraw._has_event_tab) {
+      LogFloaty.pushLog('切换到日常活动界面')
+      luckyDraw.changeToDaily()
+      luckyDraw.doTasks()
+      luckyDraw.doDraw()
+      // 切换活动界面
+      LogFloaty.pushLog('切换到限定活动界面')
       luckyDraw.changeToEvent()
-      if (luckyDraw.enterLuckDraw()) {
-        luckyDraw.doTasks()
-        luckyDraw.doDraw()
-        failToExecute = false
-      }
+      luckyDraw.doTasks()
+      luckyDraw.doDraw()
+      failToExecute = false
     } else {
+      luckyDraw.doTasks()
+      luckyDraw.doDraw()
       failToExecute = false
     }
   }
@@ -98,9 +103,32 @@ exit()
 
 
 function LuckyDrawRunner () {
+  this.executeMode = 'normal'
 
   this.changeToEvent = function () {
     this.executeMode = 'event'
+    this.checkIsEntered()
+  }
+
+  this.changeToDaily = function () {
+    this.executeMode = 'normal'
+    this.checkIsEntered()
+  }
+
+  this.checkIsEvent = function () {
+    let appContainer = widgetUtils.widgetGetById('app')
+    if (appContainer) {
+      let subContainer = appContainer.child(0)
+      if (subContainer) {
+        let eventTabContainer = subContainer.child(0)
+        if (eventTabContainer && eventTabContainer.childCount() > 1) {
+          this._has_event_tab = true
+          LogFloaty.pushLog('当前抽抽乐有活动信息')
+          return true
+        }
+      }
+    }
+    return false
   }
   this.enterLuckDraw = function () {
     LogFloaty.pushLog('等待打开蚂蚁庄园界面')
@@ -186,7 +214,27 @@ function LuckyDrawRunner () {
   }
 
   this.checkIsEntered = function () {
-    return widgetUtils.widgetWaiting('还剩\\d+次机会')
+    let entered = widgetUtils.widgetWaiting('还剩\\d+次机会')
+    if (entered) {
+      if (this._has_event_tab) {
+        if (this.executeMode === 'event') {
+          let tabCheck = selector().clickable().depth(15).indexInParent(1).findOne(1000)
+          if (tabCheck) {
+            LogFloaty.pushLog('切换到限定任务')
+            tabCheck.click()
+            sleep(1000)
+          }
+        } else {
+          let tabCheck = selector().clickable().depth(15).indexInParent(0).findOne(1000)
+          if (tabCheck) {
+            LogFloaty.pushLog('切换到日常任务')
+            tabCheck.click()
+            sleep(1000)
+          }
+        }
+      }
+    }
+    return entered
   }
 
   this.doTasks = function () {
@@ -281,7 +329,15 @@ function LuckyDrawRunner () {
       LogFloaty.pushErrorLog('当前不在杂货铺页面 退出执行')
       return false
     }
-
+    LogFloaty.pushLog('检查是否有关闭弹窗按钮')
+    let centerCloseBtn = selector().clickable().filter(node => {
+      let bd = node.bounds()
+      return bd.width() / bd.height() == 1 && bd.centerX() == config.device_width / 2 && bd.centerY() > config.device_height / 2
+    }).findOne(2000)
+    if (centerCloseBtn) {
+      LogFloaty.pushLog('找到关闭弹窗按钮')
+      centerCloseBtn.click()
+    }
     let limit = 15
     while (limit-- > 0) {
       sleep(1000)

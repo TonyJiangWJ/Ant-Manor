@@ -235,3 +235,4 @@ module.exports = function () {
 
 * 也可以运行 `unit/支持作者.js` 在线获取红包口令，通过支付宝直接打开领取，每使用一个红包我都可以获取一分钱的收益。如果你不嫌烦的话可以给 `unit/支持作者自动版.js` 设置定时任务，每天自动领取。
 
+* 如果有流量卡需求的可以前往购买，我可以拿点代理费：https://h5.lot-ml.com/ProductEn/Index/c4bffa332bb5f367
