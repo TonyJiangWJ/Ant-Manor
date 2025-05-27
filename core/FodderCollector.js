@@ -356,6 +356,16 @@ function Collector () {
     return findAndOpenTaskPage('.*去杂货铺逛一逛.*', null, ({ enter }) => {
       if (enter) {
         sleep(1000)
+        LogFloaty.pushLog('检查是否有关闭弹窗按钮')
+        let centerCloseBtn = selector().clickable().filter(node => {
+          let bd = node.bounds()
+          return bd.width() / bd.height() == 1 && bd.centerX() == config.device_width / 2 && bd.centerY() > config.device_height / 2
+        }).findOne(2000)
+        if (centerCloseBtn) {
+          LogFloaty.pushLog('找到关闭弹窗按钮')
+          centerCloseBtn.click()
+        }
+
         LogFloaty.pushLog('去杂货铺逛一逛 等待倒计时结束')
         let limit = 15
         while (limit-- > 0) {

@@ -1003,32 +1003,61 @@ function VillageRunner () {
     return result
   }
 
-  let taskTitleList = ['会员签到', '芭芭农场', '饿了么', '余额宝', '喂小羊', '听听TA的故事', '神奇海洋', '蚂蚁庄园', '知识问答', '木兰市集']
-  let justBackList = ['听听TA的故事', '蚂蚁庄园']
+  function buildChecker(title, desc, keywordInspector, justBack) {
+    return {
+      title: title,
+      desc: desc,
+      justBack: justBack,
+      keywordInspector: keywordInspector,
+      check: (taskTitle, taskDesc) => {
+        // debugInfo(['检查任务是否匹配: title: {} keyword: {} desc: {} keyword: {}', taskTitle, title, taskDesc, desc])
+        if (title && taskTitle) {
+          return new RegExp(title).test(taskTitle)
+        }
+        if (desc && taskDesc) {
+          return new RegExp(desc).test(taskDesc)
+        }
+      }
+    }
+  }
+
+  let taskTitleList = ['会员签到', '芭芭农场', '饿了么', '余额宝', '喂小羊', '听听TA的故事', '神奇海洋', '蚂蚁庄园', '知识问答', '木兰市集', '逛.*专场']
+  let justBackList = ['听听TA的故事', '蚂蚁庄园', '专场']
+  let taskDefineList = []
+  taskTitleList.forEach(title => {
+    let taskDefine = buildChecker(title, null, () => title)
+    taskDefine.justBack = justBackList.indexOf(title) > -1
+    taskDefineList.push(taskDefine)
+  })
+  // 描述中有 访问即可
+  taskDefineList.push(buildChecker(null, '访问即可', (title, desc) => title, true))
   let questing = '知识问答'
   let browseAd = '木兰市集'
 
   function doTask (force, lastLength) {
     let toFinishList = widgetUtils.widgetGetAll('去完成') || []
-    let currnetType = null
+    let currentTask = null
     toFinishList = toFinishList.filter(v => {
       let index = v.indexInParent()
-      if (index < 2 || currnetType) {
+      if (index < 2 || currentTask) {
         return
       }
       let parent = v.parent()
       let titleContainer = parent.child(index - 2)
       let title = titleContainer.text()
+      let descriptionContainer = parent.child(index - 1)
+      let desc = descriptionContainer.text()
       // 通用任务，提取关键字匹配
-      for (let i = 0; i < taskTitleList.length; i++) {
-        let keyword = taskTitleList[i]
-        // 标题包含可执行任务 且该任务未执行过
-        if (title.indexOf(keyword) > -1) {
+      for (let i = 0; i < taskDefineList.length; i++) {
+        let taskDefine = taskDefineList[i]
+        if (taskDefine.check(title, desc)) {
+          let keyword = taskDefine.keywordInspector(title, desc)
           if (doneList.indexOf(keyword) > -1) {
             warnInfo(['当前任务已执行过，可能执行失败 不再执行它：[{}] title: {}', keyword, title])
             return false
           }
-          currnetType = keyword
+          currentTask = taskDefine
+          currentTask.keyword = keyword
           return true
         }
       }
@@ -1038,8 +1067,8 @@ function VillageRunner () {
       let toFinishBtn = toFinishList[0]
       toFinishBtn.click()
       LogFloaty.pushLog('等待界面加载')
-      doneList.push(currnetType)
-      if (justBackList.indexOf(currnetType) > -1) {
+      doneList.push(currentTask.keyword)
+      if (currentTask.justBack) {
         let limit = 10
         while (--limit > 0) {
           LogFloaty.replaceLastLog('等待界面加载 剩余：' + limit + 's')
@@ -1047,11 +1076,11 @@ function VillageRunner () {
         }
         back()
         sleep(1000)
-      } else if (currnetType == questing) {
+      } else if (currentTask.keyword == questing) {
         // 执行AI知识问答
         answerQuestion()
         sleep(1000)
-      } else if (currnetType == browseAd) {
+      } else if (currentTask.keyword == browseAd) {
         // 木兰市集，需要滑动30秒
         browseAds()
         sleep(1000)
@@ -1110,6 +1139,15 @@ function answerQuestion () {
 function browseAds () {
   LogFloaty.pushLog('准备逛杂货铺')
   sleep(1000)
+  LogFloaty.pushLog('检查是否有关闭弹窗按钮')
+  let centerCloseBtn = selector().clickable().filter(node => {
+    let bd = node.bounds()
+    return bd.width() / bd.height() == 1 && bd.centerX() == config.device_width / 2 && bd.centerY() > config.device_height / 2
+  }).findOne(2000)
+  if (centerCloseBtn) {
+    LogFloaty.pushLog('找到关闭弹窗按钮')
+    centerCloseBtn.click()
+  }
   let limit = 35
   while (--limit > 0) {
     if (limit % 2 == 0) {

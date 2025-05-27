@@ -182,6 +182,7 @@ if (config.accounts && config.accounts.length > 1) {
       sleep(500)
     } catch (e) {
       logUtils.errorInfo('执行异常：' + e)
+      commonFunctions.printExceptionStack(e)
       LogFloaty.pushLog('领取异常 进行下一个')
     }
   })
@@ -213,14 +214,14 @@ function openShareSupport (shareUrl) {
     automator.clickCenter(confirm)
   }
   sleep(1000)
-  let confirmCollect = widgetUtils.widgetGetOne('收下了')
+  let confirmCollect = widgetUtils.widgetGetOne('收下了|我知道了')
   if (confirmCollect) {
     let point = confirmCollect.bounds()
-    floatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, "收下了")
+    floatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, confirmCollect.text() || confirmCollect.desc())
     confirmCollect.click()
     setExecuted()
   } else {
-    warnInfo(['没有收下了按钮，可能已经助力过或者被拉黑了'])
+    warnInfo(['没有收下/我知道了按钮，可能已经助力过或者被拉黑了'])
   }
 }
 
