@@ -72,6 +72,10 @@ if (config.accounts && config.accounts.length > 1) {
       LogFloaty.pushLog('账号' + account + '已执行，跳过')
       return
     }
+    if ((config.no_family_accounts||[]).indexOf(account) > -1) {
+      LogFloaty.pushLog('账号' + account + '未加入家庭，跳过')
+      return
+    }
 
     currentRunningAccount = account
     LogFloaty.pushLog('准备切换账号为：' + account)

@@ -5,12 +5,15 @@ const AccountManager = {
     return {
       configs: {
         main_account: '',
+        family_feed_account: '',
         accounts: [
           // 多个账号就多设置几个
           // account 是多账号切换界面脱敏文本，shareUrl 分享链接获取，可以是https开头的原始链接 也可以是处理后的 
-          { account: '189***24', shareUrl: 'alipays://platformapi/startapp?appId=68687809&backgroundColor=16505470&ttb=always&url=%2Fwww%2Fgame.html%3FshareId%3DMjA4ODMwMjEwNzU4MzU0MDFoc3hmeUFOVFNUQUxMX1AyUF9TSEFSRVI=%26shareCoinDisplayAmount=100&source=hyyaoqing&chInfo=hyyaoqing&fxzjshareChinfo=ch_share__chsub_CopyLink&apshareid=c0c75eb5-268e-4341-b13a-d253e51aefa5&shareBizType=ztokenV0_GRuRWlSG' },
+          { account: '189***11', shareUrl: 'alipays://platformapi/startapp?appId=68687809&backgroundColor=16505470&ttb=always&url=%2Fwww%2Fgame.html%3FshareId%3DMjA4ODMwMjEwNzU4MzU0MDFoc3hmeUFOVFNUQUxMX1AyUF9TSEFSRVI=%26shareCoinDisplayAmount=100&source=hyyaoqing&chInfo=hyyaoqing&fxzjshareChinfo=ch_share__chsub_CopyLink&apshareid=c0c75eb5-268e-4341-b13a-d253e51aefa5&shareBizType=ztokenV0_GRuRWlSG' },
+          { account: '189***22', shareUrl: 'alipays://platformapi/startapp?appId=68687809&backgroundColor=16505470&ttb=always&url=%2Fwww%2Fgame.html%3FshareId%3DMjA4ODMwMjEwNzU4MzU0MDFoc3hmeUFOVFNUQUxMX1AyUF9TSEFSRVI=%26shareCoinDisplayAmount=100&source=hyyaoqing&chInfo=hyyaoqing&fxzjshareChinfo=ch_share__chsub_CopyLink&apshareid=c0c75eb5-268e-4341-b13a-d253e51aefa5&shareBizType=ztokenV0_GRuRWlSG' },
         ],
         main_account_avatar: '',
+        no_family_accounts: [],
       },
       showAddAccountDialog: false,
       isEdit: false,
@@ -83,6 +86,17 @@ const AccountManager = {
     },
     changeMainAccount: function (idx) {
       this.configs.main_account = this.configs.accounts[idx].account
+    },
+    changeFeedAccount: function (idx) {
+      this.configs.family_feed_account = this.configs.accounts[idx].account
+    },
+    toggleChecked: function (idx) {
+      let account = this.configs.accounts[idx].account
+      if (this.configs.no_family_accounts.indexOf(account) < 0) {
+        this.configs.no_family_accounts.push(account)
+      } else {
+        this.configs.no_family_accounts.splice(this.configs.no_family_accounts.indexOf(account), 1)
+      }
     },
     onConfigLoad (config) {
       this.configs.main_account_avatar = config.image_config.main_account_avatar
@@ -159,6 +173,42 @@ const AccountManager = {
         </div>
       </van-cell-group>
     </van-radio-group>
+    <van-cell-group>
+      <van-cell title="当前投喂账号" :value="configs.family_feed_account" >
+      </van-cell>
+    </van-cell-group>
+    <tip-block>配置家庭投喂所使用的账号，家庭投喂每天消耗4*3=12个美食，一个账号可以使用的美食可能不够，可以切换到小号进行家庭投喂。</tip-block>
+    <tip-block>对相应文件设置每日定时任务</tip-block>
+    <tip-block>unit/家庭投喂-使用小号投喂.js</tip-block>
+    <van-radio-group v-model="configs.family_feed_account">
+      <van-cell-group>
+        <div style="overflow:scroll;padding:1rem;background:#f1f1f1;">
+          <van-swipe-cell v-for="(accountInfo,idx) in configs.accounts" :key="accountInfo.account" stop-propagation>
+            <van-cell :title="accountInfo.account" clickable  @click="changeFeedAccount(idx)">
+              <template #right-icon>
+                <van-radio :name="accountInfo.account" />
+              </template>
+            </van-cell>
+          </van-swipe-cell>
+        </div>
+      </van-cell-group>
+    </van-radio-group>
+    <tip-block>家庭签到，如果小号没有实名认证，无法加入家庭，也就是无需进行家庭签到，需要在下面勾选一下，避免浪费时间。</tip-block>
+    <tip-block>对相应文件设置每日定时任务</tip-block>
+    <tip-block>unit/大小号循环家庭签到.js</tip-block>
+    <van-checkbox-group v-model="configs.no_family_accounts">
+      <van-cell-group>
+        <div style="overflow:scroll;padding:1rem;background:#f1f1f1;">
+          <van-swipe-cell v-for="(accountInfo,idx) in configs.accounts" :key="accountInfo.account" stop-propagation>
+            <van-cell :title="accountInfo.account" clickable @click="toggleChecked(idx)">
+              <template #right-icon>
+                <van-checkbox :name="accountInfo.account" />
+              </template>
+            </van-cell>
+          </van-swipe-cell>
+        </div>
+      </van-cell-group>
+    </van-checkbox-group>
     <van-dialog v-model="showAddAccountDialog" title="增加账号" show-cancel-button @confirm="confirmAction" :get-container="getContainer">
       <van-field v-model="newAccount" placeholder="请输入带星号的脱敏账号名称" label="账号名" />
       <van-field v-model="newShareUrl" placeholder="请输入账号分享链接" label="分享链接" />

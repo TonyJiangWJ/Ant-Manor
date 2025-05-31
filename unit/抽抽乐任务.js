@@ -130,23 +130,25 @@ function LuckyDrawRunner () {
     }
     return false
   }
+
   this.enterLuckDraw = function () {
     LogFloaty.pushLog('等待打开蚂蚁庄园界面')
-    let retryCount = 0
-    while (!manorRunner.launchApp(false, true) && retryCount++ < 3) {
+    let retryCount = 0, entered = false
+    while (!(entered = manorRunner.launchApp(false, true)) && retryCount++ < 3) {
       // 等待打开
       LogFloaty.pushErrorLog('打开蚂蚁庄园界面失败，等待重试' + retryCount)
     }
-    if (!manorRunner.waitForOwn(true)) {
-      LogFloaty.pushErrorLog('校验失败，进入家庭页面失败')
+    if (!entered) {
+      LogFloaty.pushErrorLog('进入小鸡页面失败')
       return false
     }
+    LogFloaty.pushLog('进入小鸡界面成功')
     // 等待界面加载完毕
     sleep(1000)
     return this.doOpenLuckyDraw()
   }
 
-  this.doOpenLuckyDraw = function () {
+  this.doOpenLuckyDraw = function (forceOpen) {
     let screen = commonFunctions.captureScreen()
     if (screen) {
       let region = [0, 0, config.device_width / 2, config.device_height / 2]
@@ -176,24 +178,23 @@ function LuckyDrawRunner () {
         if (this.checkIsEntered()) {
           return true
         }
-        LogFloaty.pushLog('未能进入界面，二次校验入口')
-        results = localOcrUtil.recognizeWithBounds(commonFunctions.captureScreen(), null, '抽抽乐')
-        if (results && results.length > 0) {
-          LogFloaty.pushLog('ocr找到了任务入口')
-          targetBd = results[0].bounds
-          target = {
-            x: targetBd.centerX(),
-            y: targetBd.centerY()
-          }
-          automator.click(target.x, target.y)
-          sleep(1000)
-          return this.checkIsEntered()
-        }
-        LogFloaty.pushErrorLog('进入抽抽乐界面失败')
-        return false
       } else {
         LogFloaty.pushErrorLog('ocr未能找到入口')
       }
+      LogFloaty.pushLog('未能进入界面，二次校验入口')
+      results = localOcrUtil.recognizeWithBounds(commonFunctions.captureScreen(), null, '抽抽乐')
+      if (results && results.length > 0) {
+        LogFloaty.pushLog('ocr找到了任务入口')
+        targetBd = results[0].bounds
+        target = {
+          x: targetBd.centerX(),
+          y: targetBd.centerY()
+        }
+        automator.click(target.x, target.y)
+        sleep(1000)
+        return this.checkIsEntered()
+      }
+      LogFloaty.pushErrorLog('OCR方式进入抽抽乐界面失败')
     } else {
       LogFloaty.pushErrorLog('获取截图失败')
     }
@@ -202,6 +203,10 @@ function LuckyDrawRunner () {
       LogFloaty.pushLog('找到了领饲料按钮 点击进入')
       click(findTarget.x, findTarget.y)
       sleep(2000)
+    } else {
+      findTarget = widgetUtils.widgetGetOne('.*抽抽乐.*', 2000)
+    }
+    if (findTarget) {
       let targetWidget = widgetUtils.widgetGetOne('.*抽抽乐.*')
       if (targetWidget) {
         targetWidget.click()
@@ -209,6 +214,11 @@ function LuckyDrawRunner () {
         return this.checkIsEntered()
       }
       LogFloaty.pushErrorLog('未找到 抽抽乐 入口控件')
+    }
+    if (forceOpen) {
+      LogFloaty.pushErrorLog('未能打开抽抽乐界面，尝试关闭并重新打开')
+      commonFunctions.minimize()
+      return this.enterLuckDraw()
     }
     return false
   }
@@ -272,7 +282,7 @@ function LuckyDrawRunner () {
         } else {
           LogFloaty.pushErrorLog('未能找到关闭按钮 直接返回 重新进入')
           automator.back()
-          if (this.doOpenLuckyDraw()) {
+          if (this.doOpenLuckyDraw(true)) {
             sleep(1000)
             return this.doDraw()
           }
@@ -287,7 +297,7 @@ function LuckyDrawRunner () {
       LogFloaty.pushErrorLog('未能找到抽奖按钮 重新进入页面')
       automator.back()
 
-      if (this.doOpenLuckyDraw()) {
+      if (this.doOpenLuckyDraw(true)) {
         sleep(1000)
         return this.doDraw(retry)
       }
@@ -395,7 +405,7 @@ function LuckyDrawRunner () {
       LogFloaty.pushLog('未找到 消耗饲料换机会按钮 可能控件被隐藏了')
       automator.back()
       sleep(1000)
-      if (this.doOpenLuckyDraw()) {
+      if (this.doOpenLuckyDraw(true)) {
         sleep(1000)
         return this.changeFood(tryLimit + 1)
       }
@@ -427,7 +437,7 @@ function LuckyDrawRunner () {
       LogFloaty.pushLog('未找到 每日签到 可能控件被隐藏了')
       automator.back()
       sleep(1000)
-      if (this.doOpenLuckyDraw()) {
+      if (this.doOpenLuckyDraw(true)) {
         sleep(1000)
         return this.dailySign(tryLimit + 1)
       }

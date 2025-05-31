@@ -932,10 +932,10 @@ function VillageRunner () {
     LogFloaty.pushLog('等待进入设置界面加载')
     let killed = false
     sleep(1000)
-    let stop = widgetUtils.widgetWaiting('结束运行', null, 3800)
+    let stop = widgetUtils.widgetWaiting(villageConfig.kill_alipay_text || '结束运行', null, 3800)
     if (stop) {
       sleep(1000)
-      stop = widgetUtils.widgetGetOne('结束运行')
+      stop = widgetUtils.widgetGetOne(villageConfig.kill_alipay_text || '结束运行')
       automator.clickCenter(stop)
       sleep(1000)
       let confirm = widgetUtils.widgetGetOne('确定')

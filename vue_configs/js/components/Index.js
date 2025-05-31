@@ -41,7 +41,7 @@ let Index = {
           link: '/advance/common'
         },
         {
-          title: '新村助力设置',
+          title: '新村助力及大小号配置',
           link: '/village/share'
         },
         {
