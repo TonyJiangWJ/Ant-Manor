@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2019-11-27 09:03:57
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2025-05-12 07:09:09
+ * @Last Modified time: 2025-05-31 22:19:46
  * @Description: 
  */
 require('./lib/Runtimes.js')(global)
@@ -23,6 +23,10 @@ var default_config = {
   force_check_thief: true,
   // 是否记录鸡蛋进度
   persist_egg_progress: false,
+  // 家庭投喂使用的账号
+  family_feed_account: null,
+  // 未加入家庭的账号 无需进行家庭签到
+  no_family_accounts: [],
   yolo_shape_size: 480,
   yolo_confidence_threshold: 0.5,
   yolo_model_path: '/config_data/manor_lite.onnx',
@@ -208,6 +212,7 @@ let default_village_config = {
   award_close_specific: false,
   award_close_x: 0,
   award_close_y: 0,
+  kill_alipay_text: '结束运行',
 }
 default_config.village_config = default_village_config
 // 兼容旧版本
@@ -231,4 +236,4 @@ config.fodder_config = config.convertDefaultData(default_fodder_config, CONFIG_S
 config.ai_type = config.fodder_config.ai_type
 config.kimi_api_key = config.fodder_config.kimi_api_key
 config.chatgml_api_key = config.fodder_config.chatgml_api_key
-config.code_version = 'v1.3.7.2'
+config.code_version = 'v1.3.7.3'

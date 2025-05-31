@@ -210,7 +210,7 @@ function FamilySinger () {
   this.donateEgg = function () {
     LogFloaty.pushLog('查找去捐蛋')
     // TODO 使控件可见
-    let donateEggEntry = ensureVisible(() => widgetUtils.widgetGetOne('.*去捐蛋.*'), {top: config.device_height * 0.5, bottom: config.device_height - config.scaleRate * 300})
+    let donateEggEntry = ensureVisible(() => widgetUtils.widgetGetOne('.*去捐蛋.*'), { top: config.device_height * 0.5, bottom: config.device_height - config.scaleRate * 300 })
     if (donateEggEntry) {
       LogFloaty.pushLog('找到了去捐蛋')
       automator.clickCenter(donateEggEntry)
@@ -340,6 +340,22 @@ function FamilySinger () {
       if (manorRunner.checkByOcr(ocrRegion, '家庭管理|立即签到')) {
         LogFloaty.pushLog('找到了 家庭管理|立即签到')
         return true
+      }
+      LogFloaty.pushLog('检查是否存在弹窗')
+      let closeBtn = selector().clickable().filter(node => {
+        let bd = node.bounds()
+        let rate = bd.width() / bd.height()
+        let centerX = bd.centerX()
+        let centerY = bd.centerY()
+        if (centerY < config.device_height / 2) {
+          return false
+        }
+        return rate > 0.95 && rate < 1.05 && centerX > config.device_width * 0.49 && centerX < config.device_width * 0.51
+      }).findOne(1000)
+      if (closeBtn) {
+        LogFloaty.pushLog('找到了关闭弹窗按钮')
+        yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '关闭弹窗', 'close_icon')
+        closeBtn.click()
       }
     } while (--limit > 0)
     LogFloaty.pushErrorLog('无法校验当前是否成功进入家庭页面')

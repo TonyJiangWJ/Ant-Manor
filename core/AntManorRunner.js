@@ -216,6 +216,11 @@ function AntManorRunner () {
   }
 
   this.closeDialogIfExist = function () {
+    LogFloaty.pushLog('检查是否存在弹窗')
+    if (this.yoloCheck('小鸡', { labelRegex: 'eating_chicken|hungry_chicken' })) {
+      LogFloaty.pushLog('小鸡可见，不存在弹窗')
+      return false
+    }
     let closeBtn = widgetUtils.widgetGetOne('关闭', {
       timeout: 2000, appendFilter: (matcher) => {
         return matcher.filter(node => {
@@ -236,11 +241,11 @@ function AntManorRunner () {
       }
     })
     if (closeBtn) {
+      LogFloaty.pushLog('存在弹窗')
       yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '关闭弹窗', 'close_icon')
       WarningFloaty.addRectangle('关闭按钮', widgetUtils.boundsToRegion(closeBtn.bounds()))
       closeBtn.click()
     }
-
     this.closeDialogIfExistByYolo()
   }
 
@@ -248,8 +253,10 @@ function AntManorRunner () {
     if (!YoloDetection.enabled) {
       return
     }
+    LogFloaty.pushLog('通过YOLO方式检查是否存在弹窗')
     let findTarget = this.yoloCheck('关闭弹窗', { labelRegex: 'close_icon' })
     if (findTarget) {
+      LogFloaty.pushLog('存在弹窗')
       yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '关闭弹窗', 'close_icon')
       this.setFloatyInfo(findTarget, '关闭弹窗')
       click(findTarget.x, findTarget.y)

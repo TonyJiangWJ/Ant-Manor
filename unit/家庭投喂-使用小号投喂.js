@@ -129,7 +129,11 @@ exit()
 
 function changeToSubAccount () {
   if (config.accounts && config.accounts.length > 1) {
-    let targetAccount = config.accounts.filter(info => info.account != config.main_account)[0].account
+    if (!config.family_feed_account) {
+      LogFloaty.pushErrorLog('请配置小号账号，当前将使用主账号进行投喂')
+      config.family_feed_account = config.main_account
+    }
+    let targetAccount = config.accounts.filter(info => info.account == config.family_feed_account)[0].account
     LogFloaty.pushLog('准备切换到小号：' + targetAccount)
     changeAccount(targetAccount)
     LogFloaty.pushLog('小号切换完毕，等待执行')
