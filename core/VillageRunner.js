@@ -233,7 +233,12 @@ function VillageRunner () {
       FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '右侧有空位')
       yoloTrainHelper.saveImage(screen, '右侧有空位', 'empty_booth')
       sleep(1000)
-      inviteFriend(point)
+      if (!inviteFriend(point)) {
+        warnInfo('无可邀请好友，不再检查空位')
+        automator.click(config.device_width / 2, config.device_height * 0.1)
+        noMoreFriend = true
+        sleep(1000)
+      }
     }
     WarningFloaty.clearAll()
   }
