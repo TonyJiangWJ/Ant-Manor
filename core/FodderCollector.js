@@ -23,17 +23,29 @@ function Collector () {
 
   this.imageConfig = config.fodder_config
 
+  /**
+   * 
+   * @param {number} taskLimit 任务数量限制
+   * @param {boolean} skipMainAccountTask 是否跳过主账号任务 比如鲸探需要实名认证 未实名的小号无法执行
+   */
   this.exec = function (taskLimit, skipMainAccountTask) {
     this.currentVolume = device.getMusicVolume()
     // 标记需要重置音量
     this.reseted = false
-    LogFloaty.pushLog('当前音量：' + this.currentVolume + ' 设置为静音')
-    device.setMusicVolume(0)
+    LogFloaty.pushLog('当前音量：' + this.currentVolume)
     // 注册脚本退出时重置音量
     commonFunctions.registerOnEngineRemoved(resetMusicVolume, 'reset_volume')
     try {
       if (this.openCollectFood()) {
         sleep(1000)
+        if (skipMainAccountTask) {
+          // 小号执行 先执行领取饲料
+          if (this.collectAllIfExists(true)) {
+            LogFloaty.pushLog('当前饲料已满 不再执行任务')
+            this.closeFoodCollection()
+            return
+          }
+        }
         this.doDailyTasks(taskLimit, skipMainAccountTask)
         LogFloaty.pushLog('每日任务执行完毕，开始收集可收取饲料')
         this.collectAllIfExists()
@@ -126,6 +138,11 @@ function Collector () {
     }
   }
 
+  /**
+   * 
+   * @param {number} taskLimit 任务数量限制
+   * @param {boolean} skipMainAccountTask 是否跳过主账号任务 比如鲸探需要实名认证 未实名的小号无法执行
+   */
   this.doDailyTasks = function (taskLimit, skipMainAccountTask) {
     let taskCount = 0;
     [
@@ -245,6 +262,8 @@ function Collector () {
       executed = false
       let taskSuccess = findAndOpenTaskPage(titleRegex, null, result => {
         if (result.enter) {
+          // 真正执行任务时才静音
+          device.setMusicVolume(0)
           LogFloaty.pushLog('等待进入通用任务界面:' + (result.title.text() || result.title.desc()))
           skipTitles.push(result.title.text() || result.title.desc())
           let limit = 20
@@ -332,6 +351,8 @@ function Collector () {
     LogFloaty.pushLog('查找看视频')
     return findAndOpenTaskPage('.*庄园小视频.*', null, ({ enter }) => {
       if (enter) {
+        // 真正执行任务时才静音
+        device.setMusicVolume(0)
         sleep(1000)
         LogFloaty.pushLog('看视频 等待倒计时结束')
         let limit = 20
@@ -536,18 +557,24 @@ function Collector () {
     return allCollect && allCollect.length > 0
   }
 
-  this.collectAllIfExists = function () {
+  this.collectAllIfExists = function (doNotClose) {
     LogFloaty.pushLog('查找 领取 按钮')
+    let isFull = false
     let allCollect = widgetUtils.widgetGetAll(collectBtnContetRegex)
     if (allCollect && allCollect.length > 0) {
       for (let i = 0; i < allCollect.length; i++) {
         allCollect[i].click()
+        sleep(1000)
         if (this.checkIsFull()) {
+          isFull = true
           break
         }
       }
     }
-    this.closeFoodCollection()
+    if (!doNotClose) {
+      this.closeFoodCollection()
+    }
+    return isFull
   }
 
   this.checkIsFull = function () {
