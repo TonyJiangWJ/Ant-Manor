@@ -60,7 +60,7 @@ unlocker.exec()
 commonFunctions.requestScreenCaptureOrRestart()
 
 if (!config.main_account || config.accounts.length <= 0) {
-  toastLog('未配置多账号，或账号信息为空，无法进行助力')
+  toastLog('未配置多账号，或账号信息为空，无法进行循环')
   exit()
 }
 
@@ -77,7 +77,15 @@ require('../lib/WebsocketCaptureHijack.js')()
 
 let currentRunningAccount = ''
 // 每五分钟延迟一下任务 避免任务执行太慢被抢占
-setInterval(() => runningQueueDispatcher.renewalRunningTask(), 5 *60000)
+threads.start(function () {
+  while (config.isRunning) {
+    sleep(5 * 60000)
+    if (!config.isRunning) {
+      break
+    }
+    runningQueueDispatcher.renewalRunningTask()
+  }
+})
 
 if (config.accounts && config.accounts.length > 1) {
 

@@ -31,6 +31,7 @@ function LuckyDrawRunner () {
           failToExecute = false
         } else {
           this.doTasks()
+          this.doCollectAll()
           this.doDraw()
           failToExecute = false
         }
@@ -52,6 +53,9 @@ function LuckyDrawRunner () {
   }
 
   this.checkIsEvent = function () {
+    LogFloaty.pushLog('等待界面加载完毕')
+    widgetUtils.widgetWaiting('每日签到.*')
+    sleep(500)
     let appContainer = widgetUtils.widgetGetById('app')
     if (appContainer) {
       let subContainer = appContainer.child(0)
@@ -61,9 +65,16 @@ function LuckyDrawRunner () {
           this._has_event_tab = true
           LogFloaty.pushLog('当前抽抽乐有活动信息')
           return true
+        } else {
+          LogFloaty.pushWarningLog('子控件不符合活动信息判断条件')
         }
+      } else {
+        LogFloaty.pushWarningLog('app子控件不存在')
       }
+    } else {
+      LogFloaty.pushErrorLog('未找到id为app的控件 活动信息判断可能有误')
     }
+    LogFloaty.pushLog('当前抽抽乐无活动信息')
     return false
   }
 
@@ -95,7 +106,24 @@ function LuckyDrawRunner () {
     return this.doOpenLuckyDraw()
   }
 
-  this.doOpenLuckyDraw = function (forceOpen) {
+  this.enterLuckyDrawByOcr = function () {
+
+    function checkDialogEntry () {
+      sleep(1000)
+      let results = localOcrUtil.recognizeWithBounds(commonFunctions.captureScreen(), null, '去抽装扮')
+      if (results && results.length > 0) {
+        LogFloaty.pushLog('找到了 去抽装扮')
+        targetBd = results[0].bounds
+        target = {
+          x: targetBd.centerX(),
+          y: targetBd.centerY()
+        }
+        automator.click(target.x, target.y)
+      } else {
+        LogFloaty.pushLog('未找到 去抽装扮 直接点击中心点')
+        automator.click(config.device_width / 2, config.device_height / 2)
+      }
+    }
     let screen = commonFunctions.captureScreen()
     if (screen) {
       let region = [0, 0, config.device_width / 2, config.device_height / 2]
@@ -109,19 +137,7 @@ function LuckyDrawRunner () {
         }
         automator.click(target.x, target.y)
         sleep(1000)
-        results = localOcrUtil.recognizeWithBounds(commonFunctions.captureScreen(), null, '去抽装扮')
-        if (results && results.length > 0) {
-          LogFloaty.pushLog('找到了 去抽装扮')
-          targetBd = results[0].bounds
-          target = {
-            x: targetBd.centerX(),
-            y: targetBd.centerY()
-          }
-          automator.click(target.x, target.y)
-        } else {
-          LogFloaty.pushLog('未找到 去抽装扮 直接点击中心点')
-          automator.click(config.device_width / 2, config.device_height / 2)
-        }
+        checkDialogEntry()
         if (this.checkIsEntered()) {
           return true
         }
@@ -138,26 +154,21 @@ function LuckyDrawRunner () {
           y: targetBd.centerY()
         }
         automator.click(target.x, target.y)
-        sleep(1000)
-        results = localOcrUtil.recognizeWithBounds(commonFunctions.captureScreen(), null, '去抽装扮')
-        if (results && results.length > 0) {
-          LogFloaty.pushLog('找到了 去抽装扮')
-          targetBd = results[0].bounds
-          target = {
-            x: targetBd.centerX(),
-            y: targetBd.centerY()
-          }
-          automator.click(target.x, target.y)
-        } else {
-          LogFloaty.pushLog('未找到 去抽装扮 直接点击中心点')
-          automator.click(config.device_width / 2, config.device_height / 2)
-        }
+        checkDialogEntry()
         return this.checkIsEntered()
       }
       LogFloaty.pushErrorLog('OCR方式进入抽抽乐界面失败')
     } else {
       LogFloaty.pushErrorLog('获取截图失败')
     }
+    return false
+  }
+
+  this.doOpenLuckyDraw = function (forceOpen) {
+    if (this.enterLuckyDrawByOcr()) {
+      return true
+    }
+    LogFloaty.pushLog('尝试通过领饲料抽屉检测抽抽乐入口')
     let findTarget = manorRunner.yoloCheck('领饲料入口', { labelRegex: 'collect_food' })
     if (findTarget) {
       LogFloaty.pushLog('找到了领饲料按钮 点击进入')
@@ -184,7 +195,7 @@ function LuckyDrawRunner () {
   }
 
   this.checkIsEntered = function () {
-    let entered = widgetUtils.widgetWaiting('还剩\\d+次机会')
+    let entered = widgetUtils.widgetGetById('com.alipay.multiplatform.phone.xriver_integration:id/frameLayout_customContainer')
     if (entered) {
       if (this._has_event_tab) {
         if (this.executeMode === 'event') {
@@ -203,6 +214,8 @@ function LuckyDrawRunner () {
           }
         }
       }
+    } else {
+      LogFloaty.pushErrorLog('未找到 抽抽乐 页面控件 进入活动页面失败')
     }
     return entered
   }
@@ -217,8 +230,9 @@ function LuckyDrawRunner () {
   this.doDraw = function (retry) {
     let clickBtn = widgetUtils.widgetGetOne('还剩\\d+次机会')
     if (clickBtn) {
-      LogFloaty.pushLog('执行抽奖：' + clickBtn.text())
-      if (/0次机会/.test(clickBtn.text())) {
+      LogFloaty.pushLog('抽奖按钮文本：' + clickBtn.text())
+      if (/\D0次机会/.test(clickBtn.text())) {
+        LogFloaty.pushLog('抽奖次数已用完')
         return
       }
       automator.clickCenter(clickBtn)
@@ -255,14 +269,26 @@ function LuckyDrawRunner () {
         return
       }
       LogFloaty.pushErrorLog('未能找到抽奖按钮 重新进入页面')
-      automator.back()
-
-      if (this.doOpenLuckyDraw(true)) {
-        sleep(1000)
-        return this.doDraw(retry)
+      if (this.backAndReopen()) {
+        return this.doDraw(true)
+      } else {
+        LogFloaty.pushErrorLog('未能重新打开抽抽乐，退出执行')
       }
     }
     return
+  }
+
+  this.backAndReopen = function () {
+    auto.clearCache && auto.clearCache()
+    LogFloaty.pushLog('返回上一页')
+    automator.back()
+    sleep(1000)
+    if (this.doOpenLuckyDraw(true)) {
+      return true
+    } else {
+      LogFloaty.pushErrorLog('未能重新打开抽抽乐，尝试重新打开小鸡界面')
+      return this.enterLuckDraw()
+    }
   }
 
   this.doHangTask = function () {
@@ -275,8 +301,13 @@ function LuckyDrawRunner () {
         executeBtn.click()
         sleep(1000)
         hangTitle = widgetUtils.widgetGetOne(/去杂货铺逛一逛.*/)
-        currentIndex = hangTitle.indexInParent()
-        executeBtn = hangTitle.parent().child(currentIndex + 2)
+        if (hangTitle) {
+          currentIndex = hangTitle.indexInParent()
+          executeBtn = hangTitle.parent().child(currentIndex + 2)
+        } else {
+          LogFloaty.pushErrorLog('未找到去杂货铺逛一逛按钮 尝试重新获取')
+          return this.doHangTask()
+        }
       }
       if (!/.*\([012]\/3\)/.test(hangTitle.text())) {
         LogFloaty.pushLog('杂货铺任务已完成')
@@ -340,8 +371,44 @@ function LuckyDrawRunner () {
     automator.back()
   }
 
-  this.changeFood = function (tryLimit) {
+  this.changeFood = function (tryLimit, forceOcr) {
+    let _this = this
+    function executeChangeAndCheckNext (target, forceNextOcr) {
+      automator.clickCenter(target)
+      sleep(1000)
+      let confirm = widgetUtils.widgetGetOne('确认兑换')
+      if (confirm) {
+        automator.clickCenter(confirm)
+        sleep(2000)
+      }
+      LogFloaty.pushLog('查找是否还能兑换')
+      sleep(1000)
+      return _this.changeFood(tryLimit, forceNextOcr)
+    }
     tryLimit = tryLimit || 1
+    // 第二次执行直接通过OCR检查 避免控件无效
+    if (forceOcr) {
+      automator.gestureDown()
+      // 通过ocr方式识别换饲料机会
+      let ocrResult = manorRunner.checkByOcr(null, '消耗饲料换机会.*', true)
+      if (ocrResult) {
+        if (/消耗饲料换机会.*[01]\/2/.test(ocrResult.label)) {
+          LogFloaty.pushLog('通过OCR识别到换饲料机会')
+          let target = ocrResult.target
+          let finishBtnRegion = [config.device_width / 2, target.bounds().top, config.device_width / 2, target.bounds().height() * 3]
+          let finishBtn = manorRunner.checkByOcr(finishBtnRegion, '去完成', true)
+          if (finishBtn) {
+            LogFloaty.pushLog('通过OCR识别到去完成按钮')
+            return executeChangeAndCheckNext(finishBtn.target)
+          } else {
+            LogFloaty.pushWarningLog('未能通过OCR识别到去完成按钮')
+          }
+        } else if (/消耗饲料换机会.*2\/2/.test(ocrResult.label)) {
+          LogFloaty.pushLog('饲料换取机会已用完')
+          return
+        }
+      }
+    }
     let changeTitle = widgetUtils.widgetGetOne(/消耗饲料换机会.*/)
     if (changeTitle) {
       let currentIndex = changeTitle.indexInParent()
@@ -351,27 +418,18 @@ function LuckyDrawRunner () {
         return
       }
       this.lastChangeTitle = changeTitle.text()
-      automator.clickCenter(executeBtn)
-      sleep(1000)
-      let confirm = widgetUtils.widgetGetOne('确认兑换')
-      if (confirm) {
-        automator.clickCenter(confirm)
-        sleep(2000)
-      }
-      LogFloaty.pushLog('查找是否还能兑换')
-      sleep(1000)
-      return this.changeFood(tryLimit)
+      return executeChangeAndCheckNext(executeBtn, true)
     } else {
-      if (tryLimit > 3) {
+      if (tryLimit >= 3) {
         LogFloaty.pushErrorLog('多次未找到换饲料控件 退出执行')
         return
       }
       LogFloaty.pushLog('未找到 消耗饲料换机会按钮 可能控件被隐藏了')
-      automator.back()
-      sleep(1000)
-      if (this.doOpenLuckyDraw(true)) {
+      if (this.backAndReopen()) {
         sleep(1000)
         return this.changeFood(tryLimit + 1)
+      } else {
+        LogFloaty.pushErrorLog('未能重新打开抽抽乐，退出执行')
       }
     }
     return
@@ -394,16 +452,17 @@ function LuckyDrawRunner () {
       }
 
     } else {
-      if (tryLimit > 3) {
+      if (tryLimit >= 3) {
         LogFloaty.pushErrorLog('多次未找到签到控件 退出执行')
         return
       }
       LogFloaty.pushLog('未找到 每日签到 可能控件被隐藏了')
-      automator.back()
-      sleep(1000)
-      if (this.doOpenLuckyDraw(true)) {
+
+      if (this.backAndReopen()) {
         sleep(1000)
         return this.dailySign(tryLimit + 1)
+      } else {
+        LogFloaty.pushErrorLog('未能重新打开抽抽乐，退出执行')
       }
     }
     return
