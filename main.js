@@ -36,6 +36,12 @@ commonFunctions.registerOnEngineRemoved(function () {
   flushAllLogs()
   // 针对免费版内存主动释放，Pro版不需要
   commonFunctions.reduceConsoleLogs()
+
+  // 脚本退出时锁定屏幕
+  if (config.auto_lock === true && unlocker.needRelock() === true) {
+    debugInfo('重新锁定屏幕')
+    automator.lockScreen()
+  }
   // 移除运行中任务
   runningQueueDispatcher.removeRunningTask(true, true,
     // 执行一些必须在当前脚本加入过队列后才能执行的代码
@@ -142,11 +148,7 @@ if (config.develop_mode) {
     commonFunctions.setUpAutoStart(3)
   }
 }
-if (config.auto_lock === true && unlocker.needRelock() === true) {
-  debugInfo('重新锁定屏幕')
-  automator.lockScreen()
-  unlocker.saveNeedRelock(true)
-}
+
 FloatyInstance.close()
 runningQueueDispatcher.removeRunningTask(true)
 exit()

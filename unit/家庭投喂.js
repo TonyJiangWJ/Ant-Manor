@@ -50,6 +50,8 @@ unlocker.exec()
 commonFunctions.showCommonDialogAndWait('蚂蚁庄园家庭投喂')
 commonFunctions.listenDelayStart()
 commonFunctions.requestScreenCaptureOrRestart(true)
+commonFunctions.backHomeIfInVideoPackage()
+
 NotificationHelper.cancelNotice()
 // 实时监控截图内容
 require('../lib/WebsocketCaptureHijack.js')()

@@ -56,6 +56,8 @@ if (!floatyInstance.init()) {
 floatyInstance.enableLog()
 commonFunctions.showCommonDialogAndWait('切换小号给大号助力')
 commonFunctions.listenDelayStart()
+commonFunctions.backHomeIfInVideoPackage()
+
 let villageConfig = config.village_config
 let helpOthersUrl = null
 // 帮助别人助力

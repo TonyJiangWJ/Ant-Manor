@@ -55,6 +55,8 @@ if (!floatyInstance.init()) {
 floatyInstance.enableLog()
 commonFunctions.showCommonDialogAndWait('切换小号执行喂鸡')
 commonFunctions.listenDelayStart()
+commonFunctions.backHomeIfInVideoPackage()
+
 // 实时监控截图内容
 require('../lib/WebsocketCaptureHijack.js')()
 

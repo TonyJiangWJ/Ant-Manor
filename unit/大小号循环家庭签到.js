@@ -18,6 +18,18 @@ let { logInfo, errorInfo, warnInfo, debugInfo, infoLog } = singletonRequire('Log
 let localOcr = require('../lib/LocalOcrUtil.js')
 let DAILY_TASK_DONE = "DAILY_TASK_DONE"
 storageFactory.initFactoryByKey(DAILY_TASK_DONE, { executed: {} })
+// 检查待执行账号列表
+let accounts = config.accounts.filter((accountInfo, idx) => {
+  let { account } = accountInfo
+  if (storageFactory.getValueByKey(DAILY_TASK_DONE).executed[account]) {
+    return false
+  }
+  return true
+})
+if (accounts.length == 0) {
+  warnInfo(['今日所有账号都已经执行完毕，无需再次执行，如果需要强制执行 请运行 unit/大小号循环家庭签到-清除记录.js 消除记录后再次执行'])
+  exit()
+}
 let FamilySignRunner = require('../core/FamilySignRunner.js')
 runningQueueDispatcher.addRunningTask()
 // 注册自动移除运行中任务
@@ -56,12 +68,22 @@ if (!floatyInstance.init()) {
 floatyInstance.enableLog()
 commonFunctions.showCommonDialogAndWait('切换小号执行家庭签到')
 commonFunctions.listenDelayStart()
-
+commonFunctions.backHomeIfInVideoPackage()
 // 实时监控截图内容
 require('../lib/WebsocketCaptureHijack.js')()
 
 let currentRunningAccount = ''
 
+// 每五分钟延迟一下任务 避免任务执行太慢被抢占
+threads.start(function () {
+  while (config.isRunning) {
+    sleep(5 * 60000)
+    if (!config.isRunning) {
+      break
+    }
+    runningQueueDispatcher.renewalRunningTask()
+  }
+})
 
 if (config.accounts && config.accounts.length > 1) {
 
