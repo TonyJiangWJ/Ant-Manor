@@ -52,6 +52,8 @@ unlocker.exec()
 commonFunctions.showCommonDialogAndWait('蚂蚁庄园家庭投喂-小号投喂')
 commonFunctions.listenDelayStart()
 commonFunctions.requestScreenCaptureOrRestart(true)
+commonFunctions.backHomeIfInVideoPackage()
+
 NotificationHelper.cancelNotice()
 // 实时监控截图内容
 require('../lib/WebsocketCaptureHijack.js')()
@@ -108,7 +110,9 @@ try {
 } catch (e) {
   LogFloaty.pushErrorLog('脚本执行异常' + e)
 } finally {
-  ensureMainAccount()
+  if (config.family_feed_account != config.main_account) {
+    ensureMainAccount()
+  }
 }
 if (failToExecute) {
   LogFloaty.pushErrorLog('当前执行失败，设置五分钟后重试')
@@ -132,6 +136,10 @@ function changeToSubAccount () {
     if (!config.family_feed_account) {
       LogFloaty.pushErrorLog('请配置小号账号，当前将使用主账号进行投喂')
       config.family_feed_account = config.main_account
+    }
+    if (config.family_feed_account == config.main_account) {
+      LogFloaty.pushLog('当前投喂账号为主账号，无需切换')
+      return
     }
     let targetAccount = config.accounts.filter(info => info.account == config.family_feed_account)[0].account
     LogFloaty.pushLog('准备切换到小号：' + targetAccount)

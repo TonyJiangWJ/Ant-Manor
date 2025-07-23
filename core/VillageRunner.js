@@ -40,11 +40,17 @@ function VillageRunner () {
       checkAnyEmptyBooth()
       waitForLoading()
       checkMyBooth()
-      // 设置2小时后启动
-      let sleepTime = villageConfig.interval_time || 120
-      commonFunctions.setUpAutoStart(sleepTime)
-      NotificationHelper.createNotification('新村摆摊已完成，等待' + sleepTime + '分钟后自动启动',
-        '下次执行时间：' + formatDate(new Date(new Date().getTime() + sleepTime * 60000)))
+      if (this._should_restart_immediately) {
+        commonFunctions.setUpAutoStart(5)
+        NotificationHelper.createNotification('新村摆摊邀请异常，等待5分钟后自动启动',
+          '下次执行时间：' + formatDate(new Date(new Date().getTime() + 5 * 60000)))
+      } else {
+        // 设置2小时后启动
+        let sleepTime = villageConfig.interval_time || 120
+        commonFunctions.setUpAutoStart(sleepTime)
+        NotificationHelper.createNotification('新村摆摊已完成，等待' + sleepTime + '分钟后自动启动',
+          '下次执行时间：' + formatDate(new Date(new Date().getTime() + sleepTime * 60000)))
+      }
     } catch (e) {
       errorInfo('执行异常 五分钟后重试' + e)
       commonFunctions.setUpAutoStart(5)
@@ -181,6 +187,7 @@ function VillageRunner () {
   function checkAnyEmptyBooth () {
     LogFloaty.pushLog('准备查找是否有超时摊位')
     NotificationHelper.cancelNotice('drive_out_booth_warn')
+    NotificationHelper.cancelNotice('empty_booth_warn')
     sleep(1000)
     FloatyInstance.hide()
     if (YoloDetection.enabled) {
@@ -192,6 +199,7 @@ function VillageRunner () {
         yoloTrainHelper.saveImage(commonFunctions.captureScreen(), '无法正确校验空摊位', 'empty_booth', config.yolo_save_empty_booth_failed)
       }
     }
+    // ⬇️未开启YOLO或者YOLO识别失败
     let screen = commonFunctions.captureScreen()
     FloatyInstance.restore()
     // 移除超过一定时间的好友摊位
@@ -214,13 +222,13 @@ function VillageRunner () {
     screen = commonFunctions.captureScreen()
     FloatyInstance.restore()
     let leftEmpty = doCheckEmptyBooth(screen, villageConfig.booth_position_left)
-    let noMoreFriend = false
+    let noMoreFriend = false, inviteResult = null
     if (leftEmpty) {
       yoloTrainHelper.saveImage(screen, '左侧有空摊位', 'empty_booth')
       let point = wrapRegionForInvite(villageConfig.booth_position_left)
       FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '左侧有空位')
       sleep(1000)
-      if (!inviteFriend(point)) {
+      if (!(inviteResult = inviteFriend(point))) {
         warnInfo('无可邀请好友，不再检查空位')
         automator.click(config.device_width / 2, config.device_height * 0.1)
         noMoreFriend = true
@@ -233,7 +241,21 @@ function VillageRunner () {
       FloatyInstance.setFloatyInfo({ x: point.centerX(), y: point.centerY() }, '右侧有空位')
       yoloTrainHelper.saveImage(screen, '右侧有空位', 'empty_booth')
       sleep(1000)
-      inviteFriend(point)
+      if (!(inviteResult = inviteFriend(point))) {
+        warnInfo('无可邀请好友')
+        // 关闭抽屉
+        automator.click(config.device_width / 2, config.device_height * 0.1)
+        noMoreFriend = true
+        sleep(1000)
+      }
+    }
+    // 使用OCR兜底之后，发现邀请好友加载失败，需要脚本执行完毕后立马设置定时任务重新开始 避免因为控件获取失败导致的没有邀请
+    if (inviteResult == null) {
+      _this._should_restart_immediately = true
+    }
+    screen = commonFunctions.captureScreen()
+    if (!noMoreFriend && (doCheckEmptyBooth(screen, villageConfig.booth_position_left) || doCheckEmptyBooth(screen, villageConfig.booth_position_right))) {
+      NotificationHelper.createNotification('邀请好友失败，请注意实际界面信息', formatDate(new Date()) + '邀请好友后存在空摊位，需要关注是否正常', 'empty_booth_warn')
     }
     WarningFloaty.clearAll()
   }
@@ -258,7 +280,7 @@ function VillageRunner () {
     // 检测空摊位并邀请
     let findEmptyBooth = yoloCheckAll('空摊位', { labelRegex: 'empty_booth' })
     if (findEmptyBooth && findEmptyBooth.length > 0) {
-      let noMoreFriend = false
+      let noMoreFriend = false, inviteResult = null
       findEmptyBooth.forEach(emptyBooth => {
         if (noMoreFriend) {
           return
@@ -271,7 +293,7 @@ function VillageRunner () {
         }
         FloatyInstance.setFloatyInfo({ x: point.x, y: point.y }, '有空位点击触发邀请')
         sleep(1000)
-        if (!inviteFriend(point)) {
+        if (!(inviteResult = inviteFriend(point)) && inviteResult != null) {
           warnInfo('无可邀请好友，不再检查空位')
           automator.click(config.device_width / 2, config.device_height * 0.1)
           noMoreFriend = true
@@ -450,42 +472,33 @@ function VillageRunner () {
    * 邀请好友
    * 
    * @param {object} matchResult 
+   * @return {boolean} 是否邀请成功：true/false/null 邀请成功/无可邀请好友/界面加载失败
    */
-  function inviteFriend (matchResult) {
+  function inviteFriend (matchResult, retry) {
     FloatyInstance.setFloatyInfo({ x: matchResult.centerX(), y: matchResult.centerY() }, '邀请好友')
     sleep(1000)
     automator.click(matchResult.centerX(), matchResult.centerY())
-    widgetUtils.widgetWaiting('邀请.*摆摊', null, 3000)
-    let avatarList = widgetUtils.widgetGetAll('avatar', villageConfig.friends_finding_timeout || 8000, false, null, { algorithm: 'PDFS' })
-    if (avatarList && avatarList.length > 0) {
+    if (!widgetUtils.widgetWaiting('邀请.*摆摊', null, 3000) && !retry) {
+      warnInfo(['未能找到 邀请.*摆摊 控件信息'])
+      automator.click(config.device_width / 2, config.device_height * 0.1)
+      sleep(1000)
+      return inviteFriend(matchResult, true)
+    }
+    let find = false
+    // 旧版逻辑
+    let inviteBtnList = widgetUtils.widgetGetAll('直接邀请摆摊', villageConfig.friends_finding_timeout || 8000, false, null, { algorithm: 'PDFS' })
+    if (inviteBtnList && inviteBtnList.length > 0) {
       let invited = false
-      avatarList.forEach(avatar => {
+      inviteBtnList.forEach(inviteBtn => {
         if (invited) {
           return
         }
-        let index = avatar.indexInParent()
-        if (avatar.parent().childCount() <= index + 3) {
+        let index = inviteBtn.indexInParent()
+        if (index < 1) {
           return
         }
-        let nameWidget = avatar.parent().child(index + 1)
+        let nameWidget = inviteBtn.parent().child(index - 1)
         let name = nameWidget.desc() || nameWidget.text()
-        let inviteBtnContainer = avatar.parent().child(index + 3)
-        let inviteBtn = null
-        if (inviteBtnContainer.childCount() > 0) {
-          inviteBtn = inviteBtnContainer.child(0)
-        } else {
-          inviteBtnContainer = avatar.parent().child(index + 2)
-          if (inviteBtnContainer.childCount() > 0) {
-            inviteBtn = inviteBtnContainer.child(0)
-          } else {
-            inviteBtn = inviteBtnContainer
-          }
-        }
-        let inviteText = inviteBtn.text() || inviteBtn.desc()
-        if (inviteText !== '直接邀请摆摊') {
-          debugInfo(['好友：[{}] 不能邀请：{}', name, inviteText])
-          return
-        }
         if (typeof villageConfig != 'undefined' && villageConfig.booth_black_list && villageConfig.booth_black_list.length > 0) {
           if (villageConfig.booth_black_list.indexOf(name) > -1) {
             debugInfo(['{} 在黑名单中 跳过邀请', name])
@@ -499,9 +512,17 @@ function VillageRunner () {
       })
       return invited
     } else {
-      warnInfo('无可邀请好友', true)
-      return false
+      if (!retry) {
+        warnInfo('无法找到好友列表信息，关闭重试', true)
+        automator.click(config.device_width / 2, config.device_height * 0.1)
+        sleep(1000)
+        return inviteFriend(matchResult, true)
+      } else {
+        warnInfo(['无法找到好友列表信息，可能加载失败，需要重启脚本'])
+        return null
+      }
     }
+
   }
 
   /**
@@ -944,10 +965,12 @@ function VillageRunner () {
         killed = true
       }
     } else {
-      LogFloaty.pushWarningLog('未能找到结束运行，通过设置关闭支付宝失败')
+      LogFloaty.pushWarningLog('未能找到结束运行，通过设置关闭支付宝失败 请在蚂蚁新村设置中修改强制结束应用文本，当前配置：' + (villageConfig.kill_alipay_text || '结束运行'))
     }
     if (!killed && !rekill) {
       LogFloaty.pushLog('未能通过设置界面关闭，采用手势关闭')
+      app.launch('com.eg.android.AlipayGphone')
+      sleep(1000)
       config.killAppWithGesture = true
       commonFunctions.killCurrentApp()
       killAlipay(true)
@@ -1003,7 +1026,7 @@ function VillageRunner () {
     return result
   }
 
-  function buildChecker(title, desc, keywordInspector, justBack) {
+  function buildChecker (title, desc, keywordInspector, justBack) {
     return {
       title: title,
       desc: desc,

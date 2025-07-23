@@ -217,10 +217,11 @@ function AntManorRunner () {
 
   this.closeDialogIfExist = function () {
     LogFloaty.pushLog('检查是否存在弹窗')
-    if (this.yoloCheck('小鸡', { labelRegex: 'eating_chicken|hungry_chicken' })) {
-      LogFloaty.pushLog('小鸡可见，不存在弹窗')
-      return false
-    }
+    // shit 阴影中可以看到小鸡。。
+    // if (this.yoloCheck('小鸡', { labelRegex: 'eating_chicken|hungry_chicken' })) {
+    //   LogFloaty.pushLog('小鸡可见，不存在弹窗')
+    //   return false
+    // }
     let closeBtn = widgetUtils.widgetGetOne('关闭', {
       timeout: 2000, appendFilter: (matcher) => {
         return matcher.filter(node => {
@@ -696,58 +697,68 @@ function AntManorRunner () {
       } else {
         yoloTrainHelper.saveImage(img, '小鸡没饭吃', 'hungry_chicken')
         this.pushLog('小鸡没饭吃')
-        let feedBtn = this.yoloCheck('喂饭按钮', { confidence: 0.7, labelRegex: 'feed_btn' })
-        if (feedBtn) {
-          let feedExpand = this.yoloCheck('展开喂饭', { confidence: 0.7, labelRegex: 'feed_expand' })
-          if (feedExpand) {
-            this.setFloatyInfo(feedExpand, '展开喂饭')
-            click(feedExpand.x, feedExpand.y)
-            sleep(1000)
-            yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '饲料展开', 'feed_expanded')
-            // TODO 训练展开后的饲料按钮
-            let region = [feedExpand.x - feedExpand.width / 2, feedExpand.y - 700, feedExpand.width, 700]
-            let results = localOcr.recognizeWithBounds(_commonFunctions.captureScreen(), region, /\d+g/)
-            if (results && results.length > 0) {
-              let foodCount = results[0].label
-              let targetBd = results[0].bounds
-              let target = {
-                x: targetBd.centerX(),
-                y: targetBd.centerY()
-              }
-              let { left, top } = targetBd
-              let width = targetBd.width()
-              let height = targetBd.height()
-              WarningFloaty.addRectangle('饲料数量：' + foodCount, [left, top, width, height])
-              click(target.x, target.y)
-              feed = true
+        if (!checkHasOrNoFood) {
+          checkHasOrNoFood = this.yoloCheck('校验空饲料盆', { confidence: 0.7, labelRegex: 'no_food' })
+        }
+        if (checkHasOrNoFood) {
+          this.pushLog('点击食盆进行喂饭')
+          click(checkHasOrNoFood.x, checkHasOrNoFood.y)
+          return true
+        } else {
+          this.pushLog('未能找到空饲料盆，通过喂食按钮喂食')
+          let feedBtn = this.yoloCheck('喂饭按钮', { confidence: 0.7, labelRegex: 'feed_btn' })
+          if (feedBtn) {
+            let feedExpand = this.yoloCheck('展开喂饭', { confidence: 0.7, labelRegex: 'feed_expand' })
+            if (feedExpand) {
+              this.setFloatyInfo(feedExpand, '展开喂饭')
+              click(feedExpand.x, feedExpand.y)
               sleep(1000)
-              this._had_feed = true
+              yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '饲料展开', 'feed_expanded')
+              // TODO 训练展开后的饲料按钮
+              let region = [feedExpand.x - feedExpand.width / 2, feedExpand.y - 700, feedExpand.width, 700]
+              let results = localOcr.recognizeWithBounds(_commonFunctions.captureScreen(), region, /\d+g/)
+              if (results && results.length > 0) {
+                let foodCount = results[0].label
+                let targetBd = results[0].bounds
+                let target = {
+                  x: targetBd.centerX(),
+                  y: targetBd.centerY()
+                }
+                let { left, top } = targetBd
+                let width = targetBd.width()
+                let height = targetBd.height()
+                WarningFloaty.addRectangle('饲料数量：' + foodCount, [left, top, width, height])
+                click(target.x, target.y)
+                feed = true
+                sleep(1000)
+                this._had_feed = true
+              } else {
+                this.pushErrorLog('OCR查找饲料位置失败 无法执行饲料展开后的投喂操作')
+              }
             } else {
-              this.pushErrorLog('OCR查找饲料位置失败 无法执行饲料展开后的投喂操作')
+              // OCR 检查当前是否应该有展开喂饭按钮
+              let region = [feedBtn.x - feedBtn.width / 2, feedBtn.y - feedBtn.height / 2, feedBtn.width, feedBtn.height]
+              let results = localOcr.recognizeWithBounds(_commonFunctions.captureScreen(), region, /\d+g/)
+              if (results && results.length > 0) {
+                let foodCount = results[0].label
+                let targetBd = results[0].bounds
+                let { left, top } = targetBd
+                let width = targetBd.width()
+                let height = targetBd.height()
+                WarningFloaty.addRectangle('饲料数量：' + foodCount, [left, top, width, height])
+              } else {
+                yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '无法找到展开饲料', 'feed_expand_failed')
+              }
+            }
+            if (!feed) {
+              // 执行喂饭
+              click(feedBtn.x, feedBtn.y)
+              feed = true
             }
           } else {
-            // OCR 检查当前是否应该有展开喂饭按钮
-            let region = [feedBtn.x - feedBtn.width / 2, feedBtn.y - feedBtn.height / 2, feedBtn.width, feedBtn.height]
-            let results = localOcr.recognizeWithBounds(_commonFunctions.captureScreen(), region, /\d+g/)
-            if (results && results.length > 0) {
-              let foodCount = results[0].label
-              let targetBd = results[0].bounds
-              let { left, top } = targetBd
-              let width = targetBd.width()
-              let height = targetBd.height()
-              WarningFloaty.addRectangle('饲料数量：' + foodCount, [left, top, width, height])
-            } else {
-              yoloTrainHelper.saveImage(_commonFunctions.captureScreen(), '无法找到展开饲料', 'feed_expand_failed')
-            }
+            _FloatyInstance.setFloatyText('未找到喂饭按钮')
+            this.pushErrorLog('未找到喂饭按钮')
           }
-          if (!feed) {
-            // 执行喂饭
-            click(feedBtn.x, feedBtn.y)
-            feed = true
-          }
-        } else {
-          _FloatyInstance.setFloatyText('未找到喂饭按钮')
-          this.pushErrorLog('未找到喂饭按钮')
         }
       }
     } else {
@@ -906,7 +917,7 @@ function AntManorRunner () {
         debugInfo(['yolo识别ocr region:{}', JSON.stringify(region)])
       }
     }
-    WarningFloaty.addRectangle('OCR识别倒计时区域', config.COUNT_DOWN_REGION)
+    WarningFloaty.addRectangle('OCR识别倒计时区域', region)
     debugInfo(['region:{}', JSON.stringify(region)])
     let img = _commonFunctions.checkCaptureScreenPermission()
     img = images.clip(img, region[0], region[1], region[2], region[3])
@@ -983,6 +994,13 @@ function AntManorRunner () {
     }
   }
 
+  /**
+   * 通过OCR识别目标区域内容
+   * @param {*} region 目标区域
+   * @param {*} contentRegex 文本内容 正则表达式
+   * @param {*} getTarget 是否将识别目标转换成 { ...ocrResult, target: { bounds: () => bounds } } 形式 用于后续操作，否则返回true/false
+   * @returns 
+   */
   this.checkByOcr = function (region, contentRegex, getTarget) {
     if (!localOcr.enabled) {
       warnInfo(['请至少安装mlkit-ocr插件或者修改版AutoJS获取本地OCR能力'])
