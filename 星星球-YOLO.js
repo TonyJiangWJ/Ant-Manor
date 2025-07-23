@@ -2,7 +2,7 @@
  * @Author: TonyJiangWJ
  * @Date: 2024-06-08 23:07:35
  * @Last Modified by: TonyJiangWJ
- * @Last Modified time: 2025-04-03 16:55:43
+ * @Last Modified time: 2025-06-05 16:33:30
  * @Description: 星星球自动游玩
  */
 
@@ -15,7 +15,45 @@ importClass(java.util.concurrent.TimeUnit)
 importClass(java.util.concurrent.ThreadFactory)
 importClass(java.util.concurrent.Executors)
 runtime.getImages().initOpenCvIfNeeded()
+let { config } = require('./config.js')(runtime, this)
+let singletonRequire = require('./lib/SingletonRequirer.js')(runtime, this)
+let commonFunctions = singletonRequire('CommonFunction')
+let runningQueueDispatcher = singletonRequire('RunningQueueDispatcher')
+let LogFloaty = singletonRequire('LogFloaty')
+let NotificationHelper = singletonRequire('Notification')
+let antManorRunner = require('./core/AntManorRunner.js')
+let unlocker = require('./lib/Unlock.js')
+let formatDate = require('./lib/DateUtil.js')
+let FloatyInstance = singletonRequire('FloatyUtil')
+let WarningFloaty = singletonRequire('WarningFloaty')
+let FloatyButtonSimple = require('./lib/FloatyButtonSimple.js')
+let { logInfo, errorInfo, warnInfo, debugInfo, infoLog, debugForDev, clearLogFile, flushAllLogs } = singletonRequire('LogUtils')
 
+logInfo('======加入任务队列，并关闭重复运行的脚本=======')
+runningQueueDispatcher.addRunningTask()
+// 注册自动移除运行中任务
+commonFunctions.registerOnEngineRemoved(function () {
+  if (config.auto_lock === true && unlocker.needRelock() === true) {
+    debugInfo('重新锁定屏幕')
+    automator.lockScreen()
+    unlocker.saveNeedRelock(true)
+  }
+  config.resetBrightness && config.resetBrightness()
+  debugInfo('校验并移除已加载的dex')
+  // 移除运行中任务
+  runningQueueDispatcher.removeRunningTask(true, false,
+    () => {
+      // 保存是否需要重新锁屏
+      unlocker.saveNeedRelock()
+      config.isRunning = false
+    }
+  )
+}, 'main')
+if (!commonFunctions.ensureAccessibilityEnabled()) {
+  errorInfo('获取无障碍权限失败')
+  exit()
+}
+unlocker.exec()
 if (typeof $yolo == 'undefined') {
   let plugin_yolo = (() => {
     try {
@@ -29,60 +67,24 @@ if (typeof $yolo == 'undefined') {
   $yolo = plugin_yolo
 }
 
-requestScreenCapture(false)
-
-let bang_offset = -getStatusBarHeight()
-let onnxInstance = null
-setTimeout(() => {
-  try {
-
-    let model_path = files.path('./config_data/manor_ball_lite.onnx')
-    if (!files.exists(model_path)) {
-      toastLog('请确认已下载了模型文件')
-      exit()
-    }
-
-    let onnxInit = $yolo.init({
-      // 参数描述文件和模型文件地址
-      modelPath: model_path,
-      type: 'onnx',
-      // 模型入参图片大小
-      imageSize: 320,
-      // 识别阈值
-      confThreshold: 0.6,
-      // 模型标签，必须和模型匹配
-      labels: [
-        "ball", "chick", "boom",
-      ]
-    })
-    if (onnxInit) {
-      onnxInstance = $yolo.getInstance()
-    } else {
-      toastLog('ncnn初始化失败')
-    }
-  } catch (e) {
-    toastLog('模型初始化异常, 可能执行过PaddleOCR 需要重启AutoJS')
-    console.error(e)
-    showRestartBtn()
-  }
-}, 200)
+commonFunctions.requestScreenCaptureOrRestart()
 
 let WIDTH = device.width
 let HEIGHT = device.height
 let running = false, stopping = false
 let ball_config = {
   // 目标分数
-  targetScore: 300,
+  targetScore: config.starBallScore || 300,
   // 运行超时时间 毫秒
   timeout: 240000
 }
 
 console.verbose('转换后的配置：' + JSON.stringify(ball_config))
+LogFloaty.pushLog('目标分数：' + ball_config.targetScore)
 
 function Player () {
 
   let _this = this
-  this.floatyWindow = null
   this.floatyLock = null
   this.floatyInitCondition = null
   this.forwardCount = 0
@@ -90,16 +92,9 @@ function Player () {
   this.maxScore = 0
   this.threadPool = null
   this.color = '#00ff00'
-  this.drawText = {
-    type: 'text',
-    text: '',
-    position: {
-      x: parseInt(WIDTH / 2),
-      y: parseInt(HEIGHT / 2)
-    },
-    color: this.color,
-    textSize: 40,
-  }
+  this.inited = false
+  this.onnxInstance = null
+
   this.initPool = function () {
     let ENGINE_ID = engines.myEngine().id
     this.threadPool = new ThreadPoolExecutor(4, 8, 60, TimeUnit.SECONDS, new LinkedBlockingQueue(1024), new ThreadFactory({
@@ -141,55 +136,41 @@ function Player () {
     })
   }
 
-  this.initFloaty = function () {
-    let _this = this
-    this.threadPool.execute(function () {
-      sleep(500)
-      _this.floatyLock.lock()
-      _this.floatyWindow = floaty.rawWindow(
-        <canvas id="canvas" layout_weight="1" />
-      )
-      _this.floatyWindow.setTouchable(false)
-      ui.run(() => {
-        _this.floatyWindow.setPosition(0, 0)
-        _this.floatyWindow.setSize(device.width, device.height)
+  this.initOnnxInstance = function () {
+    try {
+      let model_path = files.path('./config_data/manor_ball_lite.onnx')
+      if (!files.exists(model_path)) {
+        toastLog('请确认已下载了模型文件')
+        exit()
+      }
+  
+      let onnxInit = $yolo.init({
+        // 参数描述文件和模型文件地址
+        modelPath: model_path,
+        type: 'onnx',
+        // 模型入参图片大小
+        imageSize: 320,
+        // 识别阈值
+        confThreshold: 0.6,
+        // 模型标签，必须和模型匹配
+        labels: [
+          "ball", "chick", "boom",
+        ]
       })
-      _this.floatyInitCondition.signalAll()
-      _this.floatyLock.unlock()
-
-      _this.floatyWindow.canvas.on("draw", function (canvas) {
-        canvas.drawColor(0xFFFFFF, android.graphics.PorterDuff.Mode.CLEAR)
-
-        if (_this.drawer == null) {
-          _this.drawer = new CanvasDrawer(canvas, null, bang_offset)
-        }
-
-        let toDrawList = _this.toDrawList
-        if (toDrawList && toDrawList.length > 0) {
-          toDrawList.forEach(drawInfo => {
-            try {
-              switch (drawInfo.type) {
-                case 'rect':
-                  _this.drawer.drawRectAndText(drawInfo.text, drawInfo.rect, drawInfo.color || '#00ff00')
-                  break
-                case 'circle':
-                  _this.drawer.drawCircleAndText(drawInfo.text, drawInfo.circle, drawInfo.color || '#00ff00')
-                  break
-                case 'text':
-                  _this.drawer.drawText(drawInfo.text, drawInfo.position, drawInfo.color || '#00ff00', drawInfo.textSize)
-                  break
-                default:
-                  console.warn(['no match draw event for {}', drawInfo.type], true)
-              }
-            } catch (e) {
-              errorInfo('执行异常' + e)
-              commonFunction.printExceptionStack(e)
-            }
-          })
-        }
-        _this.drawer.drawText((device.getAvailMem() / 1024 / 1024).toFixed(2) + 'MB', { x: 100, y: 100 }, '#00ff00', 30)
-      })
-    })
+      if (onnxInit) {
+        this.onnxInstance = $yolo.getInstance()
+      } else {
+        toastLog('onnx初始化失败')
+      }
+    } catch (e) {
+      toastLog('模型初始化异常, 可能执行过PaddleOCR 需要重启AutoJS')
+      console.error(e)
+      showRestartBtn()
+    }
+    if (this.onnxInstance == null) {
+      LogFloaty.pushErrorLog('onnx初始化失败')
+      exit()
+    }
   }
 
   this.getScore = function () {
@@ -207,34 +188,14 @@ function Player () {
   this.setFloatyColor = function (colorStr) {
     if (colorStr && colorStr.match(/^#[\dabcdef]{6}$/)) {
       this.color = colorStr
+      FloatyInstance.setFloatyTextColor(colorStr)
     } else {
       console.error('颜色配置无效:' + colorStr)
     }
   }
 
-
-  this.setRectangle = function (text, rectRegion, color) {
-    this.drawRect = {
-      type: 'rect',
-      text: text,
-      rect: rectRegion,
-      color: color,
-    }
-    this.toDrawList = [this.drawRect, this.drawText, this.drawBall].filter(v => !!v)
-  }
-
   this.setFloatyInfo = function (point, text) {
-    this.drawText = {
-      type: 'text',
-      text: text || this.drawText.text || '',
-      position: point || this.drawText.position || {
-        x: parseInt(WIDTH / 2),
-        y: parseInt(HEIGHT / 2)
-      },
-      color: this.color,
-      textSize: this.drawText.textSize,
-    }
-    this.toDrawList = [this.drawRect, this.drawText, this.drawBall].filter(v => !!v)
+    FloatyInstance.setFloatyInfo(point, text)
   }
 
 
@@ -252,7 +213,7 @@ function Player () {
     let limit = 5
     do {
       let start = new Date()
-      let checkResult = onnxInstance.forward(captureScreen(), { labelRegex: 'chick' })
+      let checkResult = this.onnxInstance.forward(captureScreen(), { labelRegex: 'chick' })
       console.verbose('识别耗时：', (new Date().getTime() - start.getTime()) + 'ms')
       if (checkResult && checkResult.length > 0) {
         chick = checkResult[0]
@@ -282,14 +243,17 @@ function Player () {
     let countdownLatch = new java.util.concurrent.CountDownLatch(1)
     this.threadPool.execute(function () {
       let lastScore = 0
+
+      LogFloaty.pushLog('当前分数：0')
       while (currentScore < stopScore && running) {
         currentScore = self.getScore()
         if (lastScore !== currentScore) {
           lastScore = currentScore
+          LogFloaty.replaceLastLog('当前分数：' + lastScore)
           if (currentScore > self.maxScore) {
             self.maxScore = currentScore
           }
-          self.setFloatyInfo(null, lastScore)
+          self.setFloatyInfo(null, lastScore + '')
         }
         sleep(200)
       }
@@ -301,7 +265,7 @@ function Player () {
           let img = captureScreen()
           console.verbose('截图耗时：', (new Date().getTime() - start.getTime()) + 'ms')
           start = new Date()
-          let points = onnxInstance.forward(img, null)//, _this.ballRegion)
+          let points = _this.onnxInstance.forward(img, null)//, _this.ballRegion)
           let forwardCost = new Date().getTime() - start.getTime()
           _this.forwardAvg = (_this.forwardAvg * _this.forwardCount + forwardCost) / (++_this.forwardCount)
           // 截图+识别 平均需要80多毫秒，还是比较慢的
@@ -317,11 +281,8 @@ function Player () {
               // 点击底部
               click(point.bounds.centerX(), point.bounds.centerY())
               clickCount++
-              self.drawBall = {
-                type: 'rect',
-                text: '球',
-                rect: [point.x, point.y, point.bounds.width(), point.bounds.height()],
-              }
+              WarningFloaty.clearAll()
+              WarningFloaty.addRectangle('球', [point.x, point.y, point.bounds.width(), point.bounds.height()])
               self.setFloatyInfo({ x: point.bounds.centerX(), y: point.bounds.bottom + point.bounds.height() / 2 }, null)
               // 点击后延迟
               sleep(50)
@@ -346,8 +307,8 @@ function Player () {
     })
 
     countdownLatch.await()
-
-    toastLog('最终分数:' + this.maxScore + ' 点击：' + clickCount + '次总耗时：' + ((new Date().getTime() - start) / 1000).toFixed(1) + 's 平均识别耗时：' + this.forwardAvg.toFixed(2) + ' fps:' + (1000 / this.forwardAvg).toFixed(2))
+    let content = '最终分数:' + this.maxScore + ' 点击：' + clickCount + '次总耗时：' + ((new Date().getTime() - start) / 1000).toFixed(1) + 's 平均识别耗时：' + this.forwardAvg.toFixed(2) + ' fps:' + (1000 / this.forwardAvg).toFixed(2)
+    toastLog(content)
     let point = {
       x: parseInt(WIDTH / 3),
       y: parseInt(HEIGHT / 3),
@@ -358,12 +319,11 @@ function Player () {
       x: parseInt(WIDTH / 2),
       y: point.y
     }, '再见')
-    sleep(1000)
     stopping = false
     running = false
-    ui.run(function () {
-      window.start.setText('开始')
-    })
+    sleep(1000)
+    LogFloaty.pushLog(content)
+    floatyButton.changeButtonText('start', '开始')
   }
 
   this.setTimeoutExit = function () {
@@ -373,11 +333,15 @@ function Player () {
   }
 
 
-  this.init = function (targetScore) {
+  this.init = function () {
+    if (this.inited) {
+      return false
+    }
     this.initPool()
     this.initLock()
     this.listenStop()
-    this.initFloaty()
+    this.initOnnxInstance()
+    this.inited = true
   }
 
   this.startPlaying = function (targetScore) {
@@ -387,29 +351,61 @@ function Player () {
   this.destroyPool = function () {
     this.threadPool.shutdownNow()
     this.threadPool = null
-    this.floatyWindow = null
   }
-}
-
-
-try {
-  auto.waitFor()
-} catch (e) {
-  toastLog('auto.waitFor()不可用')
-  auto()
 }
 
 // console.show()
 let player = new Player()
 player.init()
 
-let btns = [
+function doStartGame () {
+  floatyButton.changeButtonText('start', '停止执行')
+  player.startPlaying()
+}
+
+function doOpenGame () {
+  floatyButton.changeButtonText('openGame', '正在打开...')
+  // 打开蚂蚁庄园界面
+  if (!antManorRunner.launchApp(false, true)) {
+    LogFloaty.pushErrorLog('未能打开蚂蚁庄园')
+    return false
+  }
+  // 打开去游玩
+  LogFloaty.pushLog('查找小鸡乐园')
+  let findTarget = antManorRunner.yoloCheck('小鸡乐园', { labelRegex: 'sports' })
+  if (findTarget) {
+    click(findTarget.x, findTarget.y)
+    LogFloaty.pushLog('找到小鸡乐园，查找星星球入口')
+    sleep(1000)
+    // 找到星星球进行点击
+    let target = selector().textContains('星星球').findOne(2000)
+    if (target) {
+      LogFloaty.pushLog('找到了星星球入口')
+      target.click()
+      floatyButton.changeButtonText('openGame', '打开游戏界面')
+      return true
+    } else {
+      LogFloaty.pushErrorLog('未能找到星星球')
+    }
+  } else {
+    LogFloaty.pushErrorLog('未找到小鸡乐园')
+  }
+  floatyButton.changeButtonText('openGame', '打开游戏界面')
+  return false
+}
+
+let floatyButton = new FloatyButtonSimple('star-ball', [
   {
     id: 'start',
     text: '开始',
     preventClickExecuting: true,
     onClick: function () {
       wrapExeception(() => {
+        doStartGame()
+      })
+    },
+    handleExecuting: function (executingBtnId) {
+      if (executingBtnId == 'start') {
         if (stopping) {
           toastLog('停止中')
           return
@@ -417,15 +413,17 @@ let btns = [
         if (running == true) {
           running = false
           stopping = true
-          ui.run(function () {
-            window.start.setText('停止中...')
-          })
-        } else {
-          ui.run(function () {
-            window.start.setText('停止执行')
-          })
-          player.startPlaying()
+          floatyButton.changeButtonText('start', '停止中...')
         }
+      }
+    }
+  },
+  {
+    id: 'openGame',
+    text: '打开游戏界面',
+    onClick: function () {
+      wrapExeception(() => {
+        doOpenGame()
       })
     }
   },
@@ -445,324 +443,54 @@ let btns = [
       })
     }
   },
-  {
-    id: 'exit',
-    color: '#EB393C',
-    rippleColor: '#C2292C',
-    text: '退出脚本',
-    onClick: function () {
-      exit()
-    }
-  }
-]
-
-let data = {
-  _clickExecuting: false,
-  set clickExecuting (val) {
-    this._clickExecuting = val
-  },
-  get clickExecuting () {
-    return this._clickExecuting
-  },
-  btnDrawables: {}
-}
-
-let threadPool = new ThreadPoolExecutor(2, 2, 60, TimeUnit.SECONDS, new LinkedBlockingQueue(16),
-  new ThreadFactory({
-    newThread: function (runnable) {
-      let thread = Executors.defaultThreadFactory().newThread(runnable)
-      thread.setName('btn-operator-' + thread.getName())
-      return thread
-    }
-  })
-)
-let window = floaty.rawWindow(
-  `<horizontal>
-    <vertical padding="1">
-   ${btns.map(btn => {
-    return `<vertical marginTop="5" marginBottom="5" id="${btn.id}_container"><button id="${btn.id}" text="${btn.text}" textSize="${btn.textSize ? btn.textSize : 12}sp" w="*" h="30" /></vertical>`
-  }).join('\n')
-  }</vertical>
-  </horizontal>`)
-ui.run(() => {
-  window.setPosition(device.width * 0.1, device.height * 0.5)
-})
-btns.forEach(btn => {
-  ui.run(() => {
-    if (btn.hide) {
-      window[btn.id + '_container'].setVisibility(8)
-    }
-    setButtonStyle(btn.id, btn.color, btn.rippleColor)
-  })
-  if (btn.onClick) {
-    window[btn.id].on('click', () => {
-      if (data.clickExecuting && !btn.preventClickExecuting) {
-        threadPool.execute(function () {
-          toastLog('点击执行中，请稍等')
-        })
-        return
-      }
-      data.clickExecuting = true
-      threadPool.execute(function () {
-        try {
-          btn.onClick()
-        } catch (e) {
-          console.error(['点击执行异常：{}', e.message], true)
-        } finally {
-          data.clickExecuting = false
-        }
-      })
-    })
-  }
-})
-
-
-window.exit.setOnTouchListener(new TouchController(window, () => {
-  exit()
-}, () => {
-  changeButtonStyle('exit', null, '#FF753A', '#FFE13A')
-}, () => {
-  changeButtonStyle('exit', (drawable) => {
-    drawable.setColor(colors.parseColor('#EB393C'))
-    drawable.setStroke(0, colors.parseColor('#3FBE7B'))
-  })
-}).createListener())
-
-
-function setButtonStyle (btnId, color, rippleColor) {
-  let shapeDrawable = new GradientDrawable();
-  shapeDrawable.setShape(GradientDrawable.RECTANGLE);
-  // 设置圆角大小，或者直接使用setCornerRadius方法
-  // shapeDrawable.setCornerRadius(20); // 调整这里的数值来控制圆角的大小
-  let radius = util.java.array('float', 8)
-  for (let i = 0; i < 8; i++) {
-    radius[i] = 20
-  }
-  shapeDrawable.setCornerRadii(radius); // 调整这里的数值来控制圆角的大小
-  shapeDrawable.setColor(colors.parseColor(color || '#3FBE7B')); // 按钮的背景色
-  shapeDrawable.setPadding(10, 10, 10, 10); // 调整这里的数值来控制按钮的内边距
-  // shapeDrawable.setStroke(5, colors.parseColor('#FFEE00')); // 调整这里的数值来控制按钮的边框宽度和颜色
-  data.btnDrawables[btnId] = shapeDrawable
-  let btn = window[btnId]
-  btn.setShadowLayer(10, 5, 5, colors.parseColor('#888888'))
-  btn.setBackground(new RippleDrawable(ColorStateList.valueOf(colors.parseColor(rippleColor || '#27985C')), shapeDrawable, null))
-}
-
-function changeButtonStyle (btnId, handler, color, storkColor) {
-  handler = handler || function (shapeDrawable) {
-    color && shapeDrawable.setColor(colors.parseColor(color))
-    storkColor && shapeDrawable.setStroke(5, colors.parseColor(storkColor))
-  }
-  handler(data.btnDrawables[btnId])
-}
+])
 
 function wrapExeception (func) {
   try {
-    func()
+    return func()
   } catch (e) {
     console.error('执行异常', e)
   }
 }
 
-function getStatusBarHeight () {
-  let resources = context.getResources()
-  let resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
-  return resources.getDimensionPixelSize(resourceId)
-}
-
 function showRestartBtn () {
   ui.run(() => {
-    window.restart_container.setVisibility(0)
+    floatyButton.window.restart_container.setVisibility(0)
   })
 }
 
-
-function TouchController (buttonWindow, handleClick, handleDown, handleUp) {
-  this.eventStartX = null
-  this.eventStartY = null
-  this.windowStartX = buttonWindow.getX()
-  this.windowStartY = buttonWindow.getY()
-  this.eventKeep = false
-  this.eventMoving = false
-  this.touchDownTime = new Date().getTime()
-
-  this.createListener = function () {
-    let _this = this
-    return new android.view.View.OnTouchListener((view, event) => {
-      try {
-        switch (event.getAction()) {
-          case event.ACTION_DOWN:
-            handleDown && handleDown()
-            _this.eventStartX = event.getRawX();
-            _this.eventStartY = event.getRawY();
-            _this.windowStartX = buttonWindow.getX();
-            _this.windowStartY = buttonWindow.getY();
-            _this.eventKeep = true; //按下,开启计时
-            _this.touchDownTime = new Date().getTime()
-            break;
-          case event.ACTION_MOVE:
-            var sx = event.getRawX() - _this.eventStartX;
-            var sy = event.getRawY() - _this.eventStartY;
-            if (!_this.eventMoving && _this.eventKeep && getDistance(sx, sy) >= 10) {
-              _this.eventMoving = true;
-            }
-            if (_this.eventMoving && _this.eventKeep) {
-              ui.post(() => {
-                buttonWindow.setPosition(_this.windowStartX + sx, _this.windowStartY + sy);
-              })
-            }
-            break;
-          case event.ACTION_UP:
-            handleUp && handleUp()
-            if (!_this.eventMoving && _this.eventKeep && _this.touchDownTime > new Date().getTime() - 1000) {
-              handleClick && handleClick()
-            }
-            _this.eventKeep = false;
-            _this.touchDownTime = 0;
-            _this.eventMoving = false;
-            break;
-        }
-      } catch (e) {
-        console.error('异常' + e)
-      }
-      return true;
-    })
-  }
+let executeArguments = Object.assign({}, engines.myEngine().execArgv)
+let executeByTimeTask = !!executeArguments.intent
+// 部分设备中参数有脏东西 可能导致JSON序列化异常
+delete executeArguments.intent
+if (executeArguments) {
+  debugInfo(['启动参数：{}', JSON.stringify(executeArguments)])
 }
 
-function getDistance (dx, dy) {
-  return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
-}
+unlocker.exec()
 
-function CanvasDrawer (canvas, paint, offset) {
-  this.canvas = canvas
-  if (!paint) {
-    let Typeface = android.graphics.Typeface
-    paint = new Paint()
-    paint.setStrokeWidth(1)
-    paint.setTypeface(Typeface.DEFAULT_BOLD)
-    paint.setTextAlign(Paint.Align.LEFT)
-    paint.setAntiAlias(true)
-    paint.setStrokeJoin(Paint.Join.ROUND)
-    paint.setDither(true)
-    paint.setTextSize(30)
+if (executeByTimeTask || executeArguments.executeByDispatcher/* || true TODO remove testing*/) {
+  // 避免按钮点击冲突
+  floatyButton.data.clickExecuting = true
+  // 定时任务触发，执行自动操作
+  commonFunctions.showCommonDialogAndWait('星星球')
+  commonFunctions.listenDelayStart()
+  NotificationHelper.cancelNotice()
+  if (doOpenGame()) {
+    // 修改执行中按钮 允许点击按钮
+    floatyButton.data.executingBtn = 'start'
+    sleep(1000)
+    LogFloaty.pushLog('自动开启执行星星球')
+    doStartGame()
+    LogFloaty.pushLog('执行完毕')
+    // 执行成功 撤销定时任务
+    commonFunctions.cancelAllTimedTasks()
+  } else {
+    // 打开失败
+    LogFloaty.pushErrorLog('打开星星球失败，五分钟后重试')
+    // TODO 发送通知
+    commonFunctions.setUpAutoStart(5)
+    NotificationHelper.createNotification('打开星星球失败，五分钟后自动启动', '下次执行时间：' + formatDate(new Date(new Date().getTime() + 5 * 60000)))
   }
-  this.paint = paint
-  offset = offset || 0
-
-  this.color = '#ffffff'
-  this.textSize = 20
-
-  this.drawText = function (text, position, color, textSize) {
-    this.color = color || this.color
-    this.textSize = textSize || this.textSize
-    drawText(text, position, this.canvas, this.paint, this.color, this.textSize)
-  }
-
-  this.drawRectAndText = function (text, position, color, textSize) {
-    this.color = color || this.color
-    this.textSize = textSize || this.textSize
-    this.paint.setTextSize(this.textSize)
-    drawRectAndText(text, position, this.color, this.canvas, this.paint)
-  }
-
-  this.drawCircleAndText = function (text, circleInfo, color, textSize) {
-    this.color = color || this.color
-    this.textSize = textSize || this.textSize
-    this.paint.setTextSize(this.textSize)
-    drawCircleAndText(text, circleInfo, this.color, this.canvas, this.paint)
-  }
-
-  function convertArrayToRect (a) {
-    // origin array left top width height
-    // left top right bottom
-    return new android.graphics.Rect(a[0], a[1] + offset, (a[0] + a[2]), (a[1] + offset + a[3]))
-  }
-
-  function getPositionDesc (position) {
-    return position[0] + ', ' + position[1] + ' w:' + position[2] + ',h:' + position[3]
-  }
-
-  function getRectCenter (position) {
-    return {
-      x: parseInt(position[0] + position[2] / 2),
-      y: parseInt(position[1] + position[3] / 2)
-    }
-  }
-
-  function drawRectAndText (desc, position, colorStr, canvas, paint) {
-    let color = colors.parseColor(colorStr)
-
-    paint.setStrokeWidth(1)
-    paint.setStyle(Paint.Style.STROKE)
-    paint.setARGB(255, color >> 16 & 0xff, color >> 8 & 0xff, color & 0xff)
-    canvas.drawRect(convertArrayToRect(position), paint)
-    paint.setStrokeWidth(1)
-    paint.setTextSize(20)
-    paint.setStyle(Paint.Style.FILL)
-    // 文字背景阴影色
-    paint.setARGB(255, 136, 136, 136)
-    canvas.drawText(desc, position[0] + 2, position[1] + offset - 2, paint)
-    // 为文字设置反色
-    paint.setARGB(255, 255 - (color >> 16 & 0xff), 255 - (color >> 8 & 0xff), 255 - (color & 0xff))
-    canvas.drawText(desc, position[0], position[1] + offset, paint)
-    paint.setTextSize(10)
-    paint.setStrokeWidth(1)
-    paint.setARGB(255, 0, 0, 0)
-  }
-
-  function drawCircleAndText (desc, circleInfo, colorStr, canvas, paint) {
-    let color = colors.parseColor(colorStr)
-
-    // 文字背景阴影色
-    paint.setARGB(255, 136, 136, 136)
-    drawText(desc, { x: circleInfo.x + 2, y: circleInfo.y - 2 }, canvas, paint)
-    // 文字反色
-    paint.setARGB(255, 255 - (color >> 16 & 0xff), 255 - (color >> 8 & 0xff), 255 - (color & 0xff))
-    drawText(desc, { x: circleInfo.x, y: circleInfo.y }, canvas, paint)
-    paint.setStrokeWidth(3)
-    paint.setStyle(Paint.Style.STROKE)
-    paint.setARGB(255, color >> 16 & 0xff, color >> 8 & 0xff, color & 0xff)
-    canvas.drawCircle(circleInfo.x, circleInfo.y + offset, circleInfo.radius, paint)
-  }
-
-  function drawText (text, position, canvas, paint, colorStr, textSize) {
-    textSize = textSize || 20
-    paint.setStrokeWidth(1)
-    paint.setStyle(Paint.Style.FILL)
-    paint.setTextSize(textSize)
-
-    // 文字背景阴影色
-    paint.setARGB(255, 136, 136, 136)
-    canvas.drawText(text, position.x + 2, position.y + offset - 2, paint)
-    if (colorStr) {
-      let color = colors.parseColor(colorStr)
-      paint.setARGB(255, color >> 16 & 0xff, color >> 8 & 0xff, color & 0xff)
-    } else {
-      paint.setARGB(255, 0, 0, 255)
-    }
-    canvas.drawText(text, position.x, position.y + offset, paint)
-  }
-
-  function drawCoordinateAxis (canvas, paint) {
-    let width = canvas.width
-    let height = canvas.height
-    paint.setStyle(Paint.Style.FILL)
-    paint.setTextSize(10)
-    let colorVal = colors.parseColor('#65f4fb')
-    paint.setARGB(255, colorVal >> 16 & 0xFF, colorVal >> 8 & 0xFF, colorVal & 0xFF)
-    for (let x = 50; x < width; x += 50) {
-      paint.setStrokeWidth(0)
-      canvas.drawText(x, x, 10 + offset, paint)
-      paint.setStrokeWidth(0.5)
-      canvas.drawLine(x, 0, x + offset, height, paint)
-    }
-
-    for (let y = 50; y < height; y += 50) {
-      paint.setStrokeWidth(0)
-      canvas.drawText(y, 0, y + offset, paint)
-      paint.setStrokeWidth(0.5)
-      canvas.drawLine(0, y + offset, width, y + offset, paint)
-    }
-  }
+  exit()
 }
